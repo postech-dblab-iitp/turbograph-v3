@@ -8,7 +8,7 @@
 #include "malloc.h"
 #include "object_log.h"
 
-class Turbo_bin_aio_handler;
+class Bin_aio_handler;
 
 class LightningClient {
 public:
@@ -44,7 +44,7 @@ public:
 
   int Delete(uint64_t object_id);
 
-  int Flush(uint64_t object_id, Turbo_bin_aio_handler* file_handler);
+  int Flush(uint64_t object_id, Bin_aio_handler* file_handler);
 
   int Subscribe(uint64_t object_id);
 
@@ -74,7 +74,7 @@ private:
   int get_dirty_internal(uint64_t object_id, bool& is_dirty);
   int get_refcount_internal(uint64_t object_id);
   int delete_internal(uint64_t object_id);
-  int flush_internal(uint64_t object_id, Turbo_bin_aio_handler* file_handler);
+  int flush_internal(uint64_t object_id, Bin_aio_handler* file_handler);
   int subscribe_internal(uint64_t object_id, sem_t **sem, bool *wait);
   void init_mpk();
 

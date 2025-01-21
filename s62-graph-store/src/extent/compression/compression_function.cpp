@@ -15,25 +15,12 @@ bool LookupString(string_t str, std::unordered_map<string_t, uint32_t, StringHas
 }
 
 bool HasEnoughSpace(bool new_string, size_t string_size, idx_t index_pos, bitpacking_width_t &next_width) {
-    /*if (new_string) {
-        next_width = BitpackingPrimitives::MinimumBitWidth(index_buffer.size() - 1 + new_string);
-    }*/
-    return true; // We use variable sized page.. so maybe we always have enough space
-    /*    next_width = BitpackingPrimitives::MinimumBitWidth(index_buffer.size() - 1 + new_string);
-        return DictionaryCompressionStorage::HasEnoughSpace(current_segment->count.load() + 1,
-                                                            index_buffer.size() + 1,
-                                                            current_dictionary.size + string_size, next_width);
-    } else {
-        return DictionaryCompressionStorage::HasEnoughSpace(current_segment->count.load() + 1, index_buffer.size(),
-                                                            current_dictionary.size, current_width);
-    }*/
+    return true;
 }
 
 void AddNewString(string_t &str, data_ptr_t &string_data_pointer, idx_t &string_data_pos,
                   uint32_t *selection_buffer, idx_t &selection_pos, uint32_t *index_buffer, idx_t &index_pos,
                   std::unordered_map<string_t, uint32_t, StringHash, StringCompare> &current_string_map) {
-    // UncompressedStringStorage::UpdateStringStats(current_segment->stats, str);
-
     // Copy string to dict
     idx_t string_size = str.GetSize();
     memcpy(string_data_pointer, str.GetDataUnsafe(), string_size);
@@ -45,7 +32,6 @@ void AddNewString(string_t &str, data_ptr_t &string_data_pointer, idx_t &string_
     index_buffer[index_pos++] = (uint32_t)string_data_pos;
     selection_buffer[selection_pos++] = index_pos - 1;
     current_string_map.insert({str, index_pos - 1});
-    //DictionaryCompressionStorage::SetDictionary(*current_segment, *current_handle, current_dictionary);
 }
 
 void Verify() {
@@ -90,8 +76,6 @@ void DictionaryCompress(data_ptr_t buf_ptr, size_t buf_size, data_ptr_t data_to_
             // D_ASSERT(HasEnoughSpace(new_string, string_size));
         }
 
-        //if (!row_is_valid) {
-        //    AddNull();
         if (new_string) {
             AddNewString(data[i], string_data_pointer, string_data_pos, selection_buffer, selection_pos,
                          index_buffer, index_pos, current_string_map);

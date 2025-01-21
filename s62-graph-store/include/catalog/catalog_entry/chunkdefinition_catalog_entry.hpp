@@ -1,11 +1,3 @@
-//===----------------------------------------------------------------------===//
-//                         DuckDB
-//
-// duckdb/catalog/catalog_entry/table_catalog_entry.hpp
-//
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 
@@ -34,20 +26,12 @@ struct AlterForeignKeyInfo;
 //! A chunk definition catalog entry
 class ChunkDefinitionCatalogEntry : public StandardEntry {
 public:
-	//! Create a real GraphCatalogEntry
 	ChunkDefinitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreateChunkDefinitionInfo *info, const void_allocator &void_alloc);
 
-	LogicalTypeId data_type_id; // TODO SHM
-	CompressionType compression_type = CompressionType::COMPRESSION_AUTO; // TODO SHM
-	bool is_min_max_array_exist = false; // TODO SHM
-	size_t num_entries_in_column; // TODO SHM
-
-	/**
-	 * Currently, min max array is supported for numeric types only, which can be represented by idx_t.
-	 * Therefore, float and double are not supported.
-	 * To do this, we need complex data type define (for example, union).
-	 * For now, we just use idx_t.
-	 */
+	LogicalTypeId data_type_id;
+	CompressionType compression_type = CompressionType::COMPRESSION_AUTO;
+	bool is_min_max_array_exist = false;
+	size_t num_entries_in_column;
 
 	minmax_t_vector min_max_array;
 public:

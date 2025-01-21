@@ -1,8 +1,8 @@
-#ifndef _TURBO_BIN_IO_HANDLER_H
-#define _TURBO_BIN_IO_HANDLER_H
+#ifndef _BIN_IO_HANDLER_H
+#define _BIN_IO_HANDLER_H
 
 /*
- * Design of the Turbo_bin_io_handler
+ * Design of the Bin_io_handler
  *
  * This class provides APIs that can perform I/O to binary files. After setting 
  * the flag value according to the combination of parameters given as the input 
@@ -30,11 +30,11 @@
 #include "util.hpp"
 #include "cache/common.h"
 
-class Turbo_bin_io_handler {
+class Bin_io_handler {
    public:
-    Turbo_bin_io_handler() : file_descriptor(-1) { file_mmap = NULL; }
+    Bin_io_handler() : file_descriptor(-1) { file_mmap = NULL; }
 
-    Turbo_bin_io_handler(const char *file_name,
+    Bin_io_handler(const char *file_name,
                          bool create_if_not_exist = false,
                          bool write_enabled = false,
                          bool delete_if_exist = false, bool o_direct = false)
@@ -45,7 +45,7 @@ class Turbo_bin_io_handler {
         file_mmap = NULL;
     }
 
-    ~Turbo_bin_io_handler()
+    ~Bin_io_handler()
     {
         if (file_descriptor != -1) {
             int res = close(file_descriptor);

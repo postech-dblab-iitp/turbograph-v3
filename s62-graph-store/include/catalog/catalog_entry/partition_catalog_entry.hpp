@@ -1,21 +1,9 @@
-//===----------------------------------------------------------------------===//
-//                         DuckDB
-//
-// duckdb/catalog/catalog_entry/table_catalog_entry.hpp
-//
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 
 #include "catalog/standard_entry.hpp"
 
 #include "common/unordered_map.hpp"
-//#include "parser/column_definition.hpp"
-//#include "parser/constraint.hpp"
-//#include "planner/bound_constraint.hpp"
-//#include "planner/expression.hpp"
 #include "common/boost_typedefs.hpp"
 #include "common/case_insensitive_map.hpp"
 #include "catalog/inverted_index.hpp"
@@ -43,13 +31,10 @@ public:
 	PartitionCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePartitionInfo *info, const void_allocator &void_alloc);
 
 	//! PropertyKeyID -> Property schema catalog entries those contains the property
-	// PropertyToPropertySchemaVecUnorderedMap property_schema_index;
 	PropertyToPropertySchemaPairVecUnorderedMap property_schema_index;
 
 	//! OIDs of property schema catalog entries
 	PropertySchemaID_vector property_schema_array;
-
-	//vector<Constraints> constraints;
 	
 	//! Logical partition ID
 	PartitionID pid;

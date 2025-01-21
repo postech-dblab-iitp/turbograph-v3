@@ -17,9 +17,6 @@
 #include "common/mutex.hpp"
 #include "common/boost.hpp"
 #include "parser/column_definition.hpp"
-#include "catalog/catalog_entry/table_catalog_entry.hpp"
-#include "catalog/catalog_entry/sequence_catalog_entry.hpp"
-//#include "transaction/transaction.hpp"
 #include <functional>
 #include <memory>
 
@@ -35,11 +32,6 @@ typedef boost::interprocess::allocator<bool, segment_manager_t> bool_allocator;
 typedef boost::interprocess::allocator<idx_t, segment_manager_t> idx_t_allocator;
 typedef boost::interprocess::allocator<char, segment_manager_t> char_allocator;
 typedef boost::interprocess::basic_string<char, std::char_traits<char>, char_allocator> char_string;
-
-//typedef boost::interprocess::managed_unique_ptr<CatalogEntry, boost::interprocess::managed_shared_memory>::type unique_ptr_type;
-//typedef boost::interprocess::managed_unique_ptr<CatalogEntry, boost::interprocess::managed_shared_memory>::type schema_unique_ptr_type;
-//typedef boost::interprocess::offset_ptr<CatalogEntry> catalog_entry_offset_ptr;
-//typedef	boost::interprocess::deleter<CatalogEntry, segment_manager_t> deleter_type;
 typedef std::pair<const idx_t, CatalogEntry*> ValueType;
 typedef boost::interprocess::allocator<ValueType, segment_manager_t> ShmemAllocator;
 typedef boost::unordered_map< idx_t, CatalogEntry*
@@ -56,8 +48,6 @@ struct MappingValue {
 	idx_t index;
 	transaction_t timestamp;
 	bool deleted;
-	//unique_ptr<MappingValue> child;
-	//MappingValue_unique_ptr_type *child; // TODO deleter problem..
 	MappingValue *child;
 	MappingValue *parent;
 };
@@ -74,15 +64,8 @@ struct SHM_CaseInsensitiveStringEquality {
 	}
 };
 
-//typedef boost::interprocess::managed_unique_ptr<MappingValue, boost::interprocess::managed_shared_memory>::type MappingValue_unique_ptr_type;
-//typedef std::pair<char_string, MappingValue_unique_ptr_type> movable_to_map_value_type;
-//typedef boost::interprocess::offset_ptr<MappingValue> mapping_value_offset_ptr;
 typedef std::pair<const char_string, MappingValue*> map_value_type;
 typedef boost::interprocess::allocator<map_value_type, segment_manager_t> map_value_type_allocator;
-// typedef boost::unordered_map< char_string, MappingValue_unique_ptr_type
-//        	, boost::hash<char_string>, std::equal_to<std::string>, 
-// 			map_value_type_allocator>
-// MappingUnorderedMap;
 typedef boost::unordered_map< char_string, MappingValue*
        	, SHM_CaseInsensitiveStringHashFunction, SHM_CaseInsensitiveStringEquality, 
 			map_value_type_allocator>
@@ -101,18 +84,12 @@ public:
 
 	//! Create an entry in the catalog set. Returns whether or not it was
 	//! successful.
-	//DUCKDB_API bool CreateEntry(ClientContext &context, const string &name, unique_ptr<CatalogEntry> value,
-	//                            unordered_set<CatalogEntry *> &dependencies);
-	//DUCKDB_API bool CreateEntry(ClientContext &context, const string &name, boost::interprocess::offset_ptr<CatalogEntry> value,
-	//                            unordered_set<CatalogEntry *> &dependencies);
 	DUCKDB_API bool CreateEntry(ClientContext &context, const string &name, CatalogEntry* value,
 	                            unordered_set<CatalogEntry *> &dependencies);
 
 	DUCKDB_API bool AlterEntry(ClientContext &context, const string &name, AlterInfo *alter_info);
 
 	DUCKDB_API bool DropEntry(ClientContext &context, const string &name, bool cascade);
-
-	//bool AlterOwnership(ClientContext &context, ChangeOwnershipInfo *info);
 
 	void CleanupEntry(CatalogEntry *catalog_entry);
 
@@ -148,8 +125,6 @@ public:
 private:
 	//! Adjusts table dependencies on the event of an UNDO
 	void AdjustTableDependencies(CatalogEntry *entry);
-	//! Adjust one dependency
-	//void AdjustDependency(CatalogEntry *entry, TableCatalogEntry *table, ColumnDefinition &column, bool remove);
 	//! Adjust Enum dependency
 	void AdjustEnumDependency(CatalogEntry *entry, ColumnDefinition &column, bool remove);
 	//! Given a root entry, gets the entry valid for this transaction
@@ -170,10 +145,8 @@ private:
 	//! The catalog lock is used to make changes to the data
 	mutex catalog_lock;
 	//! Mapping of string to catalog entry
-	//case_insensitive_map_t<unique_ptr<MappingValue>> mapping;
 	MappingUnorderedMap *mapping;
 	//! The set of catalog entries
-	//unordered_map<idx_t, unique_ptr<CatalogEntry>> entries;
 	EntriesUnorderedMap *entries;
 	//! The current catalog entry index
 	idx_t *current_entry;
@@ -181,6 +154,5 @@ private:
 	unique_ptr<DefaultGenerator> defaults;
 	// Shared memory manager
 	fixed_managed_mapped_file *catalog_segment;
-	// string catalog_set_name;
 };
 } // namespace s62

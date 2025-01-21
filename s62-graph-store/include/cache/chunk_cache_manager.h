@@ -7,7 +7,7 @@
 #include "common/constants.hpp"
 #include "cache/common.h"
 #include "cache/client.h"
-#include "cache/disk_aio/Turbo_bin_aio_handler.hpp"
+#include "cache/disk_aio/Bin_aio_handler.hpp"
 
 namespace s62 {
 
@@ -41,22 +41,20 @@ public:
   // ChunkCacheManager Internal Functions
   bool CidValidityCheck(ChunkID cid);
   bool AllocSizeValidityCheck(size_t alloc_size);
-  size_t GetSegmentSize(ChunkID cid, std::string file_path); // sid가 필요한지?
-  size_t GetFileSize(ChunkID cid, std::string file_path); // sid가 필요한지?
-  Turbo_bin_aio_handler* GetFileHandler(ChunkID cid);
+  size_t GetSegmentSize(ChunkID cid, std::string file_path);
+  size_t GetFileSize(ChunkID cid, std::string file_path);
+  Bin_aio_handler* GetFileHandler(ChunkID cid);
   void ReadData(ChunkID cid, std::string file_path, void *ptr, size_t size_to_read, bool read_data_async);
   void WriteData(ChunkID cid);
   ReturnStatus CreateNewFile(ChunkID cid, std::string file_path, size_t alloc_size, bool can_destroy);
-  void *MemAlign(uint8_t** ptr, size_t segment_size, size_t required_memory_size, Turbo_bin_aio_handler* file_handler);
+  void *MemAlign(uint8_t** ptr, size_t segment_size, size_t required_memory_size, Bin_aio_handler* file_handler);
 
-  void UnswizzleFlushSwizzle(ChunkID cid, Turbo_bin_aio_handler* file_handler, bool close_file=true);
+  void UnswizzleFlushSwizzle(ChunkID cid, Bin_aio_handler* file_handler, bool close_file=true);
 
 public:
   // Member Variables
   LightningClient* client;
-  //Turbo_bin_aio_handler* file_handlers[NUM_MAX_SEGMENTS];
-  unordered_map<ChunkID, Turbo_bin_aio_handler*> file_handlers;
-  //Turbo_bin_aio_handler file_handler;
+  unordered_map<ChunkID, Bin_aio_handler*> file_handlers;
   const std::string file_meta_info_name = ".file_meta_info";
 };
 

@@ -1,5 +1,4 @@
 #include "catalog/catalog_entry/index_catalog_entry.hpp"
-// #include "duckdb/storage/data_table.hpp"
 
 namespace s62 {
 
@@ -11,11 +10,6 @@ IndexCatalogEntry::IndexCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schem
 }
 
 IndexCatalogEntry::~IndexCatalogEntry() {
-	// remove the associated index from the info
-	// if (!info || !index) {
-	// 	return;
-	// }
-	// info->indexes.RemoveIndex(index);
 }
 
 string IndexCatalogEntry::ToSQL() {

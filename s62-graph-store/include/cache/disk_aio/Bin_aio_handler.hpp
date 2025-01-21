@@ -1,5 +1,5 @@
-#ifndef _TURBO_BIN_AIO_HANDLER_H
-#define _TURBO_BIN_AIO_HANDLER_H
+#ifndef _BIN_AIO_HANDLER_H
+#define _BIN_AIO_HANDLER_H
 
 #include <streambuf>
 #include <fcntl.h>
@@ -12,19 +12,19 @@
 #include "cache/common.h"
 #include "cache/disk_aio/disk_aio_factory.hpp"
 
-class Turbo_bin_aio_handler {
+class Bin_aio_handler {
   public:
 
-  Turbo_bin_aio_handler() : file_descriptor(-1), is_reserved(false), delete_when_close(false) {
+  Bin_aio_handler() : file_descriptor(-1), is_reserved(false), delete_when_close(false) {
     file_mmap = NULL;
   }
 
-  Turbo_bin_aio_handler(const char* file_name, bool create_if_not_exist = false, bool write_enabled = false, bool delete_if_exist = false, bool o_direct = false)
+  Bin_aio_handler(const char* file_name, bool create_if_not_exist = false, bool write_enabled = false, bool delete_if_exist = false, bool o_direct = false)
     : file_descriptor(-1), is_reserved(false), delete_when_close(false) {
         OpenFile(file_name, create_if_not_exist, write_enabled, delete_if_exist, o_direct);
   }
 
-  ~Turbo_bin_aio_handler() {
+  ~Bin_aio_handler() {
     if (file_id >= 0) {
       DiskAioFactory::GetPtr()->CloseAioFile(file_id);
       file_id = -1;
@@ -154,7 +154,6 @@ class Turbo_bin_aio_handler {
     int status = ftruncate64(file_descriptor, length);
     assert(status != 0);
     file_size_ = length;
-    //assert (file_size() == length);
   }
 
   std::string GetFilePath() {
@@ -166,53 +165,17 @@ class Turbo_bin_aio_handler {
     if (o_direct) flag = flag | O_DIRECT;
     file_id = DiskAioFactory::GetPtr()->OpenAioFile(file_name, flag);
     if (file_id < 0) {
-      fprintf(stdout, "[Turbo_bin_aio_handler::OpenFile] Fail to open file %s\n", file_name);
-      // TODO throw Exception
+      fprintf(stdout, "[Bin_aio_handler::OpenFile] Fail to open file %s\n", file_name);
     }
     assert(file_id >= 0);
     file_size_ = DiskAioFactory::GetPtr()->GetAioFileSize(file_id);
-    // assert(file_size_ == 0);
     file_descriptor = DiskAioFactory::GetPtr()->Getfd(file_id);
     file_mmap = NULL;
-    //OpenFileTemp(file_name, false, false, false, o_direct);
     file_path = std::string(file_name);
     assert(file_id >= 0);
     
     return NOERROR;
   }
-  
-  /*void OpenFileTemp(const char* file_name, bool create_if_not_exist = false, bool write_enabled = false, bool delete_if_exist = false, bool o_direct = false) {
-    int file_descriptor_temp = file_descriptor;
-    mode_t old_umask;
-    old_umask = umask(0);
-    if (delete_if_exist) {
-      remove(file_name);
-    }
-
-    if(create_if_not_exist && write_enabled && o_direct)
-      file_descriptor = open(file_name, O_RDWR | O_CREAT | O_DIRECT, 0666);
-    else if(create_if_not_exist && write_enabled)
-      file_descriptor = open(file_name, O_RDWR | O_CREAT, 0666);
-    else if(write_enabled && o_direct)
-      file_descriptor = open(file_name, O_RDWR | O_DIRECT, 0666);
-    else if(write_enabled)
-      file_descriptor = open(file_name, O_RDWR, 0666);
-    else
-      file_descriptor = open(file_name, O_RDONLY, 0666);
-    umask(old_umask);
-
-    if (file_descriptor == -1) {
-      fprintf(stdout, "Fail to open file %s\n", file_name);
-    }
-    PCHECK(file_descriptor != -1);
-
-    off64_t f = lseek64(file_descriptor, 0, SEEK_END);
-    file_size_ = f;
-    assert(f != -1);
-    file_path = std::string(file_name);
-    //assert(file_descriptor == file_descriptor_temp);
-    return OK;
-  }*/
     
   void Append(std::int64_t size_to_append, char* data, void* func, const std::function<void(diskaio::DiskAioInterface*)>& wait_cb = {}) {
     InitializeIoInterface();
@@ -225,10 +188,9 @@ class Turbo_bin_aio_handler {
     req.start_pos = file_size_; 
     req.io_size = size_to_append;
     req.user_info.file_id = file_id;
-    //req.user_info.do_user_cb = true;
     req.user_info.caller = NULL;
     req.user_info.func = func;
-    Turbo_bin_aio_handler::WaitMyPendingDiskIO(my_io, 0);
+    Bin_aio_handler::WaitMyPendingDiskIO(my_io, 0);
     bool success = DiskAioFactory::GetPtr()->AAppend(req, my_io);
     if (wait_cb) {
       wait_cb(my_io);
@@ -241,7 +203,6 @@ class Turbo_bin_aio_handler {
     }
   }
 
-  // TODO - remove buf_to_construct, construct_next, change API to get templated user-defined request
   void Read(int64_t offset_to_read, int64_t size_to_read, char* data, void* caller, void* func, diskaio::DiskAioInterface* my_io) {
     if (is_reserved) return;
 
@@ -249,7 +210,6 @@ class Turbo_bin_aio_handler {
     assert (size_to_read % 512 == 0);
     assert (offset_to_read % 512 == 0);
     assert (((uintptr_t)data) % 512 == 0);
-    // fprintf(stdout, "Read %ld\n", ((uintptr_t)data) % 512);
 
     AioRequest req;
     req.buf = data;
@@ -260,8 +220,6 @@ class Turbo_bin_aio_handler {
     req.user_info.caller = caller;
     req.user_info.func = func;
 
-    // XXX read_buf variable is not for this purpose, but just use it
-    // fprintf(stdout, "ARead my_io %p, %p, %ld, %ld, %d\n", my_io, req.buf, req.start_pos, req.io_size, req.user_info.file_id);
     bool success = DiskAioFactory::GetPtr()->ARead(req, my_io);
   }
     
@@ -271,7 +229,6 @@ class Turbo_bin_aio_handler {
     Read(offset_to_read, size_to_read, data, caller, func, my_io);
   }
 
-  // TODO - remove buf_to_construct, construct_next, change API to get templated user-defined request
   void ReadWithSplittedIORequest(int64_t offset_to_read, int64_t size_to_read, char* data, void* caller, void* func, diskaio::DiskAioInterface* my_io) {
     if (is_reserved) return;
 
@@ -279,7 +236,6 @@ class Turbo_bin_aio_handler {
     assert (size_to_read % 512 == 0);
     assert (offset_to_read % 512 == 0);
     assert (((uintptr_t)data) % 512 == 0);
-    // fprintf(stdout, "Read %ld\n", ((uintptr_t)data) % 512);
 
     size_t cur_io_size;
     while (size_to_read != 0) {
@@ -318,7 +274,6 @@ class Turbo_bin_aio_handler {
     req.start_pos = offset_to_write; 
     req.io_size = size_to_write;
     req.user_info.file_id = file_id;
-    //req.user_info.do_user_cb = true;
     req.user_info.caller = NULL;
     
     bool success = DiskAioFactory::GetPtr()->AWrite(req, my_io);
@@ -339,12 +294,9 @@ class Turbo_bin_aio_handler {
     req.start_pos = 0;
     req.io_size = file_size();
     req.user_info.file_id = file_id;
-    //req.user_info.do_user_cb = true;
     req.user_info.caller = NULL;
     
     bool success = DiskAioFactory::GetPtr()->AWrite(req, my_io);
-    // fprintf(stdout, "Write File %d size %ld, %p, my_io %p, %s\n",
-    //   file_id, file_size(), aligned_data_ptr, my_io, success ? "True" : "False");
 
     if (is_reserved) {
       is_reserved = false;
@@ -370,7 +322,6 @@ class Turbo_bin_aio_handler {
       req.start_pos = cur_start_pos;
       req.io_size = cur_io_size;
       req.user_info.file_id = file_id;
-      //req.user_info.do_user_cb = true;
       req.user_info.caller = NULL;
 
       bool success = DiskAioFactory::GetPtr()->AWrite(req, my_io);
@@ -399,7 +350,7 @@ class Turbo_bin_aio_handler {
       mmap_prot = PROT_READ;
       mmap_flag = MAP_SHARED;
     }
-    //int64_t file_size__ = lseek64(file_descriptor, 0, SEEK_END);
+
     if (file_size_ == 0) return NULL;
         
     assert (file_size_ > 0);
@@ -410,7 +361,6 @@ class Turbo_bin_aio_handler {
 
   void DestructMmap() {
     assert (file_descriptor != -1);
-    //int64_t file_size_ = lseek64(file_descriptor, 0, SEEK_END);
     assert (file_size_ >= 0);
     int status = munmap(file_mmap, file_size_);
     assert(status == 0);

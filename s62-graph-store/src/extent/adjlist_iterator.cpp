@@ -95,8 +95,7 @@ void DFSIterator::initialize(ClientContext &context, uint64_t src_id, uint64_t a
     initializeDSForNewLv(0);
 
     ExtentID target_eid = src_id >> 32;
-    bool is_initialized = adjlist_iter_per_level[current_lv]->Initialize(context, adjColIdx, target_eid, true); // TODO adjColIdx, adjlist direction
-    // fprintf(stdout, "target_eid = %d, initialized = %s\n", target_eid, is_initialized ? "true" : "false");
+    bool is_initialized = adjlist_iter_per_level[current_lv]->Initialize(context, adjColIdx, target_eid, true);
     adjlist_iter_per_level[current_lv]->getAdjListPtr(src_id, target_eid, &cur_start_end_offsets_per_level[current_lv].first,
         &cur_start_end_offsets_per_level[current_lv].second, is_initialized);
     for (int lv = 0; lv < cursor_per_level.size(); lv++) cursor_per_level[lv] = 0;
@@ -106,8 +105,6 @@ bool DFSIterator::getNextEdge(ClientContext &context, int lv, uint64_t &tgt, uin
     idx_t cur_pos = cursor_per_level[lv];
     int64_t adj_size = (cur_start_end_offsets_per_level[lv].second - cur_start_end_offsets_per_level[lv].first) / 2;
     uint64_t *cur_adjlist_ptr = cur_start_end_offsets_per_level[lv].first;
-
-    // fprintf(stdout, "[lv: %d/%d] cur_pos = %ld, adj_size = %ld\n", current_lv, lv, cur_pos, adj_size);
 
     if (cur_pos < adj_size) {
         tgt = cur_adjlist_ptr[cur_pos * 2];
@@ -134,7 +131,6 @@ void DFSIterator::changeLevel(ClientContext &context, bool traverse_child, uint6
             &cur_start_end_offsets_per_level[current_lv].second, is_initialized);
     } else {
         current_lv--;
-        // if (current_lv < 0) return;
     }
 }
 
@@ -338,7 +334,7 @@ bool ShortestPathAdvancedIterator::enqueueNeighbors(ClientContext &context, Node
 
         // If found
         if ((predecessor_to_find.find(neighbor) != predecessor_to_find.end())
-            && node_level + 1 >= lower_bound) { // TODO: lower bound checking logic is wrong. We need to consider the level of the meeting point
+            && node_level + 1 >= lower_bound) {
             predecessor_to_insert[neighbor] = {node_id, edge_id};  // Set the current node and edge as the predecessor of the neighbor
             meeting_point = neighbor;
             return true;
@@ -587,7 +583,6 @@ bool AllShortestPathIterator::getAllShortestPaths(ClientContext &context, std::v
             }
 
             if (!edge_found) {
-                // std::cerr << "Missing edge between nodes: " << path[i] << " -> " << path[i + 1] << std::endl;
                 edges.push_back(INVALID_EDGE_ID);
             }
         }

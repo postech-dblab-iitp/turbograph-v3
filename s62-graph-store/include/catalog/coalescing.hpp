@@ -46,7 +46,6 @@ class Coalescing {
                 prop_to_idxmap->at(property_key_ids[i]));
         }
 
-        // TODO partition catalog should store tables groups for each column.
         // Tables in the same group have similar cardinality for the column
         idx_t_vector *num_groups_for_each_column =
             part_cat->GetNumberOfGroups();
@@ -55,17 +54,10 @@ class Coalescing {
         idx_t_vector *ps_oids = part_cat->GetPropertySchemaIDs();
         uint64_t num_cols = part_cat->GetNumberOfColumns();
 
-        // // grouping similar (which has similar histogram) tables
-        // _group_similar_tables_based_on_histogram(num_cols, property_locations,
-        //                       num_groups_for_each_column,
-        //                       group_info_for_each_table, multipliers, ps_oids,
-        //                       table_oids, table_oids_in_group);
-
         _group_similar_tables_based_on_cardinality(context, db, table_oids,
                                                    table_oids_in_group);
 
         // create temporal catalog table
-        // TODO check if we already built temporal table for the same groups
         _create_temporal_table_catalog(
             context, db, part_cat, provider, table_oids_in_group,
             representative_table_oids, part_id, part_oid, property_key_ids,
@@ -81,58 +73,6 @@ class Coalescing {
     };
 
     static GroupingAlgorithm grouping_algo;
-
-    static void _group_similar_tables_based_on_histogram(
-        uint64_t num_cols, vector<idx_t> &property_locations,
-        idx_t_vector *num_groups_for_each_column,
-        idx_t_vector *group_info_for_each_table, idx_t_vector *multipliers,
-        idx_t_vector *ps_oids, vector<idx_t> &table_oids,
-        std::vector<std::vector<s62::idx_t>> &table_oids_in_group)
-    {
-        // TODO we need to develop a better algorithm to group similar tables
-        if (true) {
-            table_oids_in_group.push_back(table_oids);
-        }
-        else {
-            // refer to group_info_for_each_table, group similar tables
-            unordered_map<idx_t, vector<idx_t>> unique_key_to_oids_group;
-
-            D_ASSERT(num_cols == num_groups_for_each_column->size());
-            // D_ASSERT(group_info_for_each_table->size() ==
-            //          table_oids.size() * num_groups_for_each_column->size());
-
-            idx_t idx = 0;
-            for (auto i = 0; i < ps_oids->size(); i++) {
-                if ((*ps_oids)[i] != table_oids[idx]) {
-                    continue;
-                }
-                uint64_t unique_key = 0;
-                idx_t base_offset = i * num_cols;
-                for (auto j = 0; j < property_locations.size(); j++) {
-                    idx_t col_idx = property_locations[j];
-                    unique_key +=
-                        group_info_for_each_table->at(base_offset + col_idx) *
-                        multipliers->at(col_idx);
-                }
-
-                auto it = unique_key_to_oids_group.find(unique_key);
-                if (it == unique_key_to_oids_group.end()) {
-                    vector<idx_t> tmp_vec;
-                    tmp_vec.push_back(table_oids[idx]);
-                    unique_key_to_oids_group.insert(
-                        {unique_key, std::move(tmp_vec)});
-                }
-                else {
-                    it->second.push_back(table_oids[idx]);
-                }
-                idx++;
-            }
-
-            for (auto &it : unique_key_to_oids_group) {
-                table_oids_in_group.push_back(std::move(it.second));
-            }
-        }
-    }
 
     static void _group_similar_tables_based_on_cardinality(
         ClientContext &context, DatabaseInstance &db, vector<idx_t> &table_oids,
@@ -407,17 +347,12 @@ class Coalescing {
                 auto *found_index_cat = (IndexCatalogEntry *)catalog.GetEntry(
                     context, DEFAULT_SCHEMA, index_cat->GetOid());
 
-                // TODO sort by key ids - always right?
-                // std::sort(merged_property_key_ids.begin(), merged_property_key_ids.end());
                 for (auto i = 0; i < merged_property_key_ids.size(); i++) {
                     idx_t prop_key_id = merged_property_key_ids[i];
                     merged_types.push_back(
                         LogicalType(type_info.at(prop_key_id)));
                 }
 
-                // for (auto j = 0; j < merged_property_key_ids.size(); j++) {
-                //     key_names.push_back("");
-                // }
                 gcat->GetPropertyNames(context, merged_property_key_ids,
                                        key_names);
                 new_part_cat->SetSchema(context, key_names, merged_types,
@@ -458,7 +393,6 @@ class Coalescing {
     {
         auto &catalog = db.GetCatalog();
 
-        // TODO optimize this function
         unordered_set<PropertyKeyID> merged_schema;
         unordered_map<PropertyKeyID, LogicalTypeId> type_info;
         unordered_map<PropertyKeyID, vector<idx_t>>
@@ -484,11 +418,6 @@ class Coalescing {
             merged_num_tuples += ps_cat->GetNumberOfRowsApproximately();
 
             has_histogram = has_histogram && ndvs->size() > 0;
-
-            /**
-             * TODO: adding NDVs is seems wrong.
-             * We have to do correctly (e.g., setting max NDV)
-            */
 
             for (auto j = 0; j < key_ids->size(); j++) {
                 merged_schema.insert(key_ids->at(j));
@@ -546,8 +475,7 @@ class Coalescing {
         for (auto it = merged_schema.begin(); it != merged_schema.end(); it++) {
             merged_property_key_ids.push_back(*it);
         }
-        // TODO sort by key ids - always right?
-        // std::sort(merged_property_key_ids.begin(), merged_property_key_ids.end());
+
         size_t accumulated_offset = 0;
         for (auto i = 0; i < merged_property_key_ids.size(); i++) {
             idx_t prop_key_id = merged_property_key_ids[i];
@@ -580,8 +508,6 @@ class Coalescing {
         idx_t smallest_card = cardinality_for_each_gl[0].second;
         table_oids_in_group.resize(1);
         for (auto i = 0; i < cardinality_for_each_gl.size(); i++) {
-            // std::cout << "card of " << cardinality_for_each_gl[i].first
-            //     << " : " << cardinality_for_each_gl[i].second << std::endl;
             if (cardinality_for_each_gl[i].second > 1.3 * smallest_card) {
                 // flush
                 for (auto j = begin_idx; j < i; j++) {
@@ -600,15 +526,6 @@ class Coalescing {
             table_oids_in_group[group_idx].push_back(
                 cardinality_for_each_gl[j].first);
         }
-
-        // debugging
-        // for (auto i = 0; i < table_oids_in_group.size(); i++) {
-        //     std::cout << "group " << i << " : ";
-        //     for (auto j = 0; j < table_oids_in_group[i].size(); j++) {
-        //         std::cout << table_oids_in_group[i][j] << ", ";
-        //     }
-        //     std::cout << std::endl;
-        // }
     }
 };
 

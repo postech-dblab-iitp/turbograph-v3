@@ -1,11 +1,3 @@
-//===----------------------------------------------------------------------===//
-//                         DuckDB
-//
-// duckdb/catalog/catalog_entry/table_catalog_entry.hpp
-//
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 
@@ -13,9 +5,6 @@
 
 #include "common/unordered_map.hpp"
 #include "parser/column_definition.hpp"
-//#include "parser/constraint.hpp"
-//#include "planner/bound_constraint.hpp"
-//#include "planner/expression.hpp"
 #include "common/case_insensitive_map.hpp"
 #include "common/boost.hpp"
 #include "common/boost_typedefs.hpp"
@@ -39,7 +28,6 @@ struct AlterForeignKeyInfo;
 class PropertySchemaCatalogEntry : public StandardEntry {
 
 public:
-	//! Create a real GraphCatalogEntry
 	PropertySchemaCatalogEntry(Catalog *catalog, SchemaCatalogEntry *schema, CreatePropertySchemaInfo *info, const void_allocator &void_alloc);
 
 	//! Logical partition ID of parent partition
@@ -89,8 +77,6 @@ public:
 	uint64_t_vector ndvs;
 	
 public:
-	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
-	
 	void SetTypes(vector<LogicalType> &types);
 	void SetKeys(ClientContext &context, vector<string> &key_names);
 
@@ -183,11 +169,6 @@ public:
 	vector<idx_t> GetColumnIdxs(vector<string> &property_keys);
 	vector<idx_t> GetKeyColumnIdxs();
 
-	//! Serialize the meta information of the TableCatalogEntry a serializer
-	//virtual void Serialize(Serializer &serializer);
-	//! Deserializes to a CreateTableInfo
-	//static unique_ptr<CreateTableInfo> Deserialize(Deserializer &source);
-
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
 
 	void AddExtent(ExtentCatalogEntry* extent_cat);
@@ -204,12 +185,5 @@ public:
 	{
 		last_extent_num_tuples = num_tuples;
 	}
-
-	//! Returns the column index of the specified column name.
-	//! If the column does not exist:
-	//! If if_exists is true, returns DConstants::INVALID_INDEX
-	//! If if_exists is false, throws an exception
-	//idx_t GetColumnIndex(string &name, bool if_exists = false);
-
 };
 } // namespace s62

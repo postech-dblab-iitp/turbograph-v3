@@ -1,16 +1,7 @@
-//===----------------------------------------------------------------------===//
-//                         DuckDB
-//
-// duckdb/catalog/catalog.hpp
-//
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include "catalog/catalog_entry.hpp"
 #include "common/mutex.hpp"
-//#include "duckdb/parser/query_error_context.hpp"
 
 #include <functional>
 #include "common/atomic.hpp"
@@ -20,36 +11,18 @@
 namespace s62 {
 struct CreateSchemaInfo;
 struct DropInfo;
-struct BoundCreateTableInfo;
-struct AlterTableInfo;
-struct CreateTableFunctionInfo;
-struct CreateCopyFunctionInfo;
-struct CreatePragmaFunctionInfo;
 struct CreateFunctionInfo;
-struct CreateViewInfo;
-struct CreateSequenceInfo;
-struct CreateCollationInfo;
-struct CreateIndexInfo;
-struct CreateTypeInfo;
-struct CreateTableInfo;
 struct CreateGraphInfo;
 struct CreatePartitionInfo;
 struct CreatePropertySchemaInfo;
 struct CreateExtentInfo;
 struct CreateChunkDefinitionInfo;
+struct CreateIndexInfo;
 
 class ClientContext;
 class Transaction;
 
-class AggregateFunctionCatalogEntry;
-class CollateCatalogEntry;
 class SchemaCatalogEntry;
-class TableCatalogEntry;
-class ViewCatalogEntry;
-class SequenceCatalogEntry;
-class TableFunctionCatalogEntry;
-class CopyFunctionCatalogEntry;
-class PragmaFunctionCatalogEntry;
 class GraphCatalogEntry;
 class PartitionCatalogEntry;
 class PropertySchemaCatalogEntry;
@@ -99,9 +72,6 @@ struct SimilarCatalogEntry {
 
 //! The Catalog object represents the catalog of the database.
 class Catalog {
-	// typedef boost::interprocess::managed_shared_memory::segment_manager segment_manager_t;
-	// typedef boost::interprocess::allocator<void, segment_manager_t> void_allocator;
-	// typedef fixed_managed_mapped_file::const_named_iterator const_named_it;
 	
 public:
 	explicit Catalog(DatabaseInstance &db);
@@ -173,50 +143,6 @@ public:
 	DUCKDB_API CatalogEntry *CreateIndex(ClientContext &context, SchemaCatalogEntry *schema,
 											CreateIndexInfo *info);
 
-	/*
-	//! Creates a table in the catalog.
-	DUCKDB_API CatalogEntry *CreateTable(ClientContext &context, BoundCreateTableInfo *info);
-	//! Creates a table in the catalog.
-	DUCKDB_API CatalogEntry *CreateTable(ClientContext &context, unique_ptr<CreateTableInfo> info);
-	//! Create a table function in the catalog
-	DUCKDB_API CatalogEntry *CreateTableFunction(ClientContext &context, CreateTableFunctionInfo *info);
-	//! Create a copy function in the catalog
-	DUCKDB_API CatalogEntry *CreateCopyFunction(ClientContext &context, CreateCopyFunctionInfo *info);
-	//! Create a pragma function in the catalog
-	DUCKDB_API CatalogEntry *CreatePragmaFunction(ClientContext &context, CreatePragmaFunctionInfo *info);
-	//! Creates a table in the catalog.
-	DUCKDB_API CatalogEntry *CreateView(ClientContext &context, CreateViewInfo *info);
-	//! Creates a sequence in the catalog.
-	DUCKDB_API CatalogEntry *CreateSequence(ClientContext &context, CreateSequenceInfo *info);
-	//! Creates a Enum in the catalog.
-	DUCKDB_API CatalogEntry *CreateType(ClientContext &context, CreateTypeInfo *info);
-	//! Creates a collation in the catalog
-	DUCKDB_API CatalogEntry *CreateCollation(ClientContext &context, CreateCollationInfo *info);
-
-	//! Creates a table in the catalog.
-	DUCKDB_API CatalogEntry *CreateTable(ClientContext &context, SchemaCatalogEntry *schema,
-	                                     BoundCreateTableInfo *info);
-	//! Create a table function in the catalog
-	DUCKDB_API CatalogEntry *CreateTableFunction(ClientContext &context, SchemaCatalogEntry *schema,
-	                                             CreateTableFunctionInfo *info);
-	//! Create a copy function in the catalog
-	DUCKDB_API CatalogEntry *CreateCopyFunction(ClientContext &context, SchemaCatalogEntry *schema,
-	                                            CreateCopyFunctionInfo *info);
-	//! Create a pragma function in the catalog
-	DUCKDB_API CatalogEntry *CreatePragmaFunction(ClientContext &context, SchemaCatalogEntry *schema,
-	                                              CreatePragmaFunctionInfo *info);
-	//! Creates a table in the catalog.
-	DUCKDB_API CatalogEntry *CreateView(ClientContext &context, SchemaCatalogEntry *schema, CreateViewInfo *info);
-	//! Creates a table in the catalog.
-	DUCKDB_API CatalogEntry *CreateSequence(ClientContext &context, SchemaCatalogEntry *schema,
-	                                        CreateSequenceInfo *info);
-	//! Creates a enum in the catalog.
-	DUCKDB_API CatalogEntry *CreateType(ClientContext &context, SchemaCatalogEntry *schema, CreateTypeInfo *info);
-	//! Creates a collation in the catalog
-	DUCKDB_API CatalogEntry *CreateCollation(ClientContext &context, SchemaCatalogEntry *schema,
-	                                         CreateCollationInfo *info);
-	*/
-
 	//! Drops an entry from the catalog
 	DUCKDB_API void DropEntry(ClientContext &context, DropInfo *info);
 
@@ -259,11 +185,6 @@ private:
 	CatalogEntryLookup LookupEntry(ClientContext &context, CatalogType type, const string &schema, const string &name,
 	                               bool if_exists = false);//, QueryErrorContext error_context = QueryErrorContext());
 
-	//! Return an exception with did-you-mean suggestion.
-	//CatalogException CreateMissingEntryException(ClientContext &context, const string &entry_name, CatalogType type,
-	//                                             const vector<SchemaCatalogEntry *> &schemas);
-	                                             //QueryErrorContext error_context);
-
 	//! Return the close entry name, the distance and the belonging schema.
 	SimilarCatalogEntry SimilarEntryInSchemas(ClientContext &context, const string &entry_name, CatalogType type,
 	                                          const vector<SchemaCatalogEntry *> &schemas);
@@ -286,33 +207,5 @@ DUCKDB_API ExtentCatalogEntry *Catalog::GetEntry(ClientContext &context, const s
 template <>
 DUCKDB_API ChunkDefinitionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
                                                    const string &name, bool if_exists);//, QueryErrorContext error_context);
-
-/*
-template <>
-DUCKDB_API TableCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                                bool if_exists);//, QueryErrorContext error_context);
-template <>
-DUCKDB_API SequenceCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
-                                                   const string &name, bool if_exists);//, QueryErrorContext error_context);
-template <>
-DUCKDB_API TableFunctionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
-                                                        const string &name, bool if_exists);
-                                                        //QueryErrorContext error_context);
-template <>
-DUCKDB_API CopyFunctionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
-                                                       const string &name, bool if_exists);
-                                                       //QueryErrorContext error_context);
-template <>
-DUCKDB_API PragmaFunctionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
-                                                         const string &name, bool if_exists);
-                                                         //QueryErrorContext error_context);
-template <>
-DUCKDB_API AggregateFunctionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
-                                                            const string &name, bool if_exists);
-                                                            //QueryErrorContext error_context);
-template <>
-DUCKDB_API CollateCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                                  bool if_exists);//, QueryErrorContext error_context);
-*/
 
 } // namespace s62

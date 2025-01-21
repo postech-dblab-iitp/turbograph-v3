@@ -5,9 +5,6 @@
 
 #include "common/unordered_map.hpp"
 #include "parser/column_definition.hpp"
-//#include "parser/constraint.hpp"
-//#include "planner/bound_constraint.hpp"
-//#include "planner/expression.hpp"
 #include "common/case_insensitive_map.hpp"
 #include "common/enums/graph_component_type.hpp"
 #include "catalog/inverted_index.hpp"
@@ -21,7 +18,6 @@ struct PartitionCatalogEntry;
 
 //! A graph catalog entry
 class GraphCatalogEntry : public StandardEntry {
-	// TODO move following typdefs into boost_typedefs.hpp
 	typedef boost::unordered_map< char_string, VertexLabelID
        	, boost::hash<char_string>, std::equal_to<char_string>
 		, vertexlabel_id_map_value_type_allocator>
@@ -58,14 +54,12 @@ public:
 	idx_t_vector vertex_partitions;
 	idx_t_vector edge_partitions;
 
-	// TODO: change map structure into.. what?
 	VertexLabelIDUnorderedMap vertexlabel_map;
 	EdgeTypeIDUnorderedMap edgetype_map;
 	PropertyKeyIDUnorderedMap propertykey_map;
 	PropertyKeyIDToTypeIDUnorderedMap propertykey_to_typeid_map;
 	string_vector property_key_id_to_name_vec;
 
-	//unordered_map<EdgeTypeID, PartitionID> type_to_partition_index; // multiple partitions for a edge type?
 	EdgeTypeToPartitionUnorderedMap type_to_partition_index;
 	VertexLabelToPartitionVecUnorderedMap label_to_partition_index;
 	PartitionToPartitionVecUnorderedMap src_part_to_connected_edge_part_index;
@@ -75,7 +69,6 @@ public:
 	atomic<PropertyKeyID> property_key_id_version;
 	atomic<PartitionID> partition_id_version;
 public:
-	//unique_ptr<CatalogEntry> AlterEntry(ClientContext &context, AlterInfo *info) override;
 	void AddVertexPartition(ClientContext &context, PartitionID pid, idx_t oid, vector<VertexLabelID>& label_ids);
 	void AddVertexPartition(ClientContext &context, PartitionID pid, idx_t oid, vector<string>& labels);
 	void AddEdgePartition(ClientContext &context, PartitionID pid, idx_t oid, EdgeTypeID edge_type_id);
@@ -136,21 +129,6 @@ public:
 	//! Get a property key id from a property name
 	PropertyKeyID GetPropertyKeyID(ClientContext &context, const string &property_name);
 
-	//! Serialize the meta information of the TableCatalogEntry a serializer
-	//virtual void Serialize(Serializer &serializer);
-	//! Deserializes to a CreateTableInfo
-	//static unique_ptr<CreateTableInfo> Deserialize(Deserializer &source);
-
 	unique_ptr<CatalogEntry> Copy(ClientContext &context) override;
-
-	//void CommitAlter(AlterInfo &info);
-	//void CommitDrop();
-
-	//! Returns the column index of the specified column name.
-	//! If the column does not exist:
-	//! If if_exists is true, returns DConstants::INVALID_INDEX
-	//! If if_exists is false, throws an exception
-	//idx_t GetColumnIndex(string &name, bool if_exists = false);
-
 };
 } // namespace s62

@@ -515,19 +515,13 @@ void MemAllocator::PrintAvalaibleMemory() {
     if (free_list_->free_list_head[i] >= 0) {
 
       int64_t mem_entry_index = free_list_->free_list_head[i];
-      // std::cout << i << ":";
 
       while (mem_entry_index >= 0) {
         MemoryEntry *cur =
             (MemoryEntry *)&header_->memory_entries[mem_entry_index];
-        // std::cout << " " << mem_entry_index 
-        //   << "(" << cur->size << ")" << ",";
         mem_entry_index = cur->next;
         total_available_memory += cur->size;
       }
-      // std::cout << std::endl;
-    } else {
-      // std::cout << i << ":" << std::endl;
     }
   }
   std::cout << "total: " << total_available_memory << std::endl;

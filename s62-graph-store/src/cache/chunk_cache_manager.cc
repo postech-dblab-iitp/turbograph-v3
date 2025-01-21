@@ -5,8 +5,8 @@
 #include <cstdint>
 
 #include "cache/chunk_cache_manager.h"
-#include "Turbo_bin_io_handler.hpp"
-#include "Turbo_bin_aio_handler.hpp"
+#include "Bin_io_handler.hpp"
+#include "Bin_aio_handler.hpp"
 #include "common/exception.hpp"
 #include "common/string_util.hpp"
 #include "icecream.hpp"
@@ -38,29 +38,14 @@ ChunkCacheManager::~ChunkCacheManager() {
     client->GetDirty(file_handler.first, is_dirty);
     if (!is_dirty) continue;
 
-    // std::cout << "Flush file: " << file_handler.second->GetFilePath() << ", size: " << file_handler.second->file_size() << std::endl;
-    // TODO we need a write lock
     UnswizzleFlushSwizzle(file_handler.first, file_handler.second);
     client->ClearDirty(file_handler.first);
   }
 }
 
-void ChunkCacheManager::UnswizzleFlushSwizzle(ChunkID cid, Turbo_bin_aio_handler* file_handler, bool close_file) {
+void ChunkCacheManager::UnswizzleFlushSwizzle(ChunkID cid, Bin_aio_handler* file_handler, bool close_file) {
   uint8_t *ptr;
   size_t size;
-
-  /**
-   * TODO we need a write lock
-   * We flush in-memory data format to disk format.
-   * Thus, unswizzling is needed.
-   * However, since change the data in memory, we need to swizzle again.
-   * After implementing eviction and so one, this code should be changed.
-   * 
-   * Ideal code is like below:
-   * 1. Extent Manager write unswizzled data into memory
-   * 2. ChunkCacheManager flush the data into disk, and remove all objects from store
-   * 3. Proceeding clients can read the data from disk, and swizzle it.
-  */
   PinSegment(cid, file_handler->GetFilePath(), &ptr, &size, false, false);
   CacheDataTransformer::Unswizzle(ptr);
   file_handler->FlushAllBlocking();
@@ -91,7 +76,7 @@ void ChunkCacheManager::InitializeFileHandlersByIteratingDirectories(const char 
 
             // Open File & Insert into file_handlers
             D_ASSERT(file_handlers.find(chunk_id) == file_handlers.end());
-            file_handlers[chunk_id] = new Turbo_bin_aio_handler();
+            file_handlers[chunk_id] = new Bin_aio_handler();
             ReturnStatus rs = file_handlers[chunk_id]->OpenFile(chunk_entry_path.c_str(), false, true, false, true);
             D_ASSERT(rs == NOERROR);
 
@@ -116,7 +101,7 @@ void ChunkCacheManager::InitializeFileHandlersByIteratingDirectories(const char 
 void ChunkCacheManager::InitializeFileHandlersUsingMetaInfo(const char *path)
 {
   std::string meta_file_path = std::string(path) + "/" + file_meta_info_name;
-  Turbo_bin_io_handler file_meta_info(meta_file_path.c_str(), false, false, false);
+  Bin_io_handler file_meta_info(meta_file_path.c_str(), false, false, false);
   size_t file_size = file_meta_info.file_size();
   uint64_t *meta_info = new uint64_t[file_size / sizeof(uint64_t)];
   file_meta_info.Read(0, file_size, (char *)meta_info);
@@ -132,7 +117,7 @@ void ChunkCacheManager::InitializeFileHandlersUsingMetaInfo(const char *path)
                              "/ext_" + std::to_string(extent_id) + "/chunk_" +
                              std::to_string(chunk_id);
     D_ASSERT(file_handlers.find(chunk_id) == file_handlers.end());
-    file_handlers[chunk_id] = new Turbo_bin_aio_handler();
+    file_handlers[chunk_id] = new Bin_aio_handler();
     ReturnStatus rs = file_handlers[chunk_id]->OpenFile(chunk_path.c_str(), false, true, false, true);
     D_ASSERT(rs == NOERROR);
     file_handlers[chunk_id]->SetRequestedSize(requested_size);
@@ -156,7 +141,7 @@ void ChunkCacheManager::FlushMetaInfo(const char *path)
   }
 
   std::string meta_file_path = std::string(path) + "/" + file_meta_info_name;
-  Turbo_bin_io_handler file_meta_info(meta_file_path.c_str(), true, true, true);
+  Bin_io_handler file_meta_info(meta_file_path.c_str(), true, true, true);
   file_meta_info.Append(num_total_files * 2 * sizeof(uint64_t), (char *)meta_info);
   file_meta_info.Close(false);
 
@@ -164,12 +149,6 @@ void ChunkCacheManager::FlushMetaInfo(const char *path)
 }
 
 ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async, bool is_initial_loading) {
-  // Check validity of given ChunkID
-  if (CidValidityCheck(cid))
-    exit(-1);
-    //TODO: exception 추가
-    //throw InvalidInputException("[PinSegment] invalid cid");
-
   auto file_handler = GetFileHandler(cid);
   size_t segment_size = file_handler->GetRequestedSize();
   size_t file_size = file_handler->file_size();
@@ -179,28 +158,17 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
   // Pin Segment using Lightning Get()
   if (client->Get(cid, ptr, size) != 0) {
     // Get() fail: 1) object not found, 2) object is not sealed yet
-    // TODO: Check if there is enough memory space
-
-    //size_t deleted_size = 0;
-    //if (!IsMemorySpaceEnough(segment_size)) {
-    //  FindVictimAndDelete(segment_size, deleted_size);
-    //  // Replacement algorithm은 일단 지원 X
-    //}
-
     if (client->Create(cid, ptr, required_memory_size) == 0) {
       // Align memory
       void *file_ptr = MemAlign(ptr, segment_size, required_memory_size, file_handler);
 
       // Read data & Seal object
-      // TODO: we fix read_data_async as false, due to swizzling. May move logic to iterator.
-      // ReadData(cid, file_path, file_ptr, file_size, read_data_async);
       ReadData(cid, file_path, file_ptr, file_size, false);
 
       if (!is_initial_loading) {
         CacheDataTransformer::Swizzle(*ptr);
       }
       client->Seal(cid);
-      // if (!read_data_async) client->Seal(cid); // WTF???
       *size = segment_size - sizeof(size_t);
     } else {
       // Create fail -> Subscribe object
@@ -223,61 +191,30 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
 }
 
 ReturnStatus ChunkCacheManager::UnPinSegment(ChunkID cid) {
-  // Check validity of given ChunkID
-  if (CidValidityCheck(cid))
-    exit(-1);
-    // TODO
-    // throw InvalidInputException("[UnpinSegment] invalid cid");
-
   // Unpin Segment using Lightning Release()
   // client->Release(cid);
   return NOERROR;
 }
 
 ReturnStatus ChunkCacheManager::SetDirty(ChunkID cid) {
-  // Check validity of given ChunkID
-  if (CidValidityCheck(cid))
-    exit(-1);
-    // TODO
-    //throw InvalidInputException("[SetDirty] invalid cid");
-
-  // TODO: modify header information
   if (client->SetDirty(cid) != 0) {
-    // TODO: exception handling
     exit(-1);
   }
   return NOERROR;
 }
 
 ReturnStatus ChunkCacheManager::CreateSegment(ChunkID cid, std::string file_path, size_t alloc_size, bool can_destroy) {
-  // Check validity of given alloc_size
-  // It fails if 1) the storage runs out of space, 2) the alloc_size exceeds the limit size (if it exists)
-  if (AllocSizeValidityCheck(alloc_size))
-    exit(-1);
-    //TODO
-    //throw InvalidInputException("[CreateSegment] invalid alloc_size");
-
   // Create file for the segment
   auto ret = CreateNewFile(cid, file_path, alloc_size, can_destroy);
   return ret;
 }
 
-ReturnStatus ChunkCacheManager::DestroySegment(ChunkID cid) {
-  // Check validity of given ChunkID
-  if (CidValidityCheck(cid))
-    exit(-1);
-    // TODO
-    //throw InvalidInputException("[DestroySegment] invalid cid");
-
-  // TODO: Check the reference count
-  // If the count > 0, we cannot destroy the segment
-  
+ReturnStatus ChunkCacheManager::DestroySegment(ChunkID cid) {  
   // Delete the segment from the buffer using Lightning Delete()
   D_ASSERT(file_handlers.find(cid) != file_handlers.end());
   client->Delete(cid);
   file_handlers[cid]->Close();
   file_handlers[cid] = nullptr;
-  //AdjustMemoryUsage(-GetSegmentSize(cid)); // need type casting
   return NOERROR;
 }
 
@@ -289,7 +226,7 @@ ReturnStatus ChunkCacheManager::FinalizeIO(ChunkID cid, bool read, bool write) {
 ReturnStatus ChunkCacheManager::FlushDirtySegmentsAndDeleteFromcache(bool destroy_segment) {
   std::cout << "Start to flush file! Total # files = " << file_handlers.size() << std::endl;
     // Collect iterators into a vector
-    vector<unordered_map<ChunkID, Turbo_bin_aio_handler*>::iterator> iterators;
+    vector<unordered_map<ChunkID, Bin_aio_handler*>::iterator> iterators;
     iterators.reserve(file_handlers.size());
     for (auto it = file_handlers.begin(); it != file_handlers.end(); ++it) {
         iterators.push_back(it);
@@ -304,8 +241,6 @@ ReturnStatus ChunkCacheManager::FlushDirtySegmentsAndDeleteFromcache(bool destro
     client->GetDirty(file_handler.first, is_dirty);
     if (!is_dirty) continue;
 
-    // std::cout << "Flush file: " << file_handler.second->GetFilePath() << ", size: " << file_handler.second->file_size() << std::endl;
-    // TODO we need a write lock
     UnswizzleFlushSwizzle(file_handler.first, file_handler.second, false);
     client->ClearDirty(file_handler.first);
     if (destroy_segment) {
@@ -326,14 +261,11 @@ int ChunkCacheManager::GetRefCount(ChunkID cid) {
 
 // Return true if the given ChunkID is not valid
 bool ChunkCacheManager::CidValidityCheck(ChunkID cid) {
-  // Catalog Manager에서 validity check 등? 아예 필요 없을 수도 있고.. 해서 내려올테니
-  // 이 layer에서는 고민할 필요가 없을 수도 있음. 나중에 필요하면 추가
   return false;
 }
 
 // Return true if the given alloc_size is not valid
 bool ChunkCacheManager::AllocSizeValidityCheck(size_t alloc_size) {
-  // TODO: 제한된 크기가 있거나, 파일 시스템 상에 남은 공간이 충분하지 않을 경우를 다뤄야 함
   return false;
 }
 
@@ -342,7 +274,6 @@ size_t ChunkCacheManager::GetSegmentSize(ChunkID cid, std::string file_path) {
   D_ASSERT(file_handlers[cid] != nullptr);
   if (file_handlers[cid]->GetFileID() == -1) {
     exit(-1);
-    //TODO throw exception
   }
   return file_handlers[cid]->GetRequestedSize();
 }
@@ -352,18 +283,16 @@ size_t ChunkCacheManager::GetFileSize(ChunkID cid, std::string file_path) {
   D_ASSERT(file_handlers[cid] != nullptr);
   if (file_handlers[cid]->GetFileID() == -1) {
     exit(-1);
-    //TODO throw exception
   }
   return file_handlers[cid]->file_size();
 }
 
-Turbo_bin_aio_handler* ChunkCacheManager::GetFileHandler(ChunkID cid) {
+Bin_aio_handler* ChunkCacheManager::GetFileHandler(ChunkID cid) {
   auto file_handler = file_handlers.find(cid);
   D_ASSERT(file_handler != file_handlers.end());
   D_ASSERT(file_handler->second != nullptr);
   if (file_handler->second->GetFileID() == -1) {
     exit(-1);
-    //TODO throw exception
   }
   return file_handler->second;
 }
@@ -372,9 +301,7 @@ void ChunkCacheManager::ReadData(ChunkID cid, std::string file_path, void* ptr, 
   auto file_handler = file_handlers.find(cid);
   if (file_handlers[cid]->GetFileID() == -1) {
     exit(-1);
-    //TODO throw exception
-  }  
-  // file_handlers[cid]->Read(0, (int64_t) size_to_read, (char*) ptr, nullptr, nullptr);
+  }
   file_handlers[cid]->ReadWithSplittedIORequest(0, (int64_t) size_to_read, (char*) ptr, nullptr, nullptr);
   if (!read_data_async) file_handlers[cid]->WaitForMyIoRequests(true, true);
 }
@@ -387,7 +314,7 @@ void ChunkCacheManager::WriteData(ChunkID cid) {
 
 ReturnStatus ChunkCacheManager::CreateNewFile(ChunkID cid, std::string file_path, size_t alloc_size, bool can_destroy) {
   D_ASSERT(file_handlers.find(cid) == file_handlers.end());
-  file_handlers[cid] = new Turbo_bin_aio_handler();
+  file_handlers[cid] = new Bin_aio_handler();
   ReturnStatus rs = file_handlers[cid]->OpenFile((file_path + std::to_string(cid)).c_str(), true, true, true, true);
   D_ASSERT(rs == NOERROR);
   
@@ -400,12 +327,11 @@ ReturnStatus ChunkCacheManager::CreateNewFile(ChunkID cid, std::string file_path
   return rs;
 }
 
-void *ChunkCacheManager::MemAlign(uint8_t** ptr, size_t segment_size, size_t required_memory_size, Turbo_bin_aio_handler* file_handler) {
+void *ChunkCacheManager::MemAlign(uint8_t** ptr, size_t segment_size, size_t required_memory_size, Bin_aio_handler* file_handler) {
   void* target_ptr = (void*) *ptr;
   std::align(512, segment_size, target_ptr, required_memory_size);
   if (target_ptr == nullptr) {
     exit(-1);
-    // TODO throw exception
   }
 
   size_t real_requested_segment_size = segment_size - sizeof(size_t);

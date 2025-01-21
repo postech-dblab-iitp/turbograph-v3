@@ -22,8 +22,6 @@ PropertySchemaCatalogEntry::PropertySchemaCatalogEntry(Catalog *catalog, SchemaC
 
 unique_ptr<CatalogEntry> PropertySchemaCatalogEntry::Copy(ClientContext &context) {
 	D_ASSERT(false);
-	//auto create_info = make_unique<CreatePropertySchemaInfo>(schema->name, name);
-	//return make_unique<PropertySchemaCatalogEntry>(catalog, schema, create_info.get());
 }
 
 void PropertySchemaCatalogEntry::AddExtent(ExtentCatalogEntry* extent_cat) {
@@ -248,7 +246,6 @@ idx_t PropertySchemaCatalogEntry::GetPartitionOID() {
 	return partition_oid;
 }
 
-// TODO this is not approximation now. change the name
 uint64_t PropertySchemaCatalogEntry::GetNumberOfRowsApproximately()
 {
     if (extent_ids.size() == 0) {

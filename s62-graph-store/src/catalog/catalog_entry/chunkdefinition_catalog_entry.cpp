@@ -47,7 +47,6 @@ void ChunkDefinitionCatalogEntry::CreateMinMaxArray(Vector &column, size_t input
 }
 
 vector<minmax_t> ChunkDefinitionCatalogEntry::GetMinMaxArray() {
-	// TODO do not copy this.. return pointer
 	vector<minmax_t> minmax;
 	for (auto it : min_max_array){
 		minmax.push_back(it);
@@ -57,8 +56,6 @@ vector<minmax_t> ChunkDefinitionCatalogEntry::GetMinMaxArray() {
 
 unique_ptr<CatalogEntry> ChunkDefinitionCatalogEntry::Copy(ClientContext &context) {
 	D_ASSERT(false);
-	//auto create_info = make_unique<CreateChunkDefinitionInfo>(schema->name, name, data_type);
-	//return make_unique<ChunkDefinitionCatalogEntry>(catalog, schema, create_info.get());
 }
 
 } // namespace s62
