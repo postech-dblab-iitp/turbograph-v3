@@ -453,32 +453,9 @@ public:
         cost_null *= (num_nulls1 * schema_group2.second + num_nulls2 * schema_group1.second);
         cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
             - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
-        // if (schema_group1.second < VEC_OVHD_THRESHOLD ||
-        //     schema_group2.second < VEC_OVHD_THRESHOLD) {
-        //     cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
-        //         - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
-        // } else {
-        //     cost_vectorization = 0.0;
-        // }
+
         double distance = cost_schema + cost_null + cost_vectorization;
-        // if (distance >= 0) {
-            // std::cout << "Distance: " << distance
-            //         << ", Cost Schema: " << cost_schema
-            //         << ", Cost Null: " << cost_null
-            //         << ", Cost Vectorization: " << cost_vectorization
-            //         << std::endl;
-            // std::cout << "Schema Group 1 (" << schema_group1.second << "): ";
-            // for (auto idx1 = 0; idx1 < schema_group1.first.size(); idx1++) {
-            //     std::cout << schema_group1.first[idx1] << " ";
-            // }
-            // std::cout << "Schema Group 2 (" << schema_group2.second << "): ";
-            // for (auto idx2 = 0; idx2 < schema_group2.first.size(); idx2++) {
-            //     std::cout << schema_group2.first[idx2] << " ";
-            // }
-            // std::cout << std::endl;
-            // std::cout << "Num Nulls 1: " << num_nulls1
-            //         << ", Num Nulls 2: " << num_nulls2 << std::endl;
-        // }
+
         return distance;
     }
 
@@ -706,7 +683,7 @@ public:
 
     double _ComputeVecOvh(size_t num_tuples) {
         D_ASSERT(num_tuples >= 1);
-        if (num_tuples > VEC_OVHD_THRESHOLD) return 1;
+        if (num_tuples > VEC_OVHD_THRESHOLD) return 0.0;
         else return (double) VEC_OVHD_THRESHOLD / num_tuples;
     }
 
@@ -747,7 +724,6 @@ public:
             }
 
             double cost_schema = -CostSchemaVal * log(num_schemas);
-            // double cost_schema = -CostSchemaVal;
             double cost_null = CostNullVal;
             double cost_vectorization = CostVectorizationVal;
 
@@ -3040,8 +3016,6 @@ private:
     vector<vector<Item>> transactions;
 
     vector<uint64_t> corresponding_schemaID;
-    // vector<vector<uint64_t>> schema_groups;
-    // vector<uint64_t> num_tuples_per_schema_group;
     vector<std::pair<vector<uint32_t>, uint64_t>> schema_groups_with_num_tuples;
     vector<int32_t> sg_to_cluster_vec;
     vector<string> id_to_property_vec;
@@ -3072,10 +3046,8 @@ private:
 
     // Tip: for Yago-tiny, set CostNullVal to 0.005 and CostSchemaVal to 300. It creates two clusters
     const double CostSchemaVal = 300;
-    // const double CostNullVal = 0.001;
     const double CostNullVal = 0.01;
     const double CostVectorizationVal = 10;
-    // const double CostVectorizationVal = 5.0;
 };
 
 } // namespace s62
