@@ -2,6 +2,12 @@
 
 Fast, scalable, and flexible OLAP graph database, S62.
 
+## Notes
+
+We build the system over
+- Duckdb: 0.3.4
+- Kuzu: 0.3.1
+
 ## Getting Started
 
 ### Dataset
