@@ -321,15 +321,6 @@ public:
                     schema_property_freq_vec[schema_groups_with_num_tuples[i].first[j]]++;
                 }
             }
-            printf("schema_groups.size = %ld\n", schema_groups_with_num_tuples.size());
-
-            for (auto i = 0; i < schema_groups_with_num_tuples.size(); i++) {
-                fprintf(stdout, "Schema %d: ", i);
-                for (auto j = 0; j < schema_groups_with_num_tuples[i].first.size(); j++) {
-                    fprintf(stdout, "%d ", schema_groups_with_num_tuples[i].first[j]);
-                }
-                fprintf(stdout, ": %ld\n", schema_groups_with_num_tuples[i].second);
-            }
 
             return;
         } else if (gctype == GraphComponentType::EDGE) {
@@ -453,32 +444,9 @@ public:
         cost_null *= (num_nulls1 * schema_group2.second + num_nulls2 * schema_group1.second);
         cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
             - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
-        // if (schema_group1.second < VEC_OVHD_THRESHOLD ||
-        //     schema_group2.second < VEC_OVHD_THRESHOLD) {
-        //     cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
-        //         - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
-        // } else {
-        //     cost_vectorization = 0.0;
-        // }
+
         double distance = cost_schema + cost_null + cost_vectorization;
-        // if (distance >= 0) {
-            // std::cout << "Distance: " << distance
-            //         << ", Cost Schema: " << cost_schema
-            //         << ", Cost Null: " << cost_null
-            //         << ", Cost Vectorization: " << cost_vectorization
-            //         << std::endl;
-            // std::cout << "Schema Group 1 (" << schema_group1.second << "): ";
-            // for (auto idx1 = 0; idx1 < schema_group1.first.size(); idx1++) {
-            //     std::cout << schema_group1.first[idx1] << " ";
-            // }
-            // std::cout << "Schema Group 2 (" << schema_group2.second << "): ";
-            // for (auto idx2 = 0; idx2 < schema_group2.first.size(); idx2++) {
-            //     std::cout << schema_group2.first[idx2] << " ";
-            // }
-            // std::cout << std::endl;
-            // std::cout << "Num Nulls 1: " << num_nulls1
-            //         << ", Num Nulls 2: " << num_nulls2 << std::endl;
-        // }
+
         return distance;
     }
 
@@ -706,7 +674,7 @@ public:
 
     double _ComputeVecOvh(size_t num_tuples) {
         D_ASSERT(num_tuples >= 1);
-        if (num_tuples > VEC_OVHD_THRESHOLD) return 1;
+        if (num_tuples > VEC_OVHD_THRESHOLD) return 0.0;
         else return (double) VEC_OVHD_THRESHOLD / num_tuples;
     }
 
@@ -747,7 +715,6 @@ public:
             }
 
             double cost_schema = -CostSchemaVal * log(num_schemas);
-            // double cost_schema = -CostSchemaVal;
             double cost_null = CostNullVal;
             double cost_vectorization = CostVectorizationVal;
 
@@ -861,15 +828,12 @@ public:
         
         for (auto i = 0; i < clusters.size(); i++) {
             std::unordered_set<uint32_t> cluster_tokens_set;
-            std::cout << "Cluster " << i << ": ";
             for (auto j = 0; j < clusters[i].size(); j++) {
-                std::cout << clusters[i][j] << ", ";
                 sg_to_cluster_vec[clusters[i][j]] = i;
                 cluster_tokens_set.insert(
                     std::begin(schema_groups_with_num_tuples[clusters[i][j]].first),
                     std::end(schema_groups_with_num_tuples[clusters[i][j]].first));
             }
-            std::cout << std::endl;
 
             cluster_tokens.push_back(std::vector<uint32_t>());
             cluster_tokens.back().insert(
@@ -879,12 +843,10 @@ public:
 
         size_t num_clusters_before = clusters.size();
         for (auto i = 0; i < noise.size(); i++) {
-            std::cout << noise[i] << ", ";
             sg_to_cluster_vec[noise[i]] = num_clusters_before + i;
             cluster_tokens.push_back(
                 std::move(schema_groups_with_num_tuples[noise[i]].first));
         }
-        std::cout << std::endl;
     }
 
     void _ClusterSchemaOptics()
@@ -1001,22 +963,6 @@ public:
                 std::remove_if(begin(temp_output), end(temp_output),
                                [](auto &x) { return x.first == std::numeric_limits<uint32_t>::max(); }),
                 end(temp_output));
-            
-            for (auto i = 0; i < temp_output.size(); i++) {
-                if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) { continue; }
-
-                std::cout << "Cluster " << i << " (" << schema_groups_with_num_tuples[temp_output[i].first].second << ") : ";
-                for (auto j = 0; j < schema_groups_with_num_tuples[temp_output[i].first].first.size(); j++) {
-                    std::cout << schema_groups_with_num_tuples[temp_output[i].first].first[j] << ", ";
-                }
-                std::cout << std::endl;
-
-                std::cout << "\t";
-                for (auto j = 0; j < temp_output[i].second.size(); j++) {
-                    std::cout << temp_output[i].second[j] << ", ";
-                }
-                std::cout << std::endl;
-            }
         }
 
         std::cout << "Number of final clusters: " << temp_output.size() << std::endl;
@@ -1040,7 +986,6 @@ public:
     }
 
     void _ClusterSchemaPGSE() {
-
         // sort schema
         for (auto i = 0; i < schema_groups_with_num_tuples.size(); i++) {
             std::sort(schema_groups_with_num_tuples[i].first.begin(),
@@ -1082,46 +1027,15 @@ public:
                 end(temp_output));
         }
         
-        // Step 1: Compute the number of tuples for each cluster
-        // std::vector<std::pair<std::size_t, uint64_t>> cluster_tuples_count;
-        // for (std::size_t i = 0; i < temp_output.size(); i++) {
-        //     if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) {
-        //         continue;
-        //     }
-        //     uint64_t tuple_count = schema_groups_with_num_tuples[temp_output[i].first].second;
-        //     cluster_tuples_count.push_back({i, tuple_count});
-        // }
+        
 
-        // Step 2: Sort the clusters based on the number of tuples in descending order
-        // std::sort(cluster_tuples_count.begin(), cluster_tuples_count.end(),
-        //         [](const std::pair<std::size_t, uint64_t>& a, const std::pair<std::size_t, uint64_t>& b) {
-        //             return b.second < a.second; // sort in descending order
-        //         });
-
-        // Step 3: Populate cluster_tokens in sorted order
+        // Populate cluster_tokens in sorted order
         num_clusters = temp_output.size();
         cluster_tokens.reserve(temp_output.size());
-        // for (const auto& cluster_info : cluster_tuples_count) {
-        //     std::size_t i = cluster_info.first;
-        //     if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) {
-        //         continue;
-        //     }
+
         for (auto i = 0; i < temp_output.size(); i++) {
-
-            std::cout << "Cluster " << i << " (" << schema_groups_with_num_tuples[temp_output[i].first].second << ") : ";
-            for (auto j = 0; j < schema_groups_with_num_tuples[temp_output[i].first].first.size(); j++) {
-                std::cout << schema_groups_with_num_tuples[temp_output[i].first].first[j] << ", ";
-            }
-            std::cout << std::endl;
-
             cluster_tokens.push_back(std::move(schema_groups_with_num_tuples[temp_output[i].first].first));
             std::sort(cluster_tokens.back().begin(), cluster_tokens.back().end());
-
-            std::cout << "\t";
-            for (auto j = 0; j < temp_output[i].second.size(); j++) {
-                std::cout << temp_output[i].second[j] << ", ";
-            }
-            std::cout << std::endl;
 
             for (auto j = 0; j < temp_output[i].second.size(); j++) {
                 sg_to_cluster_vec[temp_output[i].second[j]] = i;
@@ -1292,36 +1206,15 @@ public:
         num_clusters = clusters.size();
         cluster_tokens.reserve(num_clusters);
 
-        // Step 1: Compute the number of tuples for each cluster
-        // std::vector<std::pair<std::size_t, std::size_t>> cluster_tuples_count;
-        // for (std::size_t i = 0; i < clusters.size(); i++) {
-        //     std::size_t tuple_count = 0;
-        //     for (auto j : clusters[i]) {
-        //         tuple_count += schema_groups_with_num_tuples[j].second;
-        //     }
-        //     cluster_tuples_count.push_back({i, tuple_count});
-        // }
-
-        // Step 2: Sort the clusters based on the number of tuples in descending order
-        // std::sort(cluster_tuples_count.begin(), cluster_tuples_count.end(),
-        //         [](const std::pair<std::size_t, std::size_t>& a, const std::pair<std::size_t, std::size_t>& b) {
-        //             return a.second > b.second;
-        //         });
-
-        // Step 3: Populate cluster_tokens in sorted order
-        // for (const auto& cluster_info : cluster_tuples_count) {
+        // Populate cluster_tokens in sorted order
         for (auto i = 0; i < clusters.size(); i++) {
-            // std::size_t cluster_idx = cluster_info.first;
             std::unordered_set<uint32_t> cluster_tokens_set;
-            std::cout << "Cluster " << i << ": ";
             for (auto j = 0; j < clusters[i].size(); j++) {
-                std::cout << clusters[i][j] << ", ";
                 sg_to_cluster_vec[clusters[i][j]] = i;
                 cluster_tokens_set.insert(
                     std::begin(schema_groups_with_num_tuples[clusters[i][j]].first),
                     std::end(schema_groups_with_num_tuples[clusters[i][j]].first));
             }
-            std::cout << std::endl;
 
             cluster_tokens.push_back(std::vector<uint32_t>());
             cluster_tokens.back().insert(
@@ -1539,11 +1432,6 @@ public:
                     schema_groups_with_num_tuples[num_tuples_order[i]].second;
                 num_schemas_sum++;
                 double avg_num_tuples = (double)num_tuples_sum / num_schemas_sum;
-                // std::cout << "num_tuples_sum: " << num_tuples_sum 
-                //     << ", num_schemas_sum: " << num_schemas_sum << std::endl;
-                // std::cout << "avg_num_tuples: " << avg_num_tuples << std::endl;
-                // std::cout << "schema_groups_with_num_tuples[num_tuples_order[i]].second: " 
-                //     << schema_groups_with_num_tuples[num_tuples_order[i]].second << std::endl;
                 if (schema_groups_with_num_tuples[num_tuples_order[i]].second >
                     avg_num_tuples * 1.5) {
                     layer_boundaries.push_back(i);
@@ -1558,14 +1446,6 @@ public:
         }
 
         num_layers = layer_boundaries.size();
-
-        for (auto i = 0; i < layer_boundaries.size(); i++) {
-            std::cout << "Layer " << i << " boundary: " << layer_boundaries[i] << std::endl;
-        }
-
-        // num_layers = 2;
-        // layer_boundaries.push_back(num_tuples_order.size() / 2);
-        // layer_boundaries.push_back(num_tuples_order.size());
     }
 
     void ClusterSchemasInCurrentLayer(
@@ -1582,11 +1462,7 @@ public:
         uint32_t num_tuples_total = temp_output.size();
         std::vector<bool> visited(num_tuples_total, false);
         do {
-            std::cout << "Iteration " << iteration << " start" << std::endl;
             merged_count = 0;
-
-            std::cout << "Layer " << current_layer 
-                    << ", num_tuples: " << num_tuples_total << std::endl;
 
             if (num_tuples_total > std::numeric_limits<uint32_t>::max()) {
                 std::cerr << "Number of tuples exceeds the maximum value of uint32_t" << std::endl;
@@ -1696,8 +1572,6 @@ public:
                 }
             }
 
-            std::cout << "Cost PQ size: " << cost_pq.size() << std::endl;
-
             boost::timer::cpu_timer merge_timer;
             uint32_t num_tuples_added = 0;
             if (!cost_pq.empty()) {
@@ -1708,9 +1582,6 @@ public:
                     // Extract the indices directly from the pair
                     uint32_t idx1 = min_cost.second.first;
                     uint32_t idx2 = min_cost.second.second;
-
-                    // fprintf(stdout, "min_cost: %.3f, idx1: %d, idx2: %d\n", min_cost.first, idx1, idx2);
-                    // fprintf(stdout, "visited[idx1]: %d, visited[idx2]: %d\n", visited[idx1] ? 1 : 0, visited[idx2] ? 1 : 0);
 
                     /* START_OF_COST_MODEL_BASED */
                     if (_cost_model == CostModel::OURS) {
@@ -1758,7 +1629,6 @@ public:
                             // one of them is not visited
                             uint32_t not_visited_idx = visited[idx1] ? idx2 : idx1;
                             if (--count_per_tuple[not_visited_idx] == 0) {
-                                // fprintf(stdout, "Refilling local heap for not_visited_idx: %d\n", not_visited_idx);
                                 // refill
                                 std::priority_queue<
                                     std::pair<double,
@@ -1841,25 +1711,17 @@ public:
 
                     // Merge the two indices
                     MergeVertexlets(idx1, idx2, temp_output);
-                    // fprintf(stdout, "Merged idx1: %d, idx2: %d\n", idx1, idx2);
                     num_tuples_added++;
                     merged_count++;
                     visited.push_back(false);
                 } while (!cost_pq.empty());
             }
-            // for (auto i = 0; i < num_tuples_total + num_tuples_added; i++) {
-            //     if (!visited[i]) {
-            //         fprintf(stdout, "visited[%d]: %d\n", i, visited[i] ? 1 : 0);
-            //     }
-            // }
+            
             auto merge_time_ms = merge_timer.elapsed().wall / 1000000.0;
-            std::cout << "\nMerge Time: "  << merge_time_ms << " ms" << std::endl;
             
             num_tuples_total += num_tuples_added;
             iteration++;
         } while (merged_count > 0);
-
-        std::cout << "Layer " << current_layer << " temp_output size: " << temp_output.size() << std::endl;
     }
 
     void MergeVertexlets(uint32_t idx1, uint32_t idx2, 
@@ -1975,7 +1837,7 @@ public:
             auto original_idx = order[i];
             get_key_and_type(id_to_property_vec[original_idx], key_names, types);
         }
-        // printf("\n");
+
         graph_cat->GetPropertyKeyIDs(*client.get(), key_names, types, universal_property_key_ids);
         partition_cat->SetSchema(*client.get(), key_names, types, universal_property_key_ids);
 
@@ -2027,7 +1889,6 @@ public:
 
                 vector<unsigned int> &tokens = GetClusterTokens(cluster_id);
                 for (size_t token_idx = 0; token_idx < tokens.size(); token_idx++) {
-                    // std::cout << tokens[token_idx] << ", ";
                     uint64_t original_idx;
                     if (cluster_algo_type == ClusterAlgorithmType::ALLPAIRS) {
                         original_idx = order[tokens[token_idx]];
@@ -2138,12 +1999,6 @@ public:
                                     new_eid);
             }
 
-            printf("Vertex Load Range [%ld, %ld) Done\n", start_cluster_idx, end_cluster_idx);
-            for (int i = 0; i < num_clusters_to_process; i++) {
-                printf("cluster %d num_tuples: %ld\n", i + start_cluster_idx,
-                    num_tuples_per_cluster[i]);
-            }
-
             // Destroy datas
             for (size_t i = 0; i < num_clusters_to_process; i++) {
                 datas[i].Destroy();
@@ -2154,8 +2009,6 @@ public:
             end_cluster_idx += CLUSTER_LOAD_CHUNK;
             if (end_cluster_idx >= num_clusters) end_cluster_idx = num_clusters;
         }
-
-        printf("# of documents = %ld\n", total_num_tuples);
     }
 
     void _CreateEdgeExtents(GraphCatalogEntry *graph_cat, string &label_name, vector<string> &label_set) {
@@ -2363,12 +2216,10 @@ private:
                         property_to_id_map.insert({current_prefix, prop_id});
                         id_to_property_vec.push_back(current_prefix);
                         property_freq_vec.push_back(1);
-                        // printf("New %s, %ld\n", current_prefix.c_str(), prop_id);
                     } else {
                         prop_id = it->second;
                         D_ASSERT(prop_id < property_freq_vec.size());
                         property_freq_vec[prop_id]++;
-                        // printf("Find %s, %ld\n", current_prefix.c_str(), prop_id);
                     }
                     schema.push_back(prop_id);
                 }
@@ -2411,8 +2262,6 @@ private:
                 if (num_tuples == TILE_SIZE) {
                     auto fpgrowth_start = std::chrono::high_resolution_clock::now();
                     // Run FpGrowth
-                    std::cout << "\tRun FPGrowth for (" << num_tuples << ") tuples\n";
-                    
                     const uint64_t minimum_support_threshold = 2;
                     const FPTree fptree{ transactions, minimum_support_threshold };
                     const std::set<Pattern> patterns = fptree_growth( fptree );
@@ -2420,10 +2269,7 @@ private:
                     fpgrowth_duration += (fpgrowth_end - fpgrowth_start);
 
                     Pattern *current_mfp = nullptr;
-                    // std::cout << "Pattern Size = " << patterns.size() << std::endl;
                     for (std::set<Pattern>::iterator it = patterns.begin(); it != patterns.end(); ++it) {
-                        // std::cout << "Set Size = " << it->first.size() << " ";
-                        // std::cout << "({";
                         bool print_comma = false;
                         if (current_mfp == nullptr) {
                             current_mfp = new Pattern;
@@ -2435,12 +2281,6 @@ private:
                                 current_mfp->second = it->second;
                             }
                         }
-                        // for (std::set<Item>::iterator item_it = it->first.begin(); item_it != it->first.end(); item_it++) {
-                        //     if (print_comma) std::cout << ",";
-                        //     std::cout << *item_it;
-                        //     print_comma = true;
-                        // }
-                        // std::cout << "}, " << it->second << ")\n";
                     }
                     most_frequency_pattern.first = current_mfp->first;
                     most_frequency_pattern.second = current_mfp->second;
@@ -2456,8 +2296,6 @@ private:
             if (num_tuples > 0) {
                 auto fpgrowth_start = std::chrono::high_resolution_clock::now();
                 // Run FpGrowth for remaining
-                std::cout << "\tRun FPGrowth for (" << num_tuples << ") tuples\n";
-
                 const uint64_t minimum_support_threshold = 2;
                 const FPTree fptree{ transactions, minimum_support_threshold };
                 const std::set<Pattern> patterns = fptree_growth( fptree );
@@ -2465,10 +2303,7 @@ private:
                 fpgrowth_duration += (fpgrowth_end - fpgrowth_start);
 
                 Pattern *current_mfp = nullptr;
-                //std::cout << "Pattern Size = " << patterns.size() << std::endl;
                 for (std::set<Pattern>::iterator it = patterns.begin(); it != patterns.end(); ++it) {
-                    //std::cout << "Set Size = " << it->first.size() << " ";
-                    //std::cout << "({";
                     bool print_comma = false;
                     if (current_mfp == nullptr) {
                         current_mfp = new Pattern;
@@ -2480,12 +2315,6 @@ private:
                             current_mfp->second = it->second;
                         }
                     }
-                    //for (std::set<Item>::iterator item_it = it->first.begin(); item_it != it->first.end(); item_it++) {
-                        // if (print_comma) std::cout << ",";
-                    //     std::cout << *item_it;
-                    //     print_comma = true;
-                    // }
-                    // std::cout << "}, " << it->second << ")\n";
 
                     most_frequency_pattern.first = current_mfp->first;
                     most_frequency_pattern.second = current_mfp->second;
@@ -2547,8 +2376,6 @@ private:
                     break;
                 }
                 }
-                // std::cout << "\"" << key << "/" << current_prefix << "\": " << std::endl;;
-                //if (in_array && field.value().type() != ondemand::json_type::object) transactions[current_idx].emplace_back(current_prefix);
                 if (field.value().type() != ondemand::json_type::object) transactions[current_idx].emplace_back(current_prefix);
                 bool is_finished = recursive_collect_key_paths(field.value(), current_prefix, in_array, transactions, current_idx);
                 current_prefix = old_prefix;
@@ -2561,25 +2388,17 @@ private:
         }
         case ondemand::json_type::number: {
             // assume it fits in a double
-            // std::cout << element.get_double();
             break;
         }
         case ondemand::json_type::string: {
             // get_string() would return escaped string, but
             // we are happy with unescaped string.
-            // std::cout << "\"" << element.get_raw_json_string() << "\"";
             break;
         }
         case ondemand::json_type::boolean: {
-            // std::cout << element.get_bool();
             break;
         }
         case ondemand::json_type::null: {
-            // We check that the value is indeed null
-            // otherwise: an error is thrown.
-            // if(element.is_null()) {
-            //   std::cout << "null";
-            // }
             break;
         }
         }
@@ -2652,7 +2471,6 @@ private:
                 } else {
                     current_prefix = current_prefix + std::string("_") + key;
                 }
-                // std::cout << "\"" << key << "/" << current_prefix << "\": " << std::endl;
                 auto key_idx = property_to_id_map_per_cluster[cluster_id].at(current_prefix);
                 recursive_iterate_jsonl(field.value(), current_prefix, in_array, current_idx, key_idx, cluster_id, data);
                 current_prefix = old_prefix;
@@ -2689,15 +2507,12 @@ private:
             // we are happy with unescaped string.
             std::string_view string_val = element.get_string();
             auto data_ptr = data.data[current_col_idx].GetData();
-            // std::cout << "\"" << element.get_string() << "\"";
-            // icecream::ic.enable(); IC(); IC(current_col_idx, current_idx); icecream::ic.disable();
             ((string_t *)data_ptr)[current_idx] = StringVector::AddStringOrBlob(data.data[current_col_idx], 
                                                     (const char*)string_val.data(), string_val.size());
             FlatVector::Validity(data.data[current_col_idx]).Set(current_idx, true);
             break;
         }
         case ondemand::json_type::boolean: {
-            // std::cout << element.get_bool();
             break;
         }
         case ondemand::json_type::null: {
@@ -2738,7 +2553,6 @@ private:
                     switch(t) {
                     case ondemand::number_type::signed_integer: {
                         const Value int_val = Value::BIGINT(child.value().get_int64().value());
-                        // fprintf(stderr, "val_vectors ptr %p\n", val_vectors.data());
                         val_vectors.push_back(int_val);
                         break;
                     }
@@ -2768,7 +2582,6 @@ private:
                     num_tuples++;
                     if (num_tuples == STORAGE_STANDARD_VECTOR_SIZE) {
                         // CreateExtent
-                        fprintf(stderr, "CreateExtent %d\n", num_tuples);
                         data.SetCardinality(num_tuples);
                         ExtentID new_eid;
                         property_schema_cat->AddExtent(new_eid);
@@ -2806,8 +2619,6 @@ private:
                             
                             auto map_build_end = std::chrono::high_resolution_clock::now();
                             std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
-                            fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
-
                         }
                         num_tuples = 0;
                         data.Reset(STORAGE_STANDARD_VECTOR_SIZE);
@@ -2815,13 +2626,11 @@ private:
                 }
             }
             if (old_in_array) {
-                // icecream::ic.enable(); IC(); IC(current_col_idx, current_idx, val_vectors.size()); icecream::ic.disable();
                 data.SetValue(current_col_idx, current_idx, Value::LIST(val_vectors));
             }
 
             in_array = false;
             if (num_tuples > 0) {
-                fprintf(stderr, "CreateExtent %d\n", num_tuples);
                 // CreateExtent
                 data.SetCardinality(num_tuples);
                 ExtentID new_eid;
@@ -2859,8 +2668,6 @@ private:
                     
                     auto map_build_end = std::chrono::high_resolution_clock::now();
                     std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
-                    fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
-
                 }
                 num_tuples = 0;
                 data.Reset(STORAGE_STANDARD_VECTOR_SIZE);
@@ -2879,12 +2686,7 @@ private:
                 } else {
                     current_prefix = current_prefix + std::string("_") + key;
                 }
-                // std::cout << "\"" << key << "/" << current_prefix << "\": ";
                 auto key_it = std::find(most_common_key_paths.begin(), most_common_key_paths.end(), current_prefix);
-                if (key_it == most_common_key_paths.end()) {
-                    // Store this in the RowChunk
-                    // std::cout << "?? " << current_prefix << std::endl;
-                }
                 int key_idx = std::distance(most_common_key_paths.begin(), key_it);
                 recursive_iterate_json(field.value(), current_prefix, in_array, current_idx, key_idx, data);
                 current_prefix = old_prefix;
@@ -2893,34 +2695,24 @@ private:
         }
         case ondemand::json_type::number: {
             // assume it fits in a double
-            // std::cout << element.get_double();
             ondemand::number_type t = element.get_number_type();
             switch(t) {
             case ondemand::number_type::signed_integer:
                 if (most_common_schema[current_col_idx] == LogicalType::BIGINT) {
                     int64_t *column_ptr = (int64_t *)data.data[current_col_idx].GetData();
-                    // icecream::ic.enable(); IC(); IC(current_col_idx, current_idx, element.get_int64()); icecream::ic.disable();
                     column_ptr[current_idx] = element.get_int64();
-                } else {
-                    // Store value in the RowChunk
                 }
                 break;
             case ondemand::number_type::unsigned_integer:
                 if (most_common_schema[current_col_idx] == LogicalType::UBIGINT) {
                     uint64_t *column_ptr = (uint64_t *)data.data[current_col_idx].GetData();
-                    // icecream::ic.enable(); IC(); IC(current_col_idx, current_idx); icecream::ic.disable();
                     column_ptr[current_idx] = element.get_uint64();
-                } else {
-                    // Store value in the RowChunk
                 }
                 break;
             case ondemand::number_type::floating_point_number:
                 if (most_common_schema[current_col_idx] == LogicalType::DOUBLE) {
                     double *column_ptr = (double *)data.data[current_col_idx].GetData();
-                    // icecream::ic.enable(); IC(); IC(current_col_idx, current_idx); icecream::ic.disable();
                     column_ptr[current_idx] = element.get_double();
-                } else {
-                    // Store value in the RowChunk
                 }
                 break;
             }
@@ -2931,22 +2723,14 @@ private:
             // we are happy with unescaped string.
             std::string_view string_val = element.get_string();
             auto data_ptr = data.data[current_col_idx].GetData();
-            // std::cout << "\"" << element.get_string() << "\"";
-            // icecream::ic.enable(); IC(); IC(current_col_idx, current_idx); icecream::ic.disable();
             ((string_t *)data_ptr)[current_idx] = StringVector::AddStringOrBlob(data.data[current_col_idx], 
                                                     (const char*)string_val.data(), string_val.size());
             break;
         }
         case ondemand::json_type::boolean: {
-            // std::cout << element.get_bool();
             break;
         }
         case ondemand::json_type::null: {
-            // We check that the value is indeed null
-            // otherwise: an error is thrown.
-            // if(element.is_null()) {
-            //   std::cout << "null";
-            // }
             break;
         }
         }
@@ -3040,8 +2824,6 @@ private:
     vector<vector<Item>> transactions;
 
     vector<uint64_t> corresponding_schemaID;
-    // vector<vector<uint64_t>> schema_groups;
-    // vector<uint64_t> num_tuples_per_schema_group;
     vector<std::pair<vector<uint32_t>, uint64_t>> schema_groups_with_num_tuples;
     vector<int32_t> sg_to_cluster_vec;
     vector<string> id_to_property_vec;
@@ -3072,10 +2854,8 @@ private:
 
     // Tip: for Yago-tiny, set CostNullVal to 0.005 and CostSchemaVal to 300. It creates two clusters
     const double CostSchemaVal = 300;
-    // const double CostNullVal = 0.001;
     const double CostNullVal = 0.01;
     const double CostVectorizationVal = 10;
-    // const double CostVectorizationVal = 5.0;
 };
 
 } // namespace s62

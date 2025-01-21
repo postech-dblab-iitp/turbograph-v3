@@ -83,23 +83,19 @@ public:
 	}
 
 	bool GetSchemaFromHeader(vector<string> &key_names, vector<LogicalType> &types) {
-		// TODO
 		return true;
 	}
 
 	int64_t GetKeyColumnIndexFromHeader() {
-		// TODO
 		return -1;
 	}
 
 	void GetSrcColumnIndexFromHeader(int64_t &src_column_idx, string &src_column_name) {
-		// TODO
 		src_column_idx = -1;
 		return;
 	}
 
 	void GetDstColumnIndexFromHeader(int64_t &dst_column_idx, string &dst_column_name) {
-		// TODO
 		dst_column_idx = -1;
 		return;
 	}
@@ -132,10 +128,6 @@ public:
 			}
 			
 			if (++current_index == STANDARD_VECTOR_SIZE) break;
-			/*while ((vertex_attr_key = yyjson_obj_iter_next(&vertex_attr_iter))) {
-				vertex_attr_val = yyjson_obj_iter_get_val(vertex_attr_key);
-				printf("%s: %s\n", yyjson_get_str(vertex_attr_key), yyjson_get_type_desc(vertex_attr_val));
-			}*/
 		}
 		output.SetCardinality(current_index);
 		if (arr_iter.max == arr_iter.idx) return true;
@@ -159,10 +151,6 @@ public:
 			}
 			
 			if (++current_index == STANDARD_VECTOR_SIZE) break;
-			/*while ((vertex_attr_key = yyjson_obj_iter_next(&vertex_attr_iter))) {
-				vertex_attr_val = yyjson_obj_iter_get_val(vertex_attr_key);
-				printf("%s: %s\n", yyjson_get_str(vertex_attr_key), yyjson_get_type_desc(vertex_attr_val));
-			}*/
 		}
 		output.SetCardinality(current_index);
 		if (arr_iter.max == arr_iter.idx) return true;

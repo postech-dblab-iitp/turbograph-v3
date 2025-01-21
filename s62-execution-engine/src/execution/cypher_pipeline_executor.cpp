@@ -45,7 +45,7 @@ CypherPipelineExecutor::CypherPipelineExecutor(
 	context->thread = &thread;
 
 	// initialize interm chunks
-	// from source to operators ; not sink. // TODO pipelinelength - 1 -> pipelinelength
+	// from source to operators ; not sink.
     for (int i = 0; i < pipeline->pipelineLength - 1; i++) {
 		auto opOutputChunk = std::make_unique<DataChunk>();
 		opOutputChunk->Initialize(pipeline->GetIdxOperator(i)->GetTypes());
@@ -151,12 +151,7 @@ void CypherPipelineExecutor::ExecutePipeline()
     while (true) {
         auto &source_chunk = *(opOutputChunks[0][0]);
         if (sfg.IsSFGExists()) {
-            /**
-			 * This is temporal code.
-			 * TODO: need to be refactored.
-			*/
 			if (sfg.IsSchemaChanged()) {
-				// fprintf(stdout, "%s\n", sfg.GetOutputSchema(0, sfg.GetCurSourceIdx()).printStoredTypes().c_str());
 				source_chunk.InitializeValidCols(
                 	sfg.GetOutputSchema(0, sfg.GetCurSourceIdx()).getStoredTypes());
 			}
@@ -203,10 +198,6 @@ void CypherPipelineExecutor::ExecutePipeline()
 		}
 		// if (++num_pipeline_executions == max_pipeline_executions) { break; } // for debugging
 	}
-	// do we need pushfinalize?
-		// when limit operator reports early finish, the caches must be finished after all.
-		// we need these anyways, but i believe this can be embedded in to the regular logic.
-			// this is an invariant to the main logic when the pipeline is terminated early
 
 #ifdef DEBUG_PRINT_PIPELINE
     std::cout << "[Sink-Combine (" << pipeline->GetSink()->ToString() << ")]"
@@ -217,9 +208,7 @@ void CypherPipelineExecutor::ExecutePipeline()
     EndOperator(pipeline->GetReprSink(), nullptr);
 
     // flush profiler contents
-    // TODO operators may need to flush expressionexecutor stats on termination. refer to OperatorState::Finalize()
     context->client->profiler->Flush(thread.profiler);
-    // TODO delete op-states after pipeline finishes
 }
 
 void CypherPipelineExecutor::FetchFromSource(DataChunk &result)
@@ -259,12 +248,9 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
 		if (pipeline->pipelineLength == 2) { // nothing passes through pipe.
 			idx_t src_schema_idx = source.GetSchemaIdx();
 			idx_t output_schema_idx = 0;
-			// idx_t output_schema_idx = sfg.GetNextSchemaIdx(pipeline->pipelineLength - 2, src_schema_idx);
-			// pipeOutputChunk = opOutputChunks[pipeline->pipelineLength - 2][output_schema_idx].get();
-			// pipeOutputChunk->Reference(source);
 			pipeOutputChunk = &source;
 			pipeResult = OperatorResultType::NEED_MORE_INPUT;
-			D_ASSERT(in_process_operators.empty()); // TODO: In this case it should definitely be like this... but check plz
+			D_ASSERT(in_process_operators.empty());
 		} else {
 			pipeResult = ExecutePipe(source, output_schema_idx);
 			D_ASSERT(output_schema_idx < opOutputChunks[pipeline->pipelineLength - 2].size());
@@ -326,7 +312,6 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 	assert(current_idx > 0 && "cannot designate a source operator (idx=0)");
 
 	// start pipe from current_idx;
-	// DataChunk *prev_output_chunk = opOutputChunks[current_idx - 1][0].get();
 	idx_t prev_output_schema_idx = current_idx == 1 ? 0 : opOutputSchemaIdx[current_idx - 1];
 	DataChunk *prev_output_chunk = opOutputChunks[current_idx - 1][prev_output_schema_idx].get();
 	DataChunk *current_output_chunk;
@@ -345,8 +330,6 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 		*/	
 
 		if (cur_op_type == OperatorType::UNARY) {
-			// D_ASSERT(prev_output_schema_idx == opOutputSchemaIdx[current_idx-1]);
-			// current_output_schema_idx = sfg.GetNextSchemaIdx(current_idx, prev_output_schema_idx);
 			current_output_schema_idx = 0;
 			current_output_chunk = opOutputChunks[current_idx][current_output_schema_idx].get();
 			current_output_chunk->Reset(); 
@@ -443,9 +426,6 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 					*context, *prev_output_chunk, *current_output_chunks, *local_operator_states[current_idx-1], output_schema_idx);
 			}
 			else {
-				/**
-				 * TODO: Implement multi-schema handling (currently, this assumes UNION schema)
-				*/
 				opResult = pipeline->GetIdxOperator(current_idx)->Execute(
 					*context, *prev_output_chunk, *((*current_output_chunks)[0]), *local_operator_states[current_idx-1],
 					*(deps.find(pipeline->GetIdxOperator(current_idx))->second->local_sink_state));
@@ -484,7 +464,6 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
             return OperatorResultType::FINISHED;
         }
         else if (opResult == OperatorResultType::POSTPONE_OUTPUT) {
-            // TODO handle remaining outputs
             return OperatorResultType::POSTPONE_OUTPUT;
         }
 		else if (opResult == OperatorResultType::OUTPUT_EMPTY) {
@@ -492,16 +471,12 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 		}
     }
     // pipe done as we reached the sink
-    // TODO need to add one more case : terminate pipe for e.g. for LIMIT query.
     return in_process_operators.empty() ? OperatorResultType::NEED_MORE_INPUT
                                         : OperatorResultType::HAVE_MORE_OUTPUT;
 }
 
 void CypherPipelineExecutor::StartOperator(CypherPhysicalOperator *op)
 {
-    // if (context.client.interrupted) {
-    // 	throw InterruptException();
-    // }
     context->thread->profiler.StartOperator(op);
 }
 
