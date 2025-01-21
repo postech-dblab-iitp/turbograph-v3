@@ -590,6 +590,7 @@ void PhysicalIdSeek::doSeekSchemaless(
             Vector &rowcol = chunk.data[union_inner_col_map_wo_id[0]];
             rowcol_t *rowcol_arr = (rowcol_t *)rowcol.GetData();
 
+            // For valid seqnos
             for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
                  extentIdx++) {
                 for (idx_t i = 0;
@@ -601,6 +602,17 @@ void PhysicalIdSeek::doSeekSchemaless(
                         .schema_ptr = (char *)schema_ptr;
                     rowcol_arr[target_seqnos_per_extent[extentIdx][i]].offset =
                         schema_ptr->getStoredTypesSize();
+                }
+            }
+
+            // For pruned seqnos
+            for (u_int64_t extentIdx = target_eids.size(); extentIdx < target_seqnos_per_extent.size();
+                 extentIdx++) {
+                for (idx_t i = 0;
+                     i < target_seqnos_per_extent[extentIdx].size(); i++) {
+                    rowcol_arr[target_seqnos_per_extent[extentIdx][i]]
+                        .schema_ptr = (char *)&EMPTY_PARTIAL_SCHEMA;
+                    rowcol_arr[target_seqnos_per_extent[extentIdx][i]].offset = 0;
                 }
             }
 
@@ -1401,27 +1413,27 @@ PhysicalIdSeek::OutputFormat PhysicalIdSeek::determineFormatByCostModel(
          * Per schema processing cost is modeled as C1*log(x+1), where x is number of tuples belong to a schema
          * Null processing cost is modeled as C2*y, where y is the number of null values 
         */
-        double union_cost, row_cost;
+        // double union_cost, row_cost;
 
-        // calculate per schema processing cost
-        double union_processing_cost, row_processing_cost;
-        size_t total_tuples = std::accumulate(num_tuples_per_schema.begin(),
-                                              num_tuples_per_schema.end(), 0);
-        union_processing_cost =
-            COLUMNAR_PROCESSING_UNIT_COST * log2(total_tuples + 1);
-        row_processing_cost = ROW_PROCESSING_UNIT_COST * log2(total_tuples + 1);
+        // // calculate per schema processing cost
+        // double union_processing_cost, row_processing_cost;
+        // size_t total_tuples = std::accumulate(num_tuples_per_schema.begin(),
+        //                                       num_tuples_per_schema.end(), 0);
+        // union_processing_cost =
+        //     COLUMNAR_PROCESSING_UNIT_COST * log2(total_tuples + 1);
+        // row_processing_cost = ROW_PROCESSING_UNIT_COST * log2(total_tuples + 1);
 
-        // calculate cost
-        union_cost =
-            union_processing_cost + NULL_PROCESSING_UNIT_COST * total_nulls;
-        row_cost = row_processing_cost;
+        // // calculate cost
+        // union_cost =
+        //     union_processing_cost + NULL_PROCESSING_UNIT_COST * total_nulls;
+        // row_cost = row_processing_cost;
 
-        if (union_cost < row_cost) {
-            return OutputFormat::UNIONALL;
-        }
-        else {
+        // if (union_cost < row_cost) {
+        //     return OutputFormat::UNIONALL;
+        // }
+        // else {
             return OutputFormat::ROW;
-        }
+        // }
     }
 }
 
