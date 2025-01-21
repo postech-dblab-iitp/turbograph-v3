@@ -299,8 +299,8 @@ unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
                         transformRelTypes(*relDetail->oC_RelationshipTypes()) :
                         vector<string>{};
     
-    string lowerBound = "1";    // default value
-    string upperBound = "1";
+    string lowerBound = "0";    // default value
+    string upperBound = "0";
     string infBoundStr = "inf";
     if (relDetail->oC_RangeLiteral()) {
         if(relDetail->oC_RangeLiteral()->RANGE()) { // *X..Y
@@ -312,7 +312,6 @@ unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
                     upperBound = infBoundStr;                    
                 }
             } else {    // lhs x
-                lowerBound = "1";
                 if(relDetail->oC_RangeLiteral()->oC_RangeEndLiteral()) {   // lhs x rhs o    
                     upperBound = relDetail->oC_RangeLiteral()->oC_RangeEndLiteral()->getText();
                 } else { // lhs x rhs x
@@ -324,8 +323,7 @@ unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
                 lowerBound = relDetail->oC_RangeLiteral()->oC_RangeStartLiteral()->getText();   
                 upperBound = relDetail->oC_RangeLiteral()->oC_RangeStartLiteral()->getText();   // same ones
             } else {    // *
-                lowerBound = "1";
-                upperBound = "-1";
+                upperBound = infBoundStr;
             }
         }
     }

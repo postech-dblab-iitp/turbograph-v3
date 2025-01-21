@@ -9,7 +9,7 @@
 //		Implementation of dynamic programming-based join order generation
 //---------------------------------------------------------------------------
 
-#include "gpopt/xforms/CJoinOrderDPCoalescing.h"
+#include "gpopt/xforms/CJoinOrderGEM.h"
 
 #include "gpos/base.h"
 #include "gpos/common/CBitSet.h"

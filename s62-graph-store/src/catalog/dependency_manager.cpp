@@ -1,8 +1,6 @@
 #include "catalog/dependency_manager.hpp"
-#include "catalog/catalog_entry/type_catalog_entry.hpp"
 #include "catalog/catalog.hpp"
 #include "catalog/catalog_entry.hpp"
-#include "catalog/catalog_entry/table_catalog_entry.hpp"
 #include "main/client_context.hpp"
 #include "main/database.hpp"
 //#include "parser/expression/constant_expression.hpp"
