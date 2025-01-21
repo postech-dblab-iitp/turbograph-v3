@@ -366,7 +366,6 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		boost::timer::cpu_timer compile_timer;
 
 		compile_timer.start();
-		// parse_timer.start();
 
 		auto inputStream = ANTLRInputStream(query_str);
 
@@ -381,22 +380,18 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 
 		// Parser
 		auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
-		// parse_timer.stop();
 
 		// Sematic parsing
 		kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
 		auto statement = transformer.transform();
-		// transform_timer.stop();
 
 		if (planner_config.DEBUG_PRINT) {
 			std::cout << "Transformation Done" << std::endl;
 		}
 		
 		// Binder
-		// bind_timer.start();
 		auto boundStatement = binder.bind(*statement);
 		kuzu::binder::BoundStatement *bst = boundStatement.get();
-		// bind_timer.stop();
 
 		if (planner_config.DEBUG_PRINT) {
 			BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
@@ -411,12 +406,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 
 		auto compile_time_ms = compile_timer.elapsed().wall / 1000000.0;
 		auto orca_compile_time_ms = orca_compile_timer.elapsed().wall / 1000000.0;
-		// auto parse_time_ms = parse_timer.elapsed().wall / 1000000.0;
-		// auto transform_time_ms = transform_timer.elapsed().wall / 1000000.0;
-		// auto bind_time_ms = bind_timer.elapsed().wall / 1000000.0;
 		query_compile_times.push_back(compile_time_ms);
-
-		// std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms)" << std::endl;
 
 /*
 	EXECUTE QUERY
@@ -430,7 +420,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 			boost::timer::cpu_timer query_timer;
 			auto &profiler = QueryProfiler::Get(*client.get());
 			// start profiler
-			profiler.StartQuery(query_str, enable_profile);	// is putting enable_profile ok?
+			profiler.StartQuery(query_str, enable_profile);
 			// initialize profiler for tree root
 			profiler.Initialize(executors[executors.size()-1]->pipeline->GetSink()); // root of the query plan tree
 			query_timer.start();
