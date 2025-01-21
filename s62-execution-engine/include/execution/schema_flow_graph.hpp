@@ -171,6 +171,7 @@ class SchemaFlowGraph {  // for each pipeline
     vector<vector<idx_t>> flow_graph;
     vector<vector<Schema>> schema_per_operator;
     vector<vector<Schema>> other_source_schemas;
+    vector<Schema> union_schema_per_operator;
     bool is_sfg_exists = false;
     bool is_schema_changed_flag = true;
     idx_t cur_source_idx = 0;

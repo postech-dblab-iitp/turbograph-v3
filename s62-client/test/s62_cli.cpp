@@ -32,7 +32,6 @@ using json = nlohmann::json;
 #include "common/graph_simdcsv_parser.hpp"
 #include "common/error_handler.hpp"
 
-#include "plans/query_plan_suite.hpp"
 #include "storage/graph_store.hpp"
 #include "storage/ldbc_insert.hpp"
 
@@ -359,181 +358,139 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 	COMPILATION
 */
 	show_top_10_only = planner_config.num_iterations > 1;
+	
+	// start timer
+	vector<double> query_execution_times;
+	vector<double> query_compile_times;
+	for (int i = 0; i < planner_config.num_iterations; i++) {
+		boost::timer::cpu_timer compile_timer;
 
-	if (!run_plan_wo_compile) {
-		// start timer
-		vector<double> query_execution_times;
-		vector<double> query_compile_times;
-		for (int i = 0; i < planner_config.num_iterations; i++) {
-			boost::timer::cpu_timer compile_timer;
-			// boost::timer::cpu_timer parse_timer;
-			// boost::timer::cpu_timer transform_timer;
-			// boost::timer::cpu_timer bind_timer;
+		compile_timer.start();
+		// parse_timer.start();
 
-			compile_timer.start();
-			// parse_timer.start();
+		auto inputStream = ANTLRInputStream(query_str);
 
-			auto inputStream = ANTLRInputStream(query_str);
+		// Lexer		
+		auto cypherLexer = CypherLexer(&inputStream);
+		auto tokens = CommonTokenStream(&cypherLexer);
+		tokens.fill();
 
-			// Lexer		
-			auto cypherLexer = CypherLexer(&inputStream);
-			//cypherLexer.removeErrorListeners();
-			//cypherLexer.addErrorListener(&parserErrorListener);
-			auto tokens = CommonTokenStream(&cypherLexer);
-			tokens.fill();
-
-			if (planner_config.DEBUG_PRINT) {
-				std::cout << "Parsing/Lexing Done" << std::endl;
-			}
-
-			// Parser
-			auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
-			// parse_timer.stop();
-
-			// Sematic parsing
-			// Transformer
-			// transform_timer.start();
-			kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
-			auto statement = transformer.transform();
-			// transform_timer.stop();
-
-			if (planner_config.DEBUG_PRINT) {
-				std::cout << "Transformation Done" << std::endl;
-			}
-			
-			// Binder
-			// bind_timer.start();
-			auto boundStatement = binder.bind(*statement);
-			kuzu::binder::BoundStatement *bst = boundStatement.get();
-			// bind_timer.stop();
-
-			if (planner_config.DEBUG_PRINT) {
-				BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
-				std::cout << "Tree => " << std::endl;
-				printer.print();
-				std::cout << std::endl;
-			}
-
-			boost::timer::cpu_timer orca_compile_timer;
-			orca_compile_timer.start();
-			planner.execute(bst);
-
-			auto compile_time_ms = compile_timer.elapsed().wall / 1000000.0;
-			auto orca_compile_time_ms = orca_compile_timer.elapsed().wall / 1000000.0;
-			// auto parse_time_ms = parse_timer.elapsed().wall / 1000000.0;
-			// auto transform_time_ms = transform_timer.elapsed().wall / 1000000.0;
-			// auto bind_time_ms = bind_timer.elapsed().wall / 1000000.0;
-			query_compile_times.push_back(compile_time_ms);
-
-			// std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms)" << std::endl;
-
-	/*
-		EXECUTE QUERY
-	*/
-
-			if (!is_compile_only) {
-				auto executors = planner.genPipelineExecutors();
-				if (executors.size() == 0) { std::cerr << "Plan empty!!" << std::endl; return; }
-				std::string curtime = boost::posix_time::to_simple_string(boost::posix_time::second_clock::universal_time());
-
-				boost::timer::cpu_timer query_timer;
-				auto &profiler = QueryProfiler::Get(*client.get());
-				// start profiler
-				profiler.StartQuery(query_str, enable_profile);	// is putting enable_profile ok?
-				// initialize profiler for tree root
-				profiler.Initialize(executors[executors.size()-1]->pipeline->GetSink()); // root of the query plan tree
-				query_timer.start();
-				int idx = 0;
-				for (auto exec : executors) { 
-					if (planner_config.DEBUG_PRINT) {
-						std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
-						std::cout << exec->pipeline->toString() << std::endl;
-					}
-				}
-				idx=0;
-				for (auto exec : executors) { 
-					if (planner_config.DEBUG_PRINT) {
-						std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
-					}
-					exec->ExecutePipeline();
-					if (planner_config.DEBUG_PRINT) {
-						std::cout << "done pipeline execution!!" << std::endl;
-					}
-				}
-
-				// end_timer
-				auto query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
-				query_execution_times.push_back(query_exec_time_ms);
-				// end profiler
-				profiler.EndQuery();
-
-			/*
-				DUMP RESULT
-			*/
-
-				D_ASSERT(executors.back()->context->query_results != nullptr);
-				auto &resultChunks = *(executors.back()->context->query_results);
-				auto &schema = executors.back()->pipeline->GetSink()->schema;
-				printOutput(planner, resultChunks, schema);
-                std::cout << "\nCompile Time: " << compile_time_ms
-                          << " ms (orca: " << orca_compile_time_ms << " ms) / "
-                          << "Query Execution Time: " << query_exec_time_ms
-                          << " ms" << std::endl
-                          << std::endl;
-                // std::cout << "Parse Time: " << parse_time_ms << " ms / "
-                //           << "Transform Time: " << transform_time_ms << " ms / "
-                //           << "Bind Time: " << bind_time_ms << " ms" << std::endl
-                //           << std::endl;
-
-                if (planner_config.num_iterations == 1) {
-					// Print result plan
-					exportQueryPlanVisualizer(executors, curtime, query_exec_time_ms);
-				}
-				else {
-					std::cout << "Iteration " << i + 1 << " done" << std::endl;
-					sleep(1);
-				}
-			}
+		if (planner_config.DEBUG_PRINT) {
+			std::cout << "Parsing/Lexing Done" << std::endl;
 		}
-		if(warmup) {
-			if (query_execution_times.size() > 0) {
-				query_execution_times.erase(query_execution_times.begin());
-			}
-			if (query_compile_times.size() > 0) {
-				query_compile_times.erase(query_compile_times.begin());
-			}
+
+		// Parser
+		auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
+		// parse_timer.stop();
+
+		// Sematic parsing
+		kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
+		auto statement = transformer.transform();
+		// transform_timer.stop();
+
+		if (planner_config.DEBUG_PRINT) {
+			std::cout << "Transformation Done" << std::endl;
 		}
-		double average_exec_time = std::accumulate(query_execution_times.begin(), query_execution_times.end(), 0.0) / query_execution_times.size();
-		double average_compile_time = std::accumulate(query_compile_times.begin(), query_compile_times.end(), 0.0) / query_compile_times.size();
-
-		std::cout << "Average Query Execution Time: " << average_exec_time << " ms" << std::endl;
-		std::cout << "Average Compile Time: " << average_compile_time << " ms" << std::endl;
-	} else { // For testing
-		// load plans
-		auto suite = QueryPlanSuite(*client.get());
-		std::vector<CypherPipelineExecutor *> executors;
-
-		executors = suite.getTest(query_str);
-		if (executors.size() == 0) return;
-		// start timer
-		boost::timer::cpu_timer query_timer;
-		query_timer.start();
-		int idx = 0;
-		for( auto exec : executors ) { 
-			std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
-			exec->ExecutePipeline();
-			std::cout << "done pipeline execution!!" << std::endl;
-		}
-		// end_timer
-		int query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
-
-		D_ASSERT( executors.back()->context->query_results != nullptr );
-		auto& resultChunks = *(executors.back()->context->query_results);
-		auto& schema = executors.back()->pipeline->GetSink()->schema;
-		// printOutput(planner, resultChunks, schema);
 		
-		std::cout << "\nQuery Execution Time: " << query_exec_time_ms << " ms" << std::endl << std::endl;
+		// Binder
+		// bind_timer.start();
+		auto boundStatement = binder.bind(*statement);
+		kuzu::binder::BoundStatement *bst = boundStatement.get();
+		// bind_timer.stop();
+
+		if (planner_config.DEBUG_PRINT) {
+			BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
+			std::cout << "Tree => " << std::endl;
+			printer.print();
+			std::cout << std::endl;
+		}
+
+		boost::timer::cpu_timer orca_compile_timer;
+		orca_compile_timer.start();
+		planner.execute(bst);
+
+		auto compile_time_ms = compile_timer.elapsed().wall / 1000000.0;
+		auto orca_compile_time_ms = orca_compile_timer.elapsed().wall / 1000000.0;
+		// auto parse_time_ms = parse_timer.elapsed().wall / 1000000.0;
+		// auto transform_time_ms = transform_timer.elapsed().wall / 1000000.0;
+		// auto bind_time_ms = bind_timer.elapsed().wall / 1000000.0;
+		query_compile_times.push_back(compile_time_ms);
+
+		// std::cout << "\nCompile Time: "  << compile_time_ms << " ms (orca: " << orca_compile_time_ms << " ms)" << std::endl;
+
+/*
+	EXECUTE QUERY
+*/
+
+		if (!is_compile_only) {
+			auto executors = planner.genPipelineExecutors();
+			if (executors.size() == 0) { std::cerr << "Plan empty!!" << std::endl; return; }
+			std::string curtime = boost::posix_time::to_simple_string(boost::posix_time::second_clock::universal_time());
+
+			boost::timer::cpu_timer query_timer;
+			auto &profiler = QueryProfiler::Get(*client.get());
+			// start profiler
+			profiler.StartQuery(query_str, enable_profile);	// is putting enable_profile ok?
+			// initialize profiler for tree root
+			profiler.Initialize(executors[executors.size()-1]->pipeline->GetSink()); // root of the query plan tree
+			query_timer.start();
+			int idx = 0;
+			for (auto exec : executors) { 
+				if (planner_config.DEBUG_PRINT) {
+					std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+					std::cout << exec->pipeline->toString() << std::endl;
+				}
+			}
+			idx=0;
+			for (auto exec : executors) { 
+				if (planner_config.DEBUG_PRINT) {
+					std::cout << "[Pipeline " << 1 + idx++ << "]" << std::endl;
+				}
+				exec->ExecutePipeline();
+				if (planner_config.DEBUG_PRINT) {
+					std::cout << "done pipeline execution!!" << std::endl;
+				}
+			}
+
+			// end_timer
+			auto query_exec_time_ms = query_timer.elapsed().wall / 1000000.0;
+			query_execution_times.push_back(query_exec_time_ms);
+			// end profiler
+			profiler.EndQuery();
+
+		/*
+			DUMP RESULT
+		*/
+
+			D_ASSERT(executors.back()->context->query_results != nullptr);
+			auto &resultChunks = *(executors.back()->context->query_results);
+			auto &schema = executors.back()->pipeline->GetSink()->schema;
+			printOutput(planner, resultChunks, schema);
+			std::cout << "\nCompile Time: " << compile_time_ms
+						<< " ms (orca: " << orca_compile_time_ms << " ms) / "
+						<< "Query Execution Time: " << query_exec_time_ms
+						<< " ms" << std::endl
+						<< std::endl;
+
+			if (planner_config.num_iterations != 1) {
+				std::cout << "Iteration " << i + 1 << " done" << std::endl;
+				sleep(1);
+			}
+		}
 	}
+	if(warmup) {
+		if (query_execution_times.size() > 0) {
+			query_execution_times.erase(query_execution_times.begin());
+		}
+		if (query_compile_times.size() > 0) {
+			query_compile_times.erase(query_compile_times.begin());
+		}
+	}
+	double average_exec_time = std::accumulate(query_execution_times.begin(), query_execution_times.end(), 0.0) / query_execution_times.size();
+	double average_compile_time = std::accumulate(query_compile_times.begin(), query_compile_times.end(), 0.0) / query_compile_times.size();
+
+	std::cout << "Average Query Execution Time: " << average_exec_time << " ms" << std::endl;
+	std::cout << "Average Compile Time: " << average_compile_time << " ms" << std::endl;
 }
 
 int main(int argc, char** argv) {
@@ -552,12 +509,7 @@ int main(int argc, char** argv) {
 	input.getCmdOption();
 	using_history();
 	read_history((workspace + "/.history").c_str());
-	// if (isatty(STDIN_FILENO)) {
-    // 	rl_startup_hook = initialize_readline;
-	// }
-	// set_signal_handler();
-	// setbuf(stdout, NULL);
-
+	
 	// Initialize System Parameters
 	DiskAioParameters::NUM_THREADS = 32;
 	DiskAioParameters::NUM_TOTAL_CPU_CORES = 32;
@@ -645,97 +597,4 @@ int main(int argc, char** argv) {
 	// Destruct ChunkCacheManager
   	delete ChunkCacheManager::ccm;
 	return 0;
-}
-
-json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root, bool is_debug);
-json* attachTime(json* j, CypherPhysicalOperator* op, bool is_root, float* accum_time);
-
-void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, std::string start_time, int query_exec_time_ms, bool is_debug) {	// default = 0, false
-
-	// output file
-	
-	std::replace( start_time.begin(), start_time.end(), ' ', '_');
-	boost::filesystem::create_directories("execution-log/");
-
-	std::string filename = "execution-log/" + start_time;
-	if( is_debug ) filename += "_debug";
-	if( ! is_debug ) {
-		std::cout << "saving query profile result in : " << "build/execution-log/" << filename << ".html" << std::endl << std::endl;
-	}
-	std::ofstream file( filename + ".html" );
-
-	// https://tomeko.net/online_tools/cpp_text_escape.php?lang=en
-	std::string html_1 = "<script src=\"https://code.jquery.com/jquery-3.4.1.js\" integrity=\"sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=\" crossorigin=\"anonymous\"></script>\n<script src=\"https://unpkg.com/vue@3.2.37/dist/vue.global.prod.js\"></script>\n<script src=\"https://unpkg.com/pev2/dist/pev2.umd.js\"></script>\n<link\n  href=\"https://unpkg.com/bootstrap@4.5.0/dist/css/bootstrap.min.css\"\n  rel=\"stylesheet\"\n/>\n<link rel=\"stylesheet\" href=\"https://unpkg.com/pev2/dist/style.css\" />\n\n<div id=\"app\">\n  <pev2 :plan-source=\"plan\" plan-query=\"\" />\n</div>\n\n<script>\n  const { createApp } = Vue\n  \n  const plan = `";
-	std::string html_2 = "`\n\n  const app = createApp({\n    data() {\n      return {\n        plan: plan,\n      }\n    },\n  })\n  app.component(\"pev2\", pev2.Plan)\n  app.mount(\"#app\")\n$(\".plan-container\").css('height','100%')\n  </script>\n";
-
-	json j = json::array( { json({}), } );
-	if(!is_debug) {
-		j[0]["Execution Time"] = query_exec_time_ms;
-	}
-	
-	// reverse-iterate executors
-	json* current_root = &(j[0]);
-	bool isRootOp = true;	// is true for only one operator
-	
-	for (auto it = executors.crbegin() ; it != executors.crend(); ++it) {
-  		s62::CypherPipeline* pipeline = (*it)->pipeline;
-		// reverse operator
-		auto operators = pipeline->GetOperators();
-		for (auto it2 = operators.crbegin() ; it2 != operators.crend(); ++it2) {
-			current_root = operatorToVisualizerJSON( current_root, *it2, isRootOp, is_debug );
-			if( isRootOp ) { isRootOp = false; }
-		}
-		// source
-		current_root = operatorToVisualizerJSON( current_root, pipeline->GetSource(), isRootOp, is_debug );
-		if( isRootOp ) { isRootOp = false; }
-	}
-	
-	file << html_1;
-	file << j.dump(4);
-	file << html_2;
-
-	// close file
-	file.close();
-}
-
-json* operatorToVisualizerJSON(json* j, CypherPhysicalOperator* op, bool is_root, bool is_debug) {
-	json* content;
-	if( is_root ) {
-		(*j)["Plan"] = json({});
-		content = &((*j)["Plan"]);
-	} else {
-		if( (*j)["Plans"].is_null() ) {
-			// single child
-			(*j)["Plans"] = json::array( { json({}), } );
-		} else {
-			// already made child with two childs. so pass
-		}
-		content = &((*j)["Plans"][0]);
-	}
-	(*content)["Node Type"] = op->ToString();
-
-	if(!is_debug) {
-		(*content)["*Duration (exclusive)"] = op->op_timer.elapsed().wall / 1000000.0; // + (*accum_time);
-		// (*accum_time) += op->op_timer.elapsed().wall / 1000000.0 ;
-		(*content)["Actual Rows"] = op->processed_tuples;
-		(*content)["Actual Loops"] = op->GetLoopCount(); // meaningless
-	}
-	// output shcma
-	
-	// add child when operator is 
-	if( op->ToString().compare("AdjIdxJoin") == 0 ) {
-		(*content)["Plans"] = json::array( { json({}), json({})} );
-		auto& rhs_content = (*content)["Plans"][1];
-		(rhs_content)["Node Type"] = "AdjIdxJoinBuild";
-	} else if( op->ToString().compare("NodeIdSeek") == 0  ) {
-		(*content)["Plans"] = json::array( { json({}), json({})} );
-		auto& rhs_content = (*content)["Plans"][1];
-		(rhs_content)["Node Type"] = "NodeIdSeekBuild";
-	} else if( op->ToString().compare("EdgeIdSeek") == 0  ) {
-		(*content)["Plans"] = json::array( { json({}), json({})} );
-		auto& rhs_content = (*content)["Plans"][1];
-		(rhs_content)["Node Type"] = "EdgeIdSeekBuild";
-	}
-
-	return content;
 }
