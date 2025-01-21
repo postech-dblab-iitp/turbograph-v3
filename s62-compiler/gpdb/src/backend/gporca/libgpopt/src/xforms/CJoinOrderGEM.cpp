@@ -3,13 +3,13 @@
 //	Copyright (C) 2013 EMC Corp.
 //
 //	@filename:
-//		CJoinOrderDPCoalescing.cpp
+//		CJoinOrderGEM.cpp
 //
 //	@doc:
 //		Implementation of dynamic programming-based join order generation
 //---------------------------------------------------------------------------
 
-#include "gpopt/xforms/CJoinOrderDPCoalescing.h"
+#include "gpopt/xforms/CJoinOrderGEM.h"
 
 #include "gpos/base.h"
 #include "gpos/common/CBitSet.h"
@@ -29,17 +29,15 @@
 
 using namespace gpopt;
 
-#define GPOPT_DP_JOIN_ORDERING_TOPK 10
-
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::SComponentPair::SComponentPair
+//		CJoinOrderGEM::SComponentPair::SComponentPair
 //
 //	@doc:
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CJoinOrderDPCoalescing::SComponentPair::SComponentPair(CBitSet *pbsFst, CBitSet *pbsSnd)
+CJoinOrderGEM::SComponentPair::SComponentPair(CBitSet *pbsFst, CBitSet *pbsSnd)
 	: m_pbsFst(pbsFst), m_pbsSnd(pbsSnd)
 {
 	GPOS_ASSERT(NULL != pbsFst);
@@ -50,14 +48,14 @@ CJoinOrderDPCoalescing::SComponentPair::SComponentPair(CBitSet *pbsFst, CBitSet 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::SComponentPair::HashValue
+//		CJoinOrderGEM::SComponentPair::HashValue
 //
 //	@doc:
 //		Hash function
 //
 //---------------------------------------------------------------------------
 ULONG
-CJoinOrderDPCoalescing::SComponentPair::HashValue(const SComponentPair *pcomppair)
+CJoinOrderGEM::SComponentPair::HashValue(const SComponentPair *pcomppair)
 {
 	GPOS_ASSERT(NULL != pcomppair);
 
@@ -68,14 +66,14 @@ CJoinOrderDPCoalescing::SComponentPair::HashValue(const SComponentPair *pcomppai
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::SComponentPair::Equals
+//		CJoinOrderGEM::SComponentPair::Equals
 //
 //	@doc:
 //		Equality function
 //
 //---------------------------------------------------------------------------
 BOOL
-CJoinOrderDPCoalescing::SComponentPair::Equals(const SComponentPair *pcomppairFst,
+CJoinOrderGEM::SComponentPair::Equals(const SComponentPair *pcomppairFst,
 									 const SComponentPair *pcomppairSnd)
 {
 	GPOS_ASSERT(NULL != pcomppairFst);
@@ -88,13 +86,13 @@ CJoinOrderDPCoalescing::SComponentPair::Equals(const SComponentPair *pcomppairFs
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::SComponentPair::~SComponentPair
+//		CJoinOrderGEM::SComponentPair::~SComponentPair
 //
 //	@doc:
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CJoinOrderDPCoalescing::SComponentPair::~SComponentPair()
+CJoinOrderGEM::SComponentPair::~SComponentPair()
 {
 	m_pbsFst->Release();
 	m_pbsSnd->Release();
@@ -103,13 +101,13 @@ CJoinOrderDPCoalescing::SComponentPair::~SComponentPair()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::CJoinOrderDPCoalescing
+//		CJoinOrderGEM::CJoinOrderGEM
 //
 //	@doc:
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CJoinOrderDPCoalescing::CJoinOrderDPCoalescing(CMemoryPool *mp,
+CJoinOrderGEM::CJoinOrderGEM(CMemoryPool *mp,
 						   CExpressionArray *pdrgpexprComponents,
 						   CExpressionArray *pdrgpexprConjuncts)
 	: CJoinOrder(mp, pdrgpexprComponents, pdrgpexprConjuncts,
@@ -133,13 +131,13 @@ CJoinOrderDPCoalescing::CJoinOrderDPCoalescing(CMemoryPool *mp,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::~CJoinOrderDPCoalescing
+//		CJoinOrderGEM::~CJoinOrderGEM
 //
 //	@doc:
 //		Dtor
 //
 //---------------------------------------------------------------------------
-CJoinOrderDPCoalescing::~CJoinOrderDPCoalescing()
+CJoinOrderGEM::~CJoinOrderGEM()
 {
 #ifdef GPOS_DEBUG
 	// in optimized build, we flush-down memory pools without leak checking,
@@ -156,99 +154,14 @@ CJoinOrderDPCoalescing::~CJoinOrderDPCoalescing()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::AddJoinOrder
-//
-//	@doc:
-//		Add given join order to top k join orders
-//
-//---------------------------------------------------------------------------
-void
-CJoinOrderDPCoalescing::AddJoinOrder(CExpression *pexprJoin, CDouble dCost)
-{
-	GPOS_ASSERT(NULL != pexprJoin);
-	GPOS_ASSERT(NULL != m_pdrgpexprTopKOrders);
-
-	// length of the array will not be more than 10
-	INT ulResults = m_pdrgpexprTopKOrders->Size();
-	INT iReplacePos = -1;
-	BOOL fAddJoinOrder = false;
-	if (ulResults < GPOPT_DP_JOIN_ORDERING_TOPK)
-	{
-		// we have less than K results, always add the given expression
-		fAddJoinOrder = true;
-	}
-	else
-	{
-		CDouble dmaxCost = 0.0;
-		// we have stored K expressions, evict worst expression
-		for (INT ul = 0; ul < ulResults; ul++)
-		{
-			CExpression *pexpr = (*m_pdrgpexprTopKOrders)[ul];
-			CDouble *pd = m_phmexprcost->Find(pexpr);
-			GPOS_ASSERT(NULL != pd);
-
-			if (dmaxCost < *pd && dCost < *pd)
-			{
-				// found a worse expression
-				dmaxCost = *pd;
-				fAddJoinOrder = true;
-				iReplacePos = ul;
-			}
-		}
-	}
-
-	if (fAddJoinOrder)
-	{
-		pexprJoin->AddRef();
-		if (iReplacePos > -1)
-		{
-			m_pdrgpexprTopKOrders->Replace((ULONG) iReplacePos, pexprJoin);
-		}
-		else
-		{
-			m_pdrgpexprTopKOrders->Append(pexprJoin);
-		}
-
-		InsertExpressionCost(pexprJoin, dCost, false /*fValidateInsert*/);
-	}
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDPCoalescing::PexprLookup
-//
-//	@doc:
-//		Lookup best join order for given set
-//
-//---------------------------------------------------------------------------
-CExpression *
-CJoinOrderDPCoalescing::PexprLookup(CBitSet *pbs)
-{
-	// if set has size 1, return expression directly
-	if (1 == pbs->Size())
-	{
-		CBitSetIter bsi(*pbs);
-		(void) bsi.Advance();
-
-		return m_rgpcomp[bsi.Bit()]->m_pexpr;
-	}
-
-	// otherwise, return expression by looking up DP table
-	return m_phmbsexpr->Find(pbs);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDPCoalescing::PexprPred
+//		CJoinOrderGEM::PexprPred
 //
 //	@doc:
 //		Extract predicate joining the two given sets
 //
 //---------------------------------------------------------------------------
 CExpression *
-CJoinOrderDPCoalescing::PexprPred(CBitSet *pbsFst, CBitSet *pbsSnd)
+CJoinOrderGEM::PexprPred(CBitSet *pbsFst, CBitSet *pbsSnd)
 {
 	GPOS_ASSERT(NULL != pbsFst);
 	GPOS_ASSERT(NULL != pbsSnd);
@@ -314,46 +227,14 @@ CJoinOrderDPCoalescing::PexprPred(CBitSet *pbsFst, CBitSet *pbsSnd)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::PexprJoin
-//
-//	@doc:
-//		Join expressions in the given two sets
-//
-//---------------------------------------------------------------------------
-CExpression *
-CJoinOrderDPCoalescing::PexprJoin(CBitSet *pbsFst, CBitSet *pbsSnd)
-{
-	GPOS_ASSERT(NULL != pbsFst);
-	GPOS_ASSERT(NULL != pbsSnd);
-
-	CExpression *pexprFst = PexprLookup(pbsFst);
-	GPOS_ASSERT(NULL != pexprFst);
-
-	CExpression *pexprSnd = PexprLookup(pbsSnd);
-	GPOS_ASSERT(NULL != pexprSnd);
-
-	CExpression *pexprScalar = PexprPred(pbsFst, pbsSnd);
-	GPOS_ASSERT(NULL != pexprScalar);
-
-	pexprFst->AddRef();
-	pexprSnd->AddRef();
-	pexprScalar->AddRef();
-
-	return CUtils::PexprLogicalJoin<CLogicalInnerJoin>(m_mp, pexprFst, pexprSnd,
-													   pexprScalar);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDPCoalescing::DeriveStats
+//		CJoinOrderGEM::DeriveStats
 //
 //	@doc:
 //		Derive stats on given expression
 //
 //---------------------------------------------------------------------------
 void
-CJoinOrderDPCoalescing::DeriveStats(CExpression *pexpr)
+CJoinOrderGEM::DeriveStats(CExpression *pexpr)
 {
 	GPOS_ASSERT(NULL != pexpr);
 
@@ -367,254 +248,7 @@ CJoinOrderDPCoalescing::DeriveStats(CExpression *pexpr)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::InsertExpressionCost
-//
-//	@doc:
-//		Add expression to cost map
-//
-//---------------------------------------------------------------------------
-void
-CJoinOrderDPCoalescing::InsertExpressionCost(
-	CExpression *pexpr, CDouble dCost,
-	BOOL fValidateInsert  // if true, insertion must succeed
-)
-{
-	GPOS_ASSERT(NULL != pexpr);
-
-	if (m_pexprDummy == pexpr)
-	{
-		// ignore dummy expression
-		return;
-	}
-
-	if (!fValidateInsert && NULL != m_phmexprcost->Find(pexpr))
-	{
-		// expression already exists in cost map
-		return;
-	}
-
-	pexpr->AddRef();
-#ifdef GPOS_DEBUG
-	BOOL fInserted =
-#endif	// GPOS_DEBUG
-		m_phmexprcost->Insert(pexpr, GPOS_NEW(m_mp) CDouble(dCost));
-	GPOS_ASSERT(fInserted);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDPCoalescing::PexprJoin
-//
-//	@doc:
-//		Join expressions in the given set
-//
-//---------------------------------------------------------------------------
-CExpression *
-CJoinOrderDPCoalescing::PexprJoin(CBitSet *pbs)
-{
-	GPOS_ASSERT(2 == pbs->Size());
-
-	CBitSetIter bsi(*pbs);
-	(void) bsi.Advance();
-	ULONG ulCompFst = bsi.Bit();
-	(void) bsi.Advance();
-	ULONG ulCompSnd = bsi.Bit();
-	GPOS_ASSERT(!bsi.Advance());
-
-	CBitSet *pbsFst = GPOS_NEW(m_mp) CBitSet(m_mp);
-	(void) pbsFst->ExchangeSet(ulCompFst);
-	CBitSet *pbsSnd = GPOS_NEW(m_mp) CBitSet(m_mp);
-	(void) pbsSnd->ExchangeSet(ulCompSnd);
-	CExpression *pexprScalar = PexprPred(pbsFst, pbsSnd);
-	pbsFst->Release();
-	pbsSnd->Release();
-
-	if (NULL == pexprScalar)
-	{
-		return NULL;
-	}
-
-	CExpression *pexprLeft = m_rgpcomp[ulCompFst]->m_pexpr;
-	CExpression *pexprRight = m_rgpcomp[ulCompSnd]->m_pexpr;
-	pexprLeft->AddRef();
-	pexprRight->AddRef();
-	pexprScalar->AddRef();
-	CExpression *pexprJoin = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(
-		m_mp, pexprLeft, pexprRight, pexprScalar);
-
-	DeriveStats(pexprJoin);
-	// store solution in DP table
-	pbs->AddRef();
-#ifdef GPOS_DEBUG
-	BOOL fInserted =
-#endif	// GPOS_DEBUG
-		m_phmbsexpr->Insert(pbs, pexprJoin);
-	GPOS_ASSERT(fInserted);
-
-	return pexprJoin;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDPCoalescing::PexprBestJoinOrderDP
-//
-//	@doc:
-//		Find the best join order of a given set of elements using dynamic
-//		programming;
-//		given a set of elements (e.g., {A, B, C}), we find all possible splits
-//		of the set (e.g., {A}, {B, C}) where at least one edge connects the
-//		two subsets resulting from the split,
-//		for each split, we find the best join orders of left and right subsets
-//		recursively,
-//		the function finds the split with the least cost, and stores the join
-//		of its two subsets as the best join order of the given set
-//
-//
-//---------------------------------------------------------------------------
-CExpression *
-CJoinOrderDPCoalescing::PexprBestJoinOrderDP(CBitSet *pbs	 // set of elements to be joined
-)
-{
-	CDouble dMinCost(0.0);
-	CExpression *pexprResult = NULL;
-
-	CBitSetArray *pdrgpbsSubsets = PdrgpbsSubsets(m_mp, pbs);
-	const ULONG ulSubsets = pdrgpbsSubsets->Size();
-	for (ULONG ul = 0; ul < ulSubsets; ul++)
-	{
-		CBitSet *pbsCurrent = (*pdrgpbsSubsets)[ul];
-		CBitSet *pbsRemaining = GPOS_NEW(m_mp) CBitSet(m_mp, *pbs);
-		pbsRemaining->Difference(pbsCurrent);
-
-		// check if subsets are connected with one or more edges
-		CExpression *pexprPred = PexprPred(pbsCurrent, pbsRemaining);
-		if (NULL != pexprPred)
-		{
-			// compute solutions of left and right subsets recursively
-			CExpression *pexprLeft = PexprBestJoinOrder(pbsCurrent);
-			CExpression *pexprRight = PexprBestJoinOrder(pbsRemaining);
-
-			if (NULL != pexprLeft && NULL != pexprRight)
-			{
-				// we found solutions of left and right subsets, we check if
-				// this gives a better solution for the input set
-				CExpression *pexprJoin = PexprJoin(pbsCurrent, pbsRemaining);
-				CDouble dCost = DCost(pexprJoin);
-
-				if (NULL == pexprResult || dCost < dMinCost)
-				{
-					// this is the first solution, or we found a better solution
-					dMinCost = dCost;
-					CRefCount::SafeRelease(pexprResult);
-					pexprJoin->AddRef();
-					pexprResult = pexprJoin;
-				}
-
-				if (m_ulComps == pbs->Size())
-				{
-					AddJoinOrder(pexprJoin, dCost);
-				}
-
-				pexprJoin->Release();
-			}
-		}
-		pbsRemaining->Release();
-	}
-	pdrgpbsSubsets->Release();
-
-	// store solution in DP table
-	if (NULL == pexprResult)
-	{
-		m_pexprDummy->AddRef();
-		pexprResult = m_pexprDummy;
-	}
-
-	DeriveStats(pexprResult);
-	pbs->AddRef();
-#ifdef GPOS_DEBUG
-	BOOL fInserted =
-#endif	// GPOS_DEBUG
-		m_phmbsexpr->Insert(pbs, pexprResult);
-	GPOS_ASSERT(fInserted);
-
-	// add expression cost to cost map
-	InsertExpressionCost(pexprResult, dMinCost, false /*fValidateInsert*/);
-
-	return pexprResult;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDPCoalescing::GenerateSubsets
-//
-//	@doc:
-//		Generate all subsets of given array of elements
-//
-//---------------------------------------------------------------------------
-void
-CJoinOrderDPCoalescing::GenerateSubsets(CMemoryPool *mp, CBitSet *pbsCurrent,
-							  ULONG *pulElems, ULONG size, ULONG ulIndex,
-							  CBitSetArray *pdrgpbsSubsets)
-{
-	GPOS_CHECK_STACK_SIZE;
-	GPOS_CHECK_ABORT;
-
-	GPOS_ASSERT(ulIndex <= size);
-	GPOS_ASSERT(NULL != pbsCurrent);
-	GPOS_ASSERT(NULL != pulElems);
-	GPOS_ASSERT(NULL != pdrgpbsSubsets);
-
-	if (ulIndex == size)
-	{
-		pdrgpbsSubsets->Append(pbsCurrent);
-		return;
-	}
-
-	CBitSet *pbsCopy = GPOS_NEW(mp) CBitSet(mp, *pbsCurrent);
-#ifdef GPOS_DEBUG
-	BOOL fSet =
-#endif	// GPOS_DEBUG
-		pbsCopy->ExchangeSet(pulElems[ulIndex]);
-	GPOS_ASSERT(!fSet);
-
-	GenerateSubsets(mp, pbsCopy, pulElems, size, ulIndex + 1, pdrgpbsSubsets);
-	GenerateSubsets(mp, pbsCurrent, pulElems, size, ulIndex + 1,
-					pdrgpbsSubsets);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDPCoalescing::PdrgpbsSubsets
-//
-//	@doc:
-//		 Driver of subset generation
-//
-//---------------------------------------------------------------------------
-CBitSetArray *
-CJoinOrderDPCoalescing::PdrgpbsSubsets(CMemoryPool *mp, CBitSet *pbs)
-{
-	const ULONG size = pbs->Size();
-	ULONG *pulElems = GPOS_NEW_ARRAY(mp, ULONG, size);
-	ULONG ul = 0;
-	CBitSetIter bsi(*pbs);
-	while (bsi.Advance())
-	{
-		pulElems[ul++] = bsi.Bit();
-	}
-
-	CBitSet *pbsCurrent = GPOS_NEW(mp) CBitSet(mp);
-	CBitSetArray *pdrgpbsSubsets = GPOS_NEW(mp) CBitSetArray(mp);
-	GenerateSubsets(mp, pbsCurrent, pulElems, size, 0, pdrgpbsSubsets);
-	GPOS_DELETE_ARRAY(pulElems);
-
-	return pdrgpbsSubsets;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDPCoalescing::DCost
+//		CJoinOrderGEM::DCost
 //
 //	@doc:
 //		Primitive costing of join expressions;
@@ -624,7 +258,7 @@ CJoinOrderDPCoalescing::PdrgpbsSubsets(CMemoryPool *mp, CBitSet *pbs)
 //
 //---------------------------------------------------------------------------
 CDouble
-CJoinOrderDPCoalescing::DCost(CExpression *pexpr)
+CJoinOrderGEM::DCost(CExpression *pexpr)
 {
 	GPOS_CHECK_STACK_SIZE;
 	GPOS_ASSERT(NULL != pexpr);
@@ -672,208 +306,16 @@ CJoinOrderDPCoalescing::DCost(CExpression *pexpr)
 	return dCost;
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::PbsCovered
-//
-//	@doc:
-//		Return a subset of the given set covered by one or more edges
-//
-//---------------------------------------------------------------------------
-CBitSet *
-CJoinOrderDPCoalescing::PbsCovered(CBitSet *pbsInput)
-{
-	GPOS_ASSERT(NULL != pbsInput);
-	CBitSet *pbs = GPOS_NEW(m_mp) CBitSet(m_mp);
-
-	for (ULONG ul = 0; ul < m_ulEdges; ul++)
-	{
-		SEdge *pedge = m_rgpedge[ul];
-		if (pbsInput->ContainsAll(pedge->m_pbs))
-		{
-			pbs->Union(pedge->m_pbs);
-		}
-	}
-
-	return pbs;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDPCoalescing::PexprCross
-//
-//	@doc:
-//		Generate cross product for the given components
-//
-//---------------------------------------------------------------------------
-CExpression *
-CJoinOrderDPCoalescing::PexprCross(CBitSet *pbs)
-{
-	GPOS_ASSERT(NULL != pbs);
-
-	CExpression *pexpr = PexprLookup(pbs);
-	if (NULL != pexpr)
-	{
-		// join order is already created
-		return pexpr;
-	}
-
-	CBitSetIter bsi(*pbs);
-	(void) bsi.Advance();
-	CExpression *pexprComp = m_rgpcomp[bsi.Bit()]->m_pexpr;
-	pexprComp->AddRef();
-	CExpression *pexprCross = pexprComp;
-	while (bsi.Advance())
-	{
-		pexprComp = m_rgpcomp[bsi.Bit()]->m_pexpr;
-		pexprComp->AddRef();
-		pexprCross = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(
-			m_mp, pexprComp, pexprCross,
-			CPredicateUtils::PexprConjunction(m_mp, NULL /*pdrgpexpr*/));
-	}
-
-	pbs->AddRef();
-#ifdef GPOS_DEBUG
-	BOOL fInserted =
-#endif	// GPOS_DEBUG
-		m_phmbsexpr->Insert(pbs, pexprCross);
-	GPOS_ASSERT(fInserted);
-
-	return pexprCross;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDPCoalescing::PexprJoinCoveredSubsetWithUncoveredSubset
-//
-//	@doc:
-//		Join a covered subset with uncovered subset
-//
-//---------------------------------------------------------------------------
-CExpression *
-CJoinOrderDPCoalescing::PexprJoinCoveredSubsetWithUncoveredSubset(CBitSet *pbs,
-														CBitSet *pbsCovered,
-														CBitSet *pbsUncovered)
-{
-	GPOS_ASSERT(NULL != pbs);
-	GPOS_ASSERT(NULL != pbsCovered);
-	GPOS_ASSERT(NULL != pbsUncovered);
-	GPOS_ASSERT(pbsCovered->IsDisjoint(pbsUncovered));
-	GPOS_ASSERT(pbs->ContainsAll(pbsCovered));
-	GPOS_ASSERT(pbs->ContainsAll(pbsUncovered));
-
-	// find best join order for covered subset
-	CExpression *pexprJoin = PexprBestJoinOrder(pbsCovered);
-	if (NULL == pexprJoin)
-	{
-		return NULL;
-	}
-
-	// create a cross product for uncovered subset
-	CExpression *pexprCross = PexprCross(pbsUncovered);
-
-	// join the results with a cross product
-	pexprJoin->AddRef();
-	pexprCross->AddRef();
-	CExpression *pexprResult = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(
-		m_mp, pexprJoin, pexprCross,
-		CPredicateUtils::PexprConjunction(m_mp, NULL));
-	pbs->AddRef();
-#ifdef GPOS_DEBUG
-	BOOL fInserted =
-#endif	// GPOS_DEBUG
-		m_phmbsexpr->Insert(pbs, pexprResult);
-	GPOS_ASSERT(fInserted);
-
-	return pexprResult;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDPCoalescing::PexprBestJoinOrder
-//
-//	@doc:
-//		find best join order for a given set of elements;
-//
-//---------------------------------------------------------------------------
-CExpression *
-CJoinOrderDPCoalescing::PexprBestJoinOrder(CBitSet *pbs)
-{
-	GPOS_CHECK_STACK_SIZE;
-	GPOS_CHECK_ABORT;
-
-	GPOS_ASSERT(NULL != pbs);
-
-	// start by looking-up cost in the DP map
-	CExpression *pexpr = PexprLookup(pbs);
-
-	if (pexpr == m_pexprDummy)
-	{
-		// no join order could be created
-		return NULL;
-	}
-
-	if (NULL != pexpr)
-	{
-		// join order is found by looking up map
-		return pexpr;
-	}
-
-	// find maximal covered subset
-	CBitSet *pbsCovered = PbsCovered(pbs);
-	if (0 == pbsCovered->Size())
-	{
-		// set is not covered, return a cross product
-		pbsCovered->Release();
-
-		return PexprCross(pbs);
-	}
-
-	if (!pbsCovered->Equals(pbs))
-	{
-		// create a cross product for uncovered subset
-		CBitSet *pbsUncovered = GPOS_NEW(m_mp) CBitSet(m_mp, *pbs);
-		pbsUncovered->Difference(pbsCovered);
-		CExpression *pexprResult = PexprJoinCoveredSubsetWithUncoveredSubset(
-			pbs, pbsCovered, pbsUncovered);
-		pbsCovered->Release();
-		pbsUncovered->Release();
-
-		return pexprResult;
-	}
-	pbsCovered->Release();
-
-	// if set has size 2, there is only one possible solution
-	if (2 == pbs->Size())
-	{
-		return PexprJoin(pbs);
-	}
-
-	// otherwise, compute best join order using dynamic programming
-	CExpression *pexprBestJoinOrder = PexprBestJoinOrderDP(pbs);
-	if (pexprBestJoinOrder == m_pexprDummy)
-	{
-		// no join order could be created
-		return NULL;
-	}
-
-	return pexprBestJoinOrder;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDPCoalescing::PexprBuildPred
+//		CJoinOrderGEM::PexprBuildPred
 //
 //	@doc:
 //		Build predicate connecting the two given sets
 //
 //---------------------------------------------------------------------------
 CExpression *
-CJoinOrderDPCoalescing::PexprBuildPred(CBitSet *pbsFst, CBitSet *pbsSnd)
+CJoinOrderGEM::PexprBuildPred(CBitSet *pbsFst, CBitSet *pbsSnd)
 {
 	// collect edges connecting the given sets
 	CBitSet *pbsEdges = GPOS_NEW(m_mp) CBitSet(m_mp);
@@ -918,13 +360,13 @@ CJoinOrderDPCoalescing::PexprBuildPred(CBitSet *pbsFst, CBitSet *pbsSnd)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::lCreateTableDescForRel
+//		CJoinOrderGEM::lCreateTableDescForRel
 //
 //	@doc:
 //		Create table descriptor for relation
 //
 //---------------------------------------------------------------------------
-CTableDescriptor *CJoinOrderDPCoalescing::CreateTableDescForVirtualTable(
+CTableDescriptor *CJoinOrderGEM::CreateTableDescForVirtualTable(
     CTableDescriptor *ptabdesc, IMdIdArray *pdrgmdid)
 {
 	CTableDescriptor *new_ptabdesc;
@@ -1000,7 +442,7 @@ CTableDescriptor *CJoinOrderDPCoalescing::CreateTableDescForVirtualTable(
 	return new_ptabdesc;
 }
 
-void CJoinOrderDPCoalescing::SplitUnionAll(CExpression *pexpr, ULONG ulTarget,
+void CJoinOrderGEM::SplitUnionAll(CExpression *pexpr, ULONG ulTarget,
                                            SComponent **splitted_components,
                                            BOOL is_first_time)
 {
@@ -1083,13 +525,13 @@ void CJoinOrderDPCoalescing::SplitUnionAll(CExpression *pexpr, ULONG ulTarget,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::PexprCopyWithNewChildren
+//		CJoinOrderGEM::PexprCopyWithNewChildren
 //
 //	@doc:
 //		Copy expression tree and replace scan_expr with new_expr
 //
 //---------------------------------------------------------------------------
-CExpression *CJoinOrderDPCoalescing::PexprCopyWithNewChildren(
+CExpression *CJoinOrderGEM::PexprCopyWithNewChildren(
     CMemoryPool *mp, CExpression *pexpr, CExpression *target_expr,
     CExpression *new_expr)
 {
@@ -1123,13 +565,13 @@ CExpression *CJoinOrderDPCoalescing::PexprCopyWithNewChildren(
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::SplitGraphlets
+//		CJoinOrderGEM::SplitGraphlets
 //
 //	@doc:
 //		Split graphlets into two groups
 //
 //---------------------------------------------------------------------------
-void CJoinOrderDPCoalescing::SplitGraphlets(IMdIdArray *pimdidarray,
+void CJoinOrderGEM::SplitGraphlets(IMdIdArray *pimdidarray,
                                             ULONG ulTables,
                                             IMdIdArray *pdrgmdidFirst,
                                             IMdIdArray *pdrgmdidSecond,
@@ -1154,7 +596,7 @@ void CJoinOrderDPCoalescing::SplitGraphlets(IMdIdArray *pimdidarray,
     }
 }
 
-CExpression *CJoinOrderDPCoalescing::ProcessUnionAllComponents(CDouble &dCost)
+CExpression *CJoinOrderGEM::ProcessUnionAllComponents(CDouble &dCost)
 {
     CExpression *pexprResultUnionAll = NULL;
 
@@ -1222,14 +664,14 @@ CExpression *CJoinOrderDPCoalescing::ProcessUnionAllComponents(CDouble &dCost)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::PexprExpand
+//		CJoinOrderGEM::PexprExpand
 //
 //	@doc:
 //		Create join order
 //
 //---------------------------------------------------------------------------
 CExpression *
-CJoinOrderDPCoalescing::PexprExpand()
+CJoinOrderGEM::PexprExpand()
 {
 	// Calculate edge selectivity
 	CalcEdgeSelectivity(&m_pdrgdSelectivity);
@@ -1256,14 +698,14 @@ CJoinOrderDPCoalescing::PexprExpand()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::CalcEdgeSelectivity
+//		CJoinOrderGEM::CalcEdgeSelectivity
 //
 //	@doc:
 //		Calculate selectivity for an edge
 //
 //---------------------------------------------------------------------------
 void
-CJoinOrderDPCoalescing::CalcEdgeSelectivity(CDoubleArray **pdrgdSelectivity)
+CJoinOrderGEM::CalcEdgeSelectivity(CDoubleArray **pdrgdSelectivity)
 {
 	*pdrgdSelectivity = GPOS_NEW(m_mp) CDoubleArray(m_mp);
 
@@ -1313,7 +755,7 @@ CJoinOrderDPCoalescing::CalcEdgeSelectivity(CDoubleArray **pdrgdSelectivity)
 	}
 }
 
-void CJoinOrderDPCoalescing::UpdateEdgeSelectivity(
+void CJoinOrderGEM::UpdateEdgeSelectivity(
     ULONG ulTarget, CDoubleArray *pdrgdSelectivity, ULONG ul,
     SComponent **splitted_components)
 {
@@ -1377,14 +819,14 @@ void CJoinOrderDPCoalescing::UpdateEdgeSelectivity(
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::Find
+//		CJoinOrderGEM::Find
 //
 //	@doc:
 //		Find set representative with path compression
 //
 //---------------------------------------------------------------------------
 ULONG
-CJoinOrderDPCoalescing::Find(ULONG *parent, ULONG x)
+CJoinOrderGEM::Find(ULONG *parent, ULONG x)
 {
 	if (parent[x] != x)
 	{
@@ -1395,14 +837,14 @@ CJoinOrderDPCoalescing::Find(ULONG *parent, ULONG x)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::Union
+//		CJoinOrderGEM::Union
 //
 //	@doc:
 //		Union two sets by rank
 //
 //---------------------------------------------------------------------------
 ULONG
-CJoinOrderDPCoalescing::Union(ULONG *parent, ULONG *rank, ULONG x, ULONG y)
+CJoinOrderGEM::Union(ULONG *parent, ULONG *rank, ULONG x, ULONG y)
 {
 	ULONG px = Find(parent, x);
 	ULONG py = Find(parent, y);
@@ -1430,13 +872,13 @@ CJoinOrderDPCoalescing::Union(ULONG *parent, ULONG *rank, ULONG x, ULONG y)
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::GOO
+//		CJoinOrderGEM::GOO
 //
 //	@doc:
 //		Greedy Operator Ordering (GOO) algorithm implementation using UnionFind
 //
 //---------------------------------------------------------------------------
-CExpression *CJoinOrderDPCoalescing::RunGOO(ULONG ulComps, SComponent **rgpcomp,
+CExpression *CJoinOrderGEM::RunGOO(ULONG ulComps, SComponent **rgpcomp,
                                             ULONG ulEdges, SEdge **rgpedge,
                                             CDoubleArray *pdrgdSelectivity,
 											SComponent **splitted_components,
@@ -1619,13 +1061,13 @@ CExpression *CJoinOrderDPCoalescing::RunGOO(ULONG ulComps, SComponent **rgpcomp,
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::BuildQueryGraphAndRunGOO
+//		CJoinOrderGEM::BuildQueryGraphAndRunGOO
 //
 //	@doc:
 //		Build query graph and run GOO
 //---------------------------------------------------------------------------
 CExpression *
-CJoinOrderDPCoalescing::BuildQueryGraphAndRunGOO(CExpression *pexpr, ULONG ulTarget, CDouble dBestCost)
+CJoinOrderGEM::BuildQueryGraphAndRunGOO(CExpression *pexpr, ULONG ulTarget, CDouble dBestCost)
 {
     // pexpr = logicalget expression
     // Try different union all splits
@@ -1674,7 +1116,7 @@ CJoinOrderDPCoalescing::BuildQueryGraphAndRunGOO(CExpression *pexpr, ULONG ulTar
     return pexprResult;
 }
 
-CExpression *CJoinOrderDPCoalescing::FindLogicalGetExpr(CExpression *pexpr) {
+CExpression *CJoinOrderGEM::FindLogicalGetExpr(CExpression *pexpr) {
 	// Base case: if expression is NULL, return NULL
 	if (NULL == pexpr)
 	{
@@ -1702,18 +1144,18 @@ CExpression *CJoinOrderDPCoalescing::FindLogicalGetExpr(CExpression *pexpr) {
 	return NULL;
 }
 
-FORCE_GENERATE_DBGSTR(gpopt::CJoinOrderDPCoalescing);
+FORCE_GENERATE_DBGSTR(gpopt::CJoinOrderGEM);
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CJoinOrderDPCoalescing::OsPrint
+//		CJoinOrderGEM::OsPrint
 //
 //	@doc:
 //		Print created join order
 //
 //---------------------------------------------------------------------------
 IOstream &
-CJoinOrderDPCoalescing::OsPrint(IOstream &os) const
+CJoinOrderGEM::OsPrint(IOstream &os) const
 {
 	// increase GPOS_LOG_MESSAGE_BUFFER_SIZE in file ILogger.h if the output of this method gets truncated
 	CHashMapIter<CBitSet, CExpression, UlHashBitSet, FEqualBitSet,

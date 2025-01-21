@@ -1,15 +1,5 @@
-//---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2013 EMC Corp.
-//
-//	@filename:
-//		CJoinOrderDP.h
-//
-//	@doc:
-//		Dynamic programming-based join order generation
-//---------------------------------------------------------------------------
-#ifndef GPOPT_CJoinOrderDPCoalescing_H
-#define GPOPT_CJoinOrderDPCoalescing_H
+#ifndef GPOPT_CJoinOrderGEM_H
+#define GPOPT_CJoinOrderGEM_H
 
 #include "gpos/base.h"
 #include "gpos/common/CBitSet.h"
@@ -28,13 +18,13 @@ using namespace gpos;
 
 //---------------------------------------------------------------------------
 //	@class:
-//		CJoinOrderDPCoalescing
+//		CJoinOrderGEM
 //
 //	@doc:
 //		Helper class for creating join orders using dynamic programming
 //
 //---------------------------------------------------------------------------
-class CJoinOrderDPCoalescing : public CJoinOrder, public gpos::DbgPrintMixin<CJoinOrderDPCoalescing>
+class CJoinOrderGEM : public CJoinOrder, public gpos::DbgPrintMixin<CJoinOrderGEM>
 {
 private:
 	//---------------------------------------------------------------------------
@@ -128,54 +118,14 @@ private:
 	// build expression linking given components
 	CExpression *PexprBuildPred(CBitSet *pbsFst, CBitSet *pbsSnd);
 
-	// lookup best join order for given set
-	CExpression *PexprLookup(CBitSet *pbs);
-
 	// extract predicate joining the two given sets
 	CExpression *PexprPred(CBitSet *pbsFst, CBitSet *pbsSnd);
-
-	// join expressions in the given two sets
-	CExpression *PexprJoin(CBitSet *pbsFst, CBitSet *pbsSnd);
-
-	// join expressions in the given set
-	CExpression *PexprJoin(CBitSet *pbs);
-
-	// find best join order for given component using dynamic programming
-	CExpression *PexprBestJoinOrderDP(CBitSet *pbs);
-
-	// find best join order for given component
-	CExpression *PexprBestJoinOrder(CBitSet *pbs);
-
-	// generate cross product for the given components
-	CExpression *PexprCross(CBitSet *pbs);
-
-	// join a covered subset with uncovered subset
-	CExpression *PexprJoinCoveredSubsetWithUncoveredSubset(
-		CBitSet *pbs, CBitSet *pbsCovered, CBitSet *pbsUncovered);
-
-	// return a subset of the given set covered by one or more edges
-	CBitSet *PbsCovered(CBitSet *pbsInput);
-
-	// add given join order to best results
-	void AddJoinOrder(CExpression *pexprJoin, CDouble dCost);
 
 	// compute cost of given join expression
 	CDouble DCost(CExpression *pexpr);
 
 	// derive stats on given expression
 	virtual void DeriveStats(CExpression *pexpr);
-
-	// add expression to cost map
-	void InsertExpressionCost(CExpression *pexpr, CDouble dCost,
-							  BOOL fValidateInsert);
-
-	// generate all subsets of the given array of elements
-	static void GenerateSubsets(CMemoryPool *mp, CBitSet *pbsCurrent,
-								ULONG *pulElems, ULONG size, ULONG ulIndex,
-								CBitSetArray *pdrgpbsSubsets);
-
-	// driver of subset generation
-	static CBitSetArray *PdrgpbsSubsets(CMemoryPool *mp, CBitSet *pbs);
 
     void CalcEdgeSelectivity(CDoubleArray **pdrgdSelectivity);
 
@@ -213,11 +163,11 @@ private:
 
    public:
 	// ctor
-	CJoinOrderDPCoalescing(CMemoryPool *mp, CExpressionArray *pdrgpexprComponents,
+	CJoinOrderGEM(CMemoryPool *mp, CExpressionArray *pdrgpexprComponents,
 				 CExpressionArray *pdrgpexprConjuncts);
 
 	// dtor
-	virtual ~CJoinOrderDPCoalescing();
+	virtual ~CJoinOrderGEM();
 
 	// main handler
 	virtual CExpression *PexprExpand();
@@ -239,10 +189,10 @@ private:
 	}
 
 
-};	// class CJoinOrderDPCoalescing
+};	// class CJoinOrderGEM
 
 }  // namespace gpopt
 
-#endif	// !GPOPT_CJoinOrderDPCoalescing_H
+#endif	// !GPOPT_CJoinOrderGEM_H
 
 // EOF
