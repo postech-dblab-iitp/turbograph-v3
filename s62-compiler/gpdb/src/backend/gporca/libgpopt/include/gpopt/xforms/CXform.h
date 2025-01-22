@@ -237,7 +237,7 @@ public:
 		ExfIndexPathGet2IndexPathScan,
 		ExfImplementShortestPath,
 		ExfImplementAllShortestPath,
-		ExfExpandNAryJoinDPCoalescing,
+		ExfExpandNAryJoinGEM,
 		// S62 done
 
 		ExfInvalid,

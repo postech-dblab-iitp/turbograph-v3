@@ -9,7 +9,7 @@
 //		Implementation of n-ary join expansion using dynamic programming
 //---------------------------------------------------------------------------
 
-#include "gpopt/xforms/CXformExpandNAryJoinDPCoalescing.h"
+#include "gpopt/xforms/CXformExpandNAryJoinGEM.h"
 
 #include "gpos/base.h"
 
@@ -21,7 +21,7 @@
 #include "gpopt/operators/CPatternMultiTree.h"
 #include "gpopt/operators/CPredicateUtils.h"
 #include "gpopt/optimizer/COptimizerConfig.h"
-#include "gpopt/xforms/CJoinOrderDPCoalescing.h"
+#include "gpopt/xforms/CJoinOrderGEM.h"
 #include "gpopt/xforms/CXformUtils.h"
 
 
@@ -37,7 +37,7 @@ using namespace gpopt;
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CXformExpandNAryJoinDPCoalescing::CXformExpandNAryJoinDPCoalescing(
+CXformExpandNAryJoinGEM::CXformExpandNAryJoinGEM(
     CMemoryPool *mp)
     : CXformExploration(
           // pattern
@@ -56,7 +56,7 @@ CXformExpandNAryJoinDPCoalescing::CXformExpandNAryJoinDPCoalescing(
 //
 //---------------------------------------------------------------------------
 CXform::EXformPromise
-CXformExpandNAryJoinDPCoalescing::Exfp(CExpressionHandle &exprhdl) const
+CXformExpandNAryJoinGEM::Exfp(CExpressionHandle &exprhdl) const
 {
 	// COptimizerConfig *optimizer_config =
 	// 	COptCtxt::PoctxtFromTLS()->GetOptimizerConfig();
@@ -87,7 +87,7 @@ CXformExpandNAryJoinDPCoalescing::Exfp(CExpressionHandle &exprhdl) const
 //
 //---------------------------------------------------------------------------
 void
-CXformExpandNAryJoinDPCoalescing::Transform(CXformContext *pxfctxt, CXformResult *pxfres,
+CXformExpandNAryJoinGEM::Transform(CXformContext *pxfctxt, CXformResult *pxfres,
 								  CExpression *pexpr) const
 {
 	GPOS_ASSERT(NULL != pxfctxt);
@@ -113,7 +113,7 @@ CXformExpandNAryJoinDPCoalescing::Transform(CXformContext *pxfctxt, CXformResult
 		CPredicateUtils::PdrgpexprConjuncts(mp, pexprScalar);
 
 	// create join order using dynamic programming
-	CJoinOrderDPCoalescing jodp(mp, pdrgpexpr, pdrgpexprPreds);
+	CJoinOrderGEM jodp(mp, pdrgpexpr, pdrgpexprPreds);
 	CExpression *pexprResult = jodp.PexprExpand();
 
 	if (NULL != pexprResult)

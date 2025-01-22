@@ -185,7 +185,7 @@ private:
 	virtual CXform::EXformId
 	EOriginXForm() const
 	{
-		return CXform::ExfExpandNAryJoinDPCoalescing;
+		return CXform::ExfExpandNAryJoinGEM;
 	}
 
 

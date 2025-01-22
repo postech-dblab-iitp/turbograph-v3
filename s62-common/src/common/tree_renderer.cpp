@@ -1,5 +1,4 @@
 #include "common/tree_renderer.hpp"
-#include "planner/logical_operator.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "common/string_util.hpp"
 #include "common/pair.hpp"

@@ -361,8 +361,6 @@ CTranslatorS62ToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 	OID oid = CMDIdGPDB::CastMdid(mdid)->Oid(); // TODO check how this works
 	GPOS_ASSERT(InvalidOid != oid);
 
-	CheckUnsupportedRelation(oid);
-
 	s62::PropertySchemaCatalogEntry *rel = s62::GetRelation(oid);
 
 	if (NULL == rel)
@@ -797,7 +795,6 @@ CTranslatorS62ToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 			return GPOS_NEW(mp) CMDTypeBoolGPDB(mp);
 
 		case GPDB_OID_OID:
-		default:
 			D_ASSERT(false);
 			break;
 	}

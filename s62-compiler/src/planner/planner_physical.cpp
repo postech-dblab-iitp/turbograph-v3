@@ -1418,8 +1418,6 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(
     }
 
     D_ASSERT(pathscan_op->Pindexdesc()->Size() == 1);
-    D_ASSERT(pathscan_op->UpperBound() !=
-             -1);  // TODO currently engine does not support infinite hop
 
     // Get JoinColumnID
     std::vector<uint32_t> sccmp_colids;
@@ -1484,6 +1482,9 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(
     /* Generate operator and push */
     s62::Schema tmp_schema;
     tmp_schema.setStoredTypes(types);
+    uint64_t upper_bound = pathscan_op->UpperBound();
+    uint64_t lower_bound = pathscan_op->LowerBound();
+    if (upper_bound == -1) upper_bound = std::numeric_limits<uint64_t>::max();
     s62::CypherPhysicalOperator *op = new s62::PhysicalVarlenAdjIdxJoin(
         tmp_schema, path_index_oid, s62::JoinType::INNER, sid_col_idx, false,
         pathscan_op->LowerBound(), pathscan_op->UpperBound(), outer_col_map,
@@ -4372,8 +4373,9 @@ s62::CypherPhysicalOperatorGroups* Planner::pTransformEopShortestPath(CExpressio
     auto ptabledesc = shrtst_op->PtabdescArray()->operator[](0);
     auto pcr_src = shrtst_op->PcrSource();
     auto pcr_dest = shrtst_op->PcrDestination();
-    auto lower_bound = shrtst_op->PathLowerBound();
-    auto upper_bound = shrtst_op->PathUpperBound();
+    uint64_t lower_bound = shrtst_op->PathLowerBound();
+    uint64_t upper_bound = shrtst_op->PathUpperBound();
+    if (upper_bound == -1) upper_bound = std::numeric_limits<uint64_t>::max();
 
     // DuckDB types
 	s62::CypherPhysicalOperatorGroups *result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));
@@ -4423,8 +4425,9 @@ s62::CypherPhysicalOperatorGroups* Planner::pTransformEopAllShortestPath(CExpres
     auto ptabledesc = shrtst_op->PtabdescArray()->operator[](0);
     auto pcr_src = shrtst_op->PcrSource();
     auto pcr_dest = shrtst_op->PcrDestination();
-    auto lower_bound = shrtst_op->PathLowerBound();
-    auto upper_bound = shrtst_op->PathUpperBound();
+    uint64_t lower_bound = shrtst_op->PathLowerBound();
+    uint64_t upper_bound = shrtst_op->PathUpperBound();
+    if (upper_bound == -1) upper_bound = std::numeric_limits<uint64_t>::max();
 
     // DuckDB types
 	s62::CypherPhysicalOperatorGroups *result = pTraverseTransformPhysicalPlan(plan_expr->PdrgPexpr()->operator[](0));

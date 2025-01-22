@@ -9,7 +9,6 @@
 #pragma once
 
 #include "planner/bound_query_node.hpp"
-#include "planner/logical_operator.hpp"
 #include "parser/expression_map.hpp"
 #include "planner/bound_tableref.hpp"
 #include "parser/parsed_data/sample_options.hpp"
