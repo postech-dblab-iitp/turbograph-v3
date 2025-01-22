@@ -503,7 +503,7 @@ template <class OP>
 unique_ptr<FunctionData> BindDecimalMinMax(ClientContext &context, AggregateFunction &function,
                                            vector<unique_ptr<Expression>> &arguments) {
 	auto decimal_type = arguments[0]->return_type;
-	// auto decimal_type = LogicalType::DECIMAL(12, 2); // TODO decimal temporary
+	// auto decimal_type = LogicalType::DECIMAL(12, 2); 
 	auto name = function.name;
 	switch (decimal_type.InternalType()) {
 	case PhysicalType::INT16:

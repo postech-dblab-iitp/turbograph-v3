@@ -6,7 +6,7 @@
 #include "common/types/timestamp.hpp"
 #include "common/string_util.hpp"
 
-// TODO date_trunc function should also handle interval data type when it is implemented. See
+
 // https://www.postgresql.org/docs/9.1/functions-datetime.html
 
 namespace s62 {

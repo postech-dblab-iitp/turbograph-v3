@@ -113,17 +113,17 @@ CXformPathJoin2IndexPathApply::Transform(CXformContext *pxfctxt,
 	// 		IMDId *pmdidIndex = pmdrel->IndexMDidAt(ul);
 	// 		pmdindex = md_accessor->RetrieveIndex(pmdidIndex);
 	// 		//pmdindex->
-	// 		// TODO MUST select forward index
+	// 		
 	// 			// refer to FIndexApplicable!!
 	// 	}
 
 	// 	CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
 	// 	const IMDRelation *pmdrel = md_accessor->RetrieveRel(ptabdescInner->MDId());
 
-	// 	// TODO can we directly use CXformUtils::PexprLogicalIndexGet( ??
+	// 	
 	// 		// CExpression *pexprLogicalIndexGet =
 
-	// 	// TODO set pexprGenratedInnerIndexScan = pexprLogicalIndexGet
+	// 	
 	// }
 
 
@@ -137,7 +137,7 @@ CXformPathJoin2IndexPathApply::Transform(CXformContext *pxfctxt,
 				op->UpperBound(),
 				colref_array, isOuterJoin, origJoinPred),
 			pexprOuter,
-			pexprGenratedInnerIndexScan,	// TODO inner is not  this inner.
+			pexprGenratedInnerIndexScan,	
 			CPredicateUtils::PexprConjunction(mp, NULL /*pdrgpexpr*/)
 		);
 	pxfres->Add(pexprIndexApply);

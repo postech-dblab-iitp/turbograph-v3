@@ -10,23 +10,6 @@ We build the system over
 
 ## Getting Started
 
-### Dataset
-
-Supported File Formats
-
-We currently support the following file formats:
-- **CSV**
-- **JSON**
-
-CSV Format Requirements
-- Files must include headers specifying the names and data types of each column.
-- Edge file must have :START_ID(TYPE)|:END_ID(TYPE) columns. In case of backward file, it should have :END_ID(TYPE)|:START_ID(TYPE) columns.
-
-JSON Format Requirements:
-- Files must contain a list of objects. Each object should include consistent labels and possess unique properties.
-
-To experiment with a typical dataset, you can download the LDBC SF1 dataset from the following [link](https://drive.google.com/file/d/1PqXw_Fdp9CDVwbUqTQy0ET--mgakGmOA/view?usp=drive_link).
-
 ### Docker Setting
 
 We provide a docker image for the project. You can build the image using the following command.

@@ -19,7 +19,6 @@
  * along with set_sim_join.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// TODO change GPL license??
 
 #include <algorithm>
 #include <vector>
@@ -34,7 +33,7 @@
 #include "candidateset.h"
 #include "emptypairs.h"
 
-#define SET_SIZE_DIFF_THRESHOLD 100000 // TODO
+#define SET_SIZE_DIFF_THRESHOLD 100000 
 
 template <typename AllPairsSimilarity/* = Jaccard*/,
 		 typename AllPairsIndexingStrategyPolicy = IndexOnTheFlyPolicy,
@@ -210,7 +209,6 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 		typename Index::ProbeRecord & record = getproberecord(indexedrecords, foreignrecords, recind);
 		unsigned int reclen = record.tokens.size();
 
-		// TODO: This only works for self joins
 		outputempty(record, recind, indexedrecords, candidateSet, Similarity::outputall_le(threshold));
 
 		//Minimum size of records in index
@@ -367,21 +365,10 @@ void AllPairsCluster<AllPairsSimilarity, AllPairsIndexingStrategyPolicy, AllPair
 		unsigned int reclen = record.tokens.size();
 		// printf("\nRecord %d\n", recind);
 
-		// TODO: This only works for self joins
 		outputempty(record, recind, indexedrecords, candidateSet, Similarity::outputall_le(threshold));
 
 		// Minimum size of records in index
 		unsigned int minsize = Similarity::minsize(reclen, threshold);
-
-		// Check whether cache is to renew
-		// if (lastprobesize < reclen) {
-		// 	lastprobesize = reclen;
-		// 	unsigned int maxel = Index::SELF_JOIN ? reclen : Similarity::maxsize(reclen, threshold);
-		// 	minoverlapcache.resize(maxel + 1);
-		// 	for(unsigned int i = minsize; i <= maxel; ++i) {
-		// 		minoverlapcache[i] = Similarity::minoverlap(reclen, i, threshold);
-		// 	}
-		// }
 
 		// Length of probing prefix
 		unsigned int maxprefix = Similarity::maxprefix(reclen, threshold);

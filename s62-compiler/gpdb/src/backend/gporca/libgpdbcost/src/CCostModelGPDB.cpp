@@ -1016,7 +1016,7 @@ CCostModelGPDB::CostHashJoin(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	CColRefSet *pcrsUsed = pexprJoinCond->DeriveUsedColumns();
 	const ULONG ulColsUsed = pcrsUsed->Size();
 
-	// TODO 2014-03-14
+	
 	// currently, we hard coded a spilling memory threshold for judging whether hash join spills or not
 	// In the future, we should calculate it based on the number of memory-intensive operators and statement memory available
 	CCost costLocal(0);
@@ -1464,7 +1464,7 @@ CCostModelGPDB::CostMotion(CMemoryPool *mp, CExpressionHandle &exprhdl,
 	const DOUBLE dWidthOuter = pci->GetWidth()[0];
 
 	// motion cost contains three parts: sending cost, interconnect cost, and receiving cost.
-	// TODO 2014-03-18
+	
 	// in current cost model, interconnect cost is tied with receiving cost. Because we
 	// only have one set calibration results in the dimension of the number of segments.
 	// Once we calibrate the cost model with different number of segments, I will update
@@ -2073,12 +2073,16 @@ CCostModelGPDB::CostScan(CMemoryPool *,	 // mp
 			->Get();
 	GPOS_ASSERT(0 < dTableScanCostUnit);
 
-	// S62 get table name to penalize edge table scans
-	CDouble scanPenalization(1.0);
-	const CName &tab_name =
-		CPhysicalScan::PopConvert(pop)->Ptabdesc()->Name();
-	if (wcsncmp(tab_name.Pstr()->GetBuffer(), L"eps_", 4) == 0) {
-		scanPenalization = 10.0;
+	CDouble dScanFactor(0);
+	if (CUtils::FEdgeScan(pop)) {
+		dScanFactor = pcmgpdb->GetCostModelParams()
+			->PcpLookup(CCostModelParamsGPDB::EcpEdgeScanCostFactor)
+			->Get();
+	}
+	else {
+		dScanFactor = pcmgpdb->GetCostModelParams()
+			->PcpLookup(CCostModelParamsGPDB::EcpNodeScanCostFactor)
+			->Get();
 	}
 
 	switch (op_id)
@@ -2093,7 +2097,7 @@ CCostModelGPDB::CostScan(CMemoryPool *,	 // mp
 			// we add Scan output tuple cost in the parent operator and not here
 			return CCost(
 				pci->NumRebinds() *
-				(dInitScan * 0/* S62 in-memory */ + pci->Rows() * dTableWidth * dTableScanCostUnit * scanPenalization)); // S62 add scan penalization
+				(dInitScan * 0/* S62 in-memory */ + pci->Rows() * dTableWidth * dTableScanCostUnit * dScanFactor));
 		default:
 			GPOS_ASSERT(!"invalid index scan");
 			return CCost(0);

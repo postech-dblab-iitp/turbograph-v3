@@ -89,7 +89,7 @@ void ChunkCollection::Append(DataChunk &new_chunk) {
 					}
 				}
 			}
-			// TODO check structs, too
+			
 		}
 
 		// first append data to the current chunk
@@ -165,7 +165,7 @@ void ChunkCollection::Append(DataChunk &new_chunk, vector<LogicalType>& init_typ
 		// 			}
 		// 		}
 		// 	}
-		// 	// TODO check structs, too
+		// 	
 		// }
 
 		// first append data to the current chunk

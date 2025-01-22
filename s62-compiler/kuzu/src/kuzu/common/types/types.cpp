@@ -42,7 +42,6 @@ unique_ptr<DataType> DataType::copy() {
 
 DataType Types::dataTypeFromString(const string& dataTypeString) {
     DataType dataType;
-    /* JHKO CPP20 ends_with replaced with different expression*/
     if (dataTypeString.substr( dataTypeString.length() - 2 ) == "[]") {
         dataType.typeID = LIST;
         dataType.childType = make_unique<DataType>(

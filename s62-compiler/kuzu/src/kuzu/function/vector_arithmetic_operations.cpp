@@ -7,7 +7,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-// TODO very strange..
+
 static DataTypeID resolveResultType(DataTypeID leftTypeID, DataTypeID rightTypeID) {
     if (leftTypeID == DOUBLE || rightTypeID == DOUBLE) {
         return DOUBLE;

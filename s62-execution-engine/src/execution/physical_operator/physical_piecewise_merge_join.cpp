@@ -374,7 +374,7 @@ public:
 	void ResolveJoinKeys(DataChunk &input) {
 		// resolve the join keys for the input
 		lhs_keys.Reset();
-		lhs_executor.Execute(input, lhs_keys); // TODO necessary?
+		lhs_executor.Execute(input, lhs_keys); 
 
 		// Count the NULLs so we can exclude them later
 		lhs_count = lhs_keys.size();
@@ -705,7 +705,7 @@ static idx_t MergeJoinComplexBlocks(BlockMergeInfo &l, BlockMergeInfo &r, const 
 			comp_res = FastMemcmp(l_ptr, r_ptr, cmp_size);
 			// std::cout << "left(" << l.entry_idx << "): " << left_id_value << ", right(" << r.entry_idx << "): " << right_id_value << std::endl;
 		} else {
-			D_ASSERT(false); // TODO not consider this case yet
+			D_ASSERT(false); 
 			lread.entry_idx = l.entry_idx;
 			rread.entry_idx = r.entry_idx;
 			comp_res = Comparators::CompareTuple(lread, rread, l_ptr, r_ptr, l.state.sort_layout, external);

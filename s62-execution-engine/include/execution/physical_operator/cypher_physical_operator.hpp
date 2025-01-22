@@ -116,15 +116,15 @@ class CypherPhysicalOperator {
 
     // operator metadata
     const PhysicalOperatorType type;
-    mutable Schema schema;           // TODO remove mutable
-    mutable vector<Schema> schemas;  // TODO remove mutable
+    mutable Schema schema;           
+    mutable vector<Schema> schemas;  
     mutable vector<LogicalType>
         types;  // schema(types) of operator output chunk
     vector<CypherPhysicalOperator *> children;  // child operators
 
     // operator statistics
-    // TODO make this into timer struct with some functions
-    boost::timer::cpu_timer op_timer;  // TODO deprecate
+    
+    boost::timer::cpu_timer op_timer;  
     bool timer_started;
     int64_t exec_time;
 

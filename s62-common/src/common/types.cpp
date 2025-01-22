@@ -84,7 +84,7 @@ PhysicalType LogicalType::GetInternalType() {
 	case LogicalTypeId::DOUBLE:
 		return PhysicalType::DOUBLE;
 	case LogicalTypeId::DECIMAL: {
-		// return PhysicalType::INT64; // TODO decimal temporary for TPC-H
+		// return PhysicalType::INT64; 
 		if (!type_info_) {
 			return PhysicalType::INVALID;
 		}
@@ -194,7 +194,7 @@ constexpr const LogicalTypeId LogicalType::BLOB;
 constexpr const LogicalTypeId LogicalType::INTERVAL;
 constexpr const LogicalTypeId LogicalType::ROW_TYPE;
 
-// TODO these are incomplete and should maybe not exist as such
+
 constexpr const LogicalTypeId LogicalType::TABLE;
 
 // S62-specific
@@ -892,7 +892,7 @@ public:
 };
 
 uint8_t DecimalType::GetWidth(const LogicalType &type) {
-	// return 12; // TODO decimal temporary
+	// return 12; 
 	D_ASSERT(type.id() == LogicalTypeId::DECIMAL);
 	auto info = type.AuxInfo();
 	D_ASSERT(info);
@@ -900,7 +900,7 @@ uint8_t DecimalType::GetWidth(const LogicalType &type) {
 }
 
 uint8_t DecimalType::GetScale(const LogicalType &type) {
-	// return 2; // TODO decimal temporary
+	// return 2; 
 	D_ASSERT(type.id() == LogicalTypeId::DECIMAL);
 	auto info = type.AuxInfo();
 	D_ASSERT(info);

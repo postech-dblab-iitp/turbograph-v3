@@ -117,7 +117,6 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext &context,
             for (idx_t idx = 0; idx < copyChunk->ColumnCount(); idx++) {
                 if (projection_mappings[0][idx] ==
                     std::numeric_limits<uint8_t>::max()) {
-                    // TODO use is_valid flag
                     FlatVector::Validity(copyChunk->data[idx])
                         .SetAllInvalid(input.size());
                     continue;

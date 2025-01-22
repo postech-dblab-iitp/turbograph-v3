@@ -39,7 +39,7 @@ CFilterStatsProcessor::MakeStatsFilterForScalarExpr(
 
 	CColRefSet *outer_refs = exprhdl.DeriveOuterReferences();
 
-	// TODO  June 13 2014, we currently only cap ndvs when we have a filter
+	
 	// immediately on top of tables
 	BOOL do_cap_NDVs = (1 == exprhdl.DeriveJoinDepth());
 

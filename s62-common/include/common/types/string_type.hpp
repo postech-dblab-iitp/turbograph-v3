@@ -79,7 +79,7 @@ public:
 	}
 
 	string GetString() const {
-		// if (GetSize() > 100) return ""; // TODO temporary
+		// if (GetSize() > 100) return ""; 
 		return string(GetDataUnsafe(), GetSize());
 	}
 

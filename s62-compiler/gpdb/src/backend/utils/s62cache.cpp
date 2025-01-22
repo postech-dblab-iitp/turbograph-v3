@@ -390,7 +390,7 @@ static s62::fixed_managed_mapped_file *catalog_shm;
  *		This is used to allocate memory for a new relation descriptor
  *		and initialize the rd_rel field from the given pg_class tuple.
  */
-// static Relation // TODO we don't need this maybe..
+// static Relation 
 // AllocateRelationDesc(/*Form_pg_class relp*/)
 // {
 // 	Relation	relation;
@@ -897,7 +897,7 @@ static s62::fixed_managed_mapped_file *catalog_shm;
 // 	s62::PropertySchemaCatalogEntry *pscat;
 // 	s62::ClientContext client(db);
 
-// 	pscat = (s62::PropertySchemaCatalogEntry *)catalog->GetEntry(client, "", ""); // TODO change this to ID-based lookup
+// 	pscat = (s62::PropertySchemaCatalogEntry *)catalog->GetEntry(client, "", ""); 
 
 // 	/*
 // 	 * find the tuple in pg_class corresponding to the given relation id

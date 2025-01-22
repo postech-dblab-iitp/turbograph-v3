@@ -187,7 +187,7 @@ void CypherPipelineExecutor::ExecutePipeline()
 		if (isSourceDataFinished) {
 			if (sfg.AdvanceCurSourceIdx()) continue;
 			else {
-				// TODO process remaining postponed outputs
+				
 				if (pipeline->AdvanceGroup()) {
 					sfg.ReplaceToOtherSourceSchema();
 					ReinitializePipeline();

@@ -53,7 +53,7 @@ public:
 	//! Extra info vector
 	uint16_t_vector extra_typeinfo_vec;
 
-	//! Property key names // TODO useless?
+	//! Property key names
 	string_vector property_key_names;
 
 	LogicalTypeId_vector adjlist_typesid;

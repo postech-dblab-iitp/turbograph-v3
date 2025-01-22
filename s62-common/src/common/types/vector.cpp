@@ -67,7 +67,7 @@ Vector::Vector(Vector &&other) noexcept
 
 void Vector::Reference(const Value &value) {
 	D_ASSERT( (GetType().id()==LogicalTypeId::ID) || (value.type().id()==LogicalTypeId::ID) || ( GetType().id() == value.type().id() ) );
-		// TODO bypassing same logical value checks on Logicaltypd::ID
+		
 
 	this->vector_type = VectorType::CONSTANT_VECTOR;
 	buffer = VectorBuffer::CreateConstantVector(value.type());
@@ -93,7 +93,7 @@ void Vector::Reference(const Value &value) {
 	} else {
 		auxiliary.reset();
 		data = buffer->GetData();
-		// std::memset(data, 0, STANDARD_VECTOR_SIZE * GetTypeIdSize(value.type().InternalType())); // TODO super overhead
+		// std::memset(data, 0, STANDARD_VECTOR_SIZE * GetTypeIdSize(value.type().InternalType())); 
 		SetValue(0, value);
 	}
 }
@@ -178,12 +178,12 @@ void Vector::Slice(const SelectionVector &sel, idx_t count) {
 	auto child_ref = make_buffer<VectorChildBuffer>(move(child_vector));
 	auto dict_buffer = make_buffer<DictionaryBuffer>(sel);
 	child_ref->data.is_valid = this->is_valid;
-	child_ref->data.rowcol_idx = this->rowcol_idx; // TODO right?
+	child_ref->data.rowcol_idx = this->rowcol_idx; 
 	vector_type = VectorType::DICTIONARY_VECTOR;
 	buffer = move(dict_buffer);
 	auxiliary = move(child_ref);
 	child_vector.is_valid = this->is_valid;
-	child_vector.rowcol_idx = this->rowcol_idx; // TODO right?
+	child_vector.rowcol_idx = this->rowcol_idx; 
 }
 
 void Vector::Slice(const SelectionVector &sel, idx_t count, SelCache &cache) {

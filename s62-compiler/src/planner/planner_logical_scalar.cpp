@@ -212,7 +212,7 @@ CExpression *Planner::lExprScalarComparisonExpr(kuzu::binder::Expression* expres
 
 	IMDId* func_mdid = 
 		CMDAccessorUtils::GetScCmpMdIdConsiderCasts(md_accessor, left_mdid, right_mdid, cmp_type);	// test if function exists
-	D_ASSERT(func_mdid != NULL);	// function must be found // TODO need to raise exception
+	D_ASSERT(func_mdid != NULL);	// function must be found 
 
 	return CUtils::PexprScalarCmp(mp, lhs_scalar_expr, rhs_scalar_expr, cmp_type);
 	
@@ -229,7 +229,7 @@ CExpression* Planner::lExprScalarCmpEq(CExpression* left_expr, CExpression* righ
 	IMDId *right_mdid = CScalar::PopConvert(right_expr->Pop())->MdidType();
 	IMDId* func_mdid = 
 		CMDAccessorUtils::GetScCmpMdIdConsiderCasts(md_accessor, left_mdid, right_mdid, cmp_type);
-	D_ASSERT(func_mdid != NULL);	// function must be found // TODO need to raise exception
+	D_ASSERT(func_mdid != NULL);	// function must be found 
 
 	return CUtils::PexprScalarCmp(mp, left_expr, right_expr, cmp_type);
 }
@@ -358,7 +358,7 @@ CExpression *Planner::lExprScalarLiteralExpr(
         type = lit_expr->literal.get()->dataType;
     }
     else {
-		// TODO we need to check if literal type can be casted to required type
+		
         type = DataType(required_type);
     }
 
@@ -597,7 +597,7 @@ CExpression *Planner::lExprScalarExistentialSubqueryExpr(kuzu::binder::Expressio
 
 	// call match - always correlated existential
 	LogicalPlan* inner_plan = lPlanRegularMatchFromSubquery(*queryGraphCollection, prev_plan /* outer plan*/);
-	// TODO edge isomorphism?
+	
 
 	// call selection; but now allow access of outer query
 	l_is_outer_plan_registered = true;
@@ -752,12 +752,12 @@ INT Planner::lGetTypeModFromType(s62::LogicalType type) {
 		width_scale = width_scale << 8 | s62::DecimalType::GetScale(type);
 		mod = width_scale;
 	} else if (type.id() == s62::LogicalTypeId::LIST) {
-		// TODO we cannot handle cases when nesting lv >= 4 yet
+		
 		if (s62::ListType::GetChildType(type).id() == s62::LogicalTypeId::LIST) {
 			INT child_mod = lGetTypeModFromType(s62::ListType::GetChildType(type));
 			mod = (INT)s62::LogicalTypeId::LIST | child_mod << 8;
 		} else {
-			// TODO we do not consider LIST(DECIMAL) yet
+			
 			mod = (INT)s62::ListType::GetChildType(type).id();
 		}
 	}

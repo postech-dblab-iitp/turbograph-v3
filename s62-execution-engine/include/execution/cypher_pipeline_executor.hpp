@@ -63,7 +63,7 @@ public:
 	ThreadContext thread;
 
 
-	// TODO add statistics reporter.
+	
 
 
 	//! Intermediate chunks for the operators

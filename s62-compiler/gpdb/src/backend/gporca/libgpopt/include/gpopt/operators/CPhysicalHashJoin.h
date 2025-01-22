@@ -204,7 +204,7 @@ public:
 	virtual EChildExecOrder
 	Eceo() const
 	{
-		// TODO - ; 01/06/2014
+		
 		// obtain this property by through MD abstraction layer, similar to scalar properties
 
 		// hash join in GPDB executes its inner (right) child first,

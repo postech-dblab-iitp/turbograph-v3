@@ -37,7 +37,7 @@ class GraphCatalogEntry : public StandardEntry {
 	typedef boost::unordered_map< EdgeTypeID, idx_t
        	, boost::hash<EdgeTypeID>, std::equal_to<EdgeTypeID>
 		, type_to_partition_map_value_type_allocator>
-	PropertyKeyIDToTypeIDUnorderedMap; // TODO EdgeTypeID == idx_t
+	PropertyKeyIDToTypeIDUnorderedMap; 
 	typedef boost::unordered_map< VertexLabelID, idx_t_vector
        	, boost::hash<VertexLabelID>, std::equal_to<VertexLabelID>
 		, label_to_partitionvec_map_value_type_allocator>

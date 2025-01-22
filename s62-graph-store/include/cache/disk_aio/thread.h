@@ -150,7 +150,7 @@ class thread {
 	}
 	int get_tid() const {
 		if (get_curr_thread() == NULL || get_curr_thread() != this) {
-			// TODO I need a better way to wait for tid to be initialized.
+			
 			while (tid < 0) { }
 			return tid;
 		} else

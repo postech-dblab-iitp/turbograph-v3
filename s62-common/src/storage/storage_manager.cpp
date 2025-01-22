@@ -36,7 +36,7 @@ BufferManager &BufferManager::GetBufferManager(ClientContext &context) {
 // }
 
 bool ObjectCache::ObjectCacheEnabled(ClientContext &context) {
-	// TODO always disable
+	
 	return false;
 	// return context.db->config.object_cache_enable;
 }

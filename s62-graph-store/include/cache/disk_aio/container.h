@@ -341,7 +341,7 @@ class thread_safe_FIFO_queue: public fifo_queue<T> {
 		BOOST_VERIFY(add(entries, num) == num);
 	}
 
-	// TODO I should return reference.
+	
 	T pop_front() {
 		T entry;
 		BOOST_VERIFY(fetch(&entry, 1) == 1);
@@ -363,7 +363,7 @@ class thread_safe_FIFO_queue: public fifo_queue<T> {
 		return num_entries;
 	}
 
-	// TODO these are bugs. They should be protected by locks.
+	
 	bool is_full() {
 		_lock.lock();
 		bool ret = fifo_queue<T>::is_full();

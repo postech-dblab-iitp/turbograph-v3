@@ -526,9 +526,9 @@ void Binder::bindNodeTableIDs(const vector<string> &tableNames,
                               vector<uint64_t> &partitionIDs,
                               vector<uint64_t> &tableIDs)
 {
-    D_ASSERT(false);  // TODO 231120 deprecated
+    D_ASSERT(false);  
     // D_ASSERT(client != nullptr);
-    // // TODO tablenames should be vector of vector considering the union over labelsets
+    // 
     //     // e.g. (A:B | C:D) => [[A,B], [C,D]]
 
     // // syntax is strange. each tablename is considered intersection.

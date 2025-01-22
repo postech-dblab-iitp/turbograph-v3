@@ -468,8 +468,8 @@ static inline Datum Float8GetDatum(float8 f) { Datum_U du; du.f8 = f; return du.
 static inline Datum Float8GetDatumFast(float8 f) { return Float8GetDatum(f); }
 
 
-// static inline ItemPointer DatumGetItemPointer(Datum d) { return (ItemPointer) DatumGetPointer(d); } // TODO necessary?
-// static inline Datum ItemPointerGetDatum(ItemPointer i) { return PointerGetDatum(i); } // TODO necessary?
+// static inline ItemPointer DatumGetItemPointer(Datum d) { return (ItemPointer) DatumGetPointer(d); } 
+// static inline Datum ItemPointerGetDatum(ItemPointer i) { return PointerGetDatum(i); } 
 
 
 static inline bool IsAligned(void *p, int align)

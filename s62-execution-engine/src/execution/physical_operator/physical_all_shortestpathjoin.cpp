@@ -40,7 +40,6 @@ public:
     vector<LogicalType> adj_col_types;
 };
 
-// TODO remove all getIdRefFromVector
 inline uint64_t &getIdRefFromVector(Vector &vector, idx_t index)
 {
     switch (vector.GetVectorType()) {

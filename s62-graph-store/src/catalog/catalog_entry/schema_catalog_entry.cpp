@@ -183,7 +183,7 @@ CatalogEntry *SchemaCatalogEntry::CreateFunction(ClientContext &context, CreateF
 }
 
 CatalogEntry *SchemaCatalogEntry::AddFunction(ClientContext &context, CreateFunctionInfo *info) {
-	D_ASSERT(false); // TODO temporary
+	D_ASSERT(false);
 	auto entry = GetCatalogSet(info->type).GetEntry(context, info->name);
 	if (!entry) {
 		return CreateFunction(context, info);

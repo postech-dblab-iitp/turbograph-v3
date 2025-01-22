@@ -17,7 +17,7 @@ struct CreatePartitionInfo : public CreateInfo {
 	//! Partition name to insert to
 	string partition;
 	PartitionID pid;
-	//! CREATE GRAPH from QUERY // TODO Cypher needs to be extended to support graph creation
+	//! CREATE GRAPH from QUERY 
 	//unique_ptr<SelectStatement> query;
 
 public:

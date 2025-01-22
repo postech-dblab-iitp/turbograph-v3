@@ -18,7 +18,7 @@ public:
 
 public:
 	unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const override;
-	// TODO physical_top can be operator when not incoming as sink. but in multi-threaded execution, it matters.
+	
 	OperatorResultType Execute(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &state) const override;
 
 	std::string ParamsToString() const override;

@@ -16,7 +16,7 @@ struct CreateGraphInfo : public CreateInfo {
 
 	//! Graph name to insert to
 	string graph;
-	//! CREATE GRAPH from QUERY // TODO Cypher needs to be extended to support graph creation
+	//! CREATE GRAPH from QUERY 
 	//unique_ptr<SelectStatement> query;
 
 public:

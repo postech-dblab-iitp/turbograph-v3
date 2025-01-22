@@ -333,7 +333,7 @@ list_concat(List *list1, List *list2)
 	if (list2 == NIL)
 		return list1;
 	if (list1 == list2)
-		Assert(false); // TODO import elog?
+		Assert(false); 
 		// elog(ERROR, "cannot list_concat() a list to itself");
 
 	Assert(list1->type == list2->type);

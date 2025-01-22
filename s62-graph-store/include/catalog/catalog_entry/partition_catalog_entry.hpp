@@ -48,7 +48,7 @@ public:
 	//! OID of the dst partition
 	idx_t dst_part_oid;
 
-	//! OID of the universal property schema // TODO useless?
+	//! OID of the universal property schema 
 	idx_t univ_ps_oid;
 
 	//! OIDs of the adjacency list indexes
@@ -79,7 +79,7 @@ public:
 	atomic<ExtentID> local_extent_id_version;
 
 	//! variable for the local temporal ID generator
-	idx_t local_temporal_id_version; // TODO atomic variable test
+	idx_t local_temporal_id_version; 
 
 	//! offset infos
 	idx_t_vector offset_infos;
@@ -93,7 +93,7 @@ public:
 	//! precomputed base values for each column
 	idx_t_vector multipliers_for_each_column;
 
-	//! which group each table belongs to by column // TODO optimal format? currently do not consider update
+	//! which group each table belongs to by column 
 	idx_t_vector group_info_for_each_table;
 
 	//! min max value for each column (assume only numeric)

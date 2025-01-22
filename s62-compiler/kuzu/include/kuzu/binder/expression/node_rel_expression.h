@@ -130,7 +130,7 @@ protected:
     vector<table_id_t> tableIDs;
     table_id_t univTableID;
     unordered_map<uint64_t, size_t> propertyKeyIDToIdx;
-    // TODO maintain map<tid, vector<size_t> projectionListPerTid
+    
     // vector<unique_ptr<Expression>> properties;
     vector<shared_ptr<Expression>> properties;
     vector<bool> used_columns;

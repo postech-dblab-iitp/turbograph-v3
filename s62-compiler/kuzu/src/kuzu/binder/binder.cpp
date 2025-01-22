@@ -160,7 +160,6 @@ void Binder::validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuer
     }
 }
 
-// TODO jhko do nothing
 // void Binder::validateTableExist(const Catalog& _catalog, string& tableName) {
 //     if (!_catalog.getReadOnlyVersion()->containNodeTable(tableName) &&
 //         !_catalog.getReadOnlyVersion()->containRelTable(tableName)) {
@@ -177,7 +176,6 @@ bool Binder::validateStringParsingOptionName(string& parsingOptionName) {
     // return false;
 }
 
-// TODO jhko do nothing
 // void Binder::validateNodeTableHasNoEdge(const Catalog& _catalog, table_id_t tableID) {
 //     for (auto& tableIDSchema : _catalog.getReadOnlyVersion()->getRelTableSchemas()) {
 //         if (tableIDSchema.second->edgeContainsNodeTable(tableID)) {

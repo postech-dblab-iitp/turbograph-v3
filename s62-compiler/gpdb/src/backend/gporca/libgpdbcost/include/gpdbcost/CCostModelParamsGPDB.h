@@ -106,7 +106,10 @@ public:
 
 		EcpScalarFuncCost,	// cost of scalar func
 
-		EcpSentinel
+		EcpSentinel, //
+
+		EcpNodeScanCostFactor, // cost of node scan
+		EcpEdgeScanCostFactor // cost of edge scan
 	};
 
 private:
@@ -278,6 +281,12 @@ private:
 
 	// default value of compute scalar func cost
 	static const CDouble DScalarFuncCost;
+
+	// default value of node scan cost
+	static const CDouble DNodeScanCostFactor;
+
+	// default value of edge scan cost
+	static const CDouble DEdgeScanCostFactor;
 
 	// private copy ctor
 	CCostModelParamsGPDB(CCostModelParamsGPDB &);

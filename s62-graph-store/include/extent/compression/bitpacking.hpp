@@ -45,7 +45,7 @@ public:
 			}
 		} else {
 			idx_t misaligned_count = count % BITPACKING_ALGORITHM_GROUP_SIZE;
-			T tmp_buffer[BITPACKING_ALGORITHM_GROUP_SIZE]; // TODO maybe faster on the heap?
+			T tmp_buffer[BITPACKING_ALGORITHM_GROUP_SIZE]; 
 
 			if (misaligned_count) {
 				count -= misaligned_count;

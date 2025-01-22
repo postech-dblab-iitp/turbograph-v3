@@ -98,7 +98,7 @@ string BaseScalarFunction::ToString() {
 // add your initializer for new functions here
 void BuiltinFunctions::Initialize() {
 
-	// TODO make necessary ones available
+	
 	// RegisterSQLiteFunctions();
 	// RegisterReadFunctions();
 	// RegisterTableFunctions();
@@ -478,7 +478,7 @@ void BaseScalarFunction::CastToFunctionArguments(vector<unique_ptr<Expression>> 
 			if (children[i]->return_type.id() == LogicalTypeId::UNKNOWN) {
 				// UNLESS the child is a prepared statement parameter
 				// in that case we default the prepared statement parameter to VARCHAR
-				D_ASSERT(false); // TODO s62 disabled for type exchange
+				D_ASSERT(false); 
 				// children[i]->return_type =
 				//     ExpressionBinder::ExchangeType(target_type, LogicalTypeId::ANY, LogicalType::VARCHAR);
 			}

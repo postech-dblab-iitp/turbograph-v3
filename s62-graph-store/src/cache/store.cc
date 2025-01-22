@@ -464,7 +464,7 @@ void LightningStore::listener() {
     if (got_signal) break;
     status = poll(fds, nfds, timeout);
     if (status <= 0) continue; // poll fail or timeout
-    assert(nfds == 1); // TODO, process only 1 events now
+    assert(nfds == 1); 
 
     int client_fd = accept(server_fd, nullptr, nullptr);
     if (client_fd < 0) {

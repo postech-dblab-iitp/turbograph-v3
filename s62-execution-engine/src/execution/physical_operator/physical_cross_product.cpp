@@ -114,20 +114,16 @@ OperatorResultType PhysicalCrossProduct::Execute(ExecutionContext &context, Data
 	// for (idx_t i = 0; i < left_chunk.ColumnCount(); i++) {
 	// 	chunk.data[outer_col_map[i]].Reference(left_chunk.data[i]);
 	// }
-	for (idx_t i = 0; i < outer_col_map.size(); i++) { // TODO check correctness
+	for (idx_t i = 0; i < outer_col_map.size(); i++) { 
 		chunk.data[outer_col_map[i]].Reference(left_chunk.data[i]);
 	}
 	// duplicate the values on the right side
 	auto &right_chunk = right_collection.GetChunkForRow(state.right_position);
 	auto row_in_chunk = state.right_position % STANDARD_VECTOR_SIZE;
-	for (idx_t i = 0; i < inner_col_map.size(); i++) { // TODO check correctness
+	for (idx_t i = 0; i < inner_col_map.size(); i++) { 
 		ConstantVector::Reference(chunk.data[inner_col_map[i]], right_chunk.data[i], row_in_chunk,
 		                          right_chunk.size());
 	}
-	// for (idx_t i = 0; i < right_collection.ColumnCount(); i++) {
-	// 	ConstantVector::Reference(chunk.data[inner_col_map[i]], right_chunk.data[i], row_in_chunk,
-	// 	                          right_chunk.size());
-	// }
 
 	// for the next iteration, move to the next position on the right side
 	state.right_position++;

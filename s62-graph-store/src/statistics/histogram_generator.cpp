@@ -97,7 +97,6 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
         scan_projection_mapping.push_back(vector<idx_t>(scan_types[0].size()));
         std::iota(std::begin(scan_projection_mapping[0]), std::end(scan_projection_mapping[0]), 1);
 
-        // Initialize ExtentIterators // TODO read only necessary columns // TODO using sampling technique?
         auto initializeAPIResult =
 		    client->graph_store->InitializeScan(ext_its, oids, scan_projection_mapping, scan_types);
 
@@ -151,7 +150,6 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
         num_buckets_for_each_column.push_back(probs.size() - 1);
     }
 
-    // calculate histogram for each property schema // TODO optimize this process
     for (auto i = 0; i < ps_oids->size(); i++) {
         vector<idx_t> oids;
         vector<vector<LogicalType>> scan_types;
@@ -178,7 +176,6 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
             auto num_boundaries = target_col_idx == 0 ? offset_infos->at(0) : offset_infos->at(target_col_idx) - offset_infos->at(target_col_idx - 1);
             std::vector<idx_t> boundaries;
             for (auto j = begin_offset; j < end_offset; j++) {
-                // TODO bug "input sequence must be strictly ascending" occur
                 if (j == begin_offset) {
                     boundaries.push_back(boundary_values->at(j));
                 } else {
@@ -200,7 +197,6 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
         scan_projection_mapping.push_back(vector<idx_t>(scan_types[0].size()));
         std::iota(std::begin(scan_projection_mapping[0]), std::end(scan_projection_mapping[0]), 1);
 
-        // Initialize ExtentIterators // TODO read only necessary columns // TODO using sampling technique?
         auto initializeAPIResult =
 		    client->graph_store->InitializeScan(ext_its, oids, scan_projection_mapping, scan_types);
 

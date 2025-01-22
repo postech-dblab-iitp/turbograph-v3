@@ -161,7 +161,7 @@ void DataChunk::InitializeRowColumn(const vector<uint32_t> &columns_to_be_groupe
 }
 
 void DataChunk::CreateRowMajorStore(const vector<uint32_t> &columns_to_be_grouped, uint64_t row_store_size) {
-	// TODO optimize this code by avoiding dynamic memory allocation?
+	
 	auto row_store = make_buffer<VectorRowStoreBuffer>();
 	row_store->Reserve(row_store_size);
 	for (idx_t i = 0; i < columns_to_be_grouped.size(); i++) {
@@ -196,7 +196,7 @@ void DataChunk::Reset() {
 	for (idx_t i = 0; i < ColumnCount(); i++) {
 		data[i].ResetFromCache(vector_caches[i]);
 	}
-	row_vector_caches.clear(); // TODO do we need explicit deallocation?
+	row_vector_caches.clear(); 
 	capacity = STANDARD_VECTOR_SIZE;
 	SetCardinality(0);
 }

@@ -52,7 +52,7 @@ CPhysicalIndexPathScan::CPhysicalIndexPathScan(CMemoryPool *mp,
 	GPOS_ASSERT(NULL != pindexdescArray);
 	GPOS_ASSERT(NULL != pos);
 
-	// TODO derive from 
+	
 	m_pds = GPOS_NEW(m_mp) CDistributionSpecSingleton();
 	m_pds->AddRef();
 }

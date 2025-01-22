@@ -21,7 +21,6 @@ class NodeScanState : public LocalSourceState {
     bool iter_inited;
     bool iter_finished;
     std::queue<ExtentIterator *> ext_its;
-    // TODO use for vectorized processing
     DataChunk extent_cache;
 };
 

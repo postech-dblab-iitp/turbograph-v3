@@ -19,29 +19,6 @@ namespace s62 {
 #define CUCKOO_CHECKER
 #endif // CHECK_ISOMORPHISM
 
-// PhysicalVarlenAdjIdxJoin::PhysicalVarlenAdjIdxJoin(Schema& sch,
-// 	std::string srcName, LabelSet srcLabelSet, LabelSet edgeLabelSet, ExpandDirection expandDir, LabelSet tgtLabelSet, JoinType join_type, bool load_eid, bool enumerate)
-// 	: PhysicalVarlenAdjIdxJoin(sch, srcName, srcLabelSet, edgeLabelSet, expandDir, tgtLabelSet, join_type, move(vector<JoinCondition>()), load_eid, enumerate) { }
-
-// PhysicalVarlenAdjIdxJoin::PhysicalVarlenAdjIdxJoin(Schema& sch,
-// 	std::string srcName, LabelSet srcLabelSet, LabelSet edgeLabelSet, ExpandDirection expandDir, LabelSet tgtLabelSet, JoinType join_type, vector<JoinCondition> remaining_conditions_p, bool load_eid, bool enumerate)
-// 	: CypherPhysicalOperator(sch), srcName(srcName), srcLabelSet(srcLabelSet), edgeLabelSet(edgeLabelSet), expandDir(expandDir), tgtLabelSet(tgtLabelSet), join_type(join_type), remaining_conditions(move(remaining_conditions_p)), load_eid(load_eid), enumerate(enumerate) {
-
-// 	// operator rules
-// 	bool check = (enumerate) ? true : (!load_eid);
-// 	D_ASSERT( check && "load_eid should be set to false(=not returning edge ids) when `enumerate` set to `false` (=range)");
-
-// 	D_ASSERT( enumerate == true && "always enumerate for now");
-// 	D_ASSERT( srcLabelSet.size() == 1 && "src label shuld be assigned and be only one for now");
-// 	D_ASSERT( tgtLabelSet.size() <= 1 && "no multiple targets"); // TODO needs support from the storage
-// 	D_ASSERT( edgeLabelSet.size() <= 1 && "no multiple edges Storage API support needed"); // TODO needs support from the storage
-// 	D_ASSERT( enumerate && "need careful debugging on range mode"); // TODO needs support from the storage
-
-// 	D_ASSERT( remaining_conditions.size() == 0 && "currently not support additional predicate" );
-// }
-
-
-
 
 //===--------------------------------------------------------------------===//
 // Operator
@@ -57,7 +34,6 @@ public:
 		rhs_sel.Initialize(STANDARD_VECTOR_SIZE);
 		src_nullity.resize(STANDARD_VECTOR_SIZE);
 		join_sizes.resize(STANDARD_VECTOR_SIZE);
-		// total_join_size.resize(STANDARD_VECTOR_SIZE);
 	}
 	//! Called when starting processing for new chunk
 	inline void resetForNewInput() {
@@ -69,10 +45,6 @@ public:
 		adj_idx = 0;
 		rhs_idx = 0;
 		left_lhs_idx = 0;
-		// init vectors
-		// adj_col_idxs.clear();
-		// adj_col_types.clear();
-		// std::fill(total_join_size.begin(), total_join_size.end(), 0);
 	}
 	inline void resetForMoreOutput() {
 		output_idx = 0;
@@ -195,22 +167,8 @@ void PhysicalVarlenAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChu
 	}
 }
 
-// TODO function handlepredicates
-	// x has label blabla
-	// x == x
-	// x != x
-	// x in y
-
 void PhysicalVarlenAdjIdxJoin::ProcessEquiJoin(ExecutionContext& context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	auto &state = (VarlenAdjIdxJoinState &)lstate;
-
-// icecream::ic.enable();
-// IC(input.size());
-// if (input.size() > 0) {
-// 	IC(input.ToString(std::min((idx_t)10, input.size())));
-// }
-// icecream::ic.disable();
-	
 	
 }
 
@@ -303,7 +261,6 @@ void PhysicalVarlenAdjIdxJoin::ProcessVarlenEquiJoin(ExecutionContext& context, 
 		uint64_t& src_vid = getIdRefFromVector(src_vid_column_vector, state.lhs_idx);
 		num_found_paths = VarlengthExpand_internal(context, src_vid, chunk, state, STANDARD_VECTOR_SIZE - state.output_idx);
 
-		// set sel vector on lhs	// TODO apply filter predicates
 		for(uint64_t tmp_output_idx = state.output_idx ; tmp_output_idx < state.output_idx + num_found_paths ; tmp_output_idx++ ) {
 			state.rhs_sel.set_index(tmp_output_idx, state.lhs_idx);
 		}
@@ -430,7 +387,6 @@ uint64_t PhysicalVarlenAdjIdxJoin::VarlengthExpand_internal(ExecutionContext& co
 }
 
 void PhysicalVarlenAdjIdxJoin::addNewPathToOutput(uint64_t *tgt_adj_column, uint64_t *eid_adj_column, uint64_t output_idx, vector<uint64_t> &current_path, uint64_t new_edge_id) const {
-	// TODO maybe we need to store total path, or edge id
 	// fprintf(stdout, "output_idx %ld <-- edge %ld\n", output_idx, new_edge_id);
 	tgt_adj_column[output_idx] = new_edge_id;
 }

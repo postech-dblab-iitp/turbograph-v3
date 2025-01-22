@@ -373,13 +373,12 @@ CTableDescriptor *CJoinOrderGEM::CreateTableDescForVirtualTable(
 	CMDAccessor *mda = COptCtxt::PoctxtFromTLS()->Pmda();
 
 	if (pdrgmdid->Size() > 1) {
-		// TODO add temporal catalog for virtual tables	
 		IMDId *mdid = mda->AddVirtualTable(ptabdesc->MDId(), pdrgmdid);
 
 		new_ptabdesc = GPOS_NEW(m_mp) CTableDescriptor(
 			m_mp,
 			mdid,
-			ptabdesc->Name(), // TODO name change?
+			ptabdesc->Name(),
 			ptabdesc->ConvertHashToRandom(),
 			IMDRelation::EreldistrMasterOnly,
 			IMDRelation::ErelstorageHeap,
@@ -414,7 +413,7 @@ CTableDescriptor *CJoinOrderGEM::CreateTableDescForVirtualTable(
 		new_ptabdesc = GPOS_NEW(m_mp) CTableDescriptor(
 			m_mp,
 			mdid,
-			ptabdesc->Name(), // TODO name change?
+			ptabdesc->Name(),
 			ptabdesc->ConvertHashToRandom(),
 			IMDRelation::EreldistrMasterOnly,
 			IMDRelation::ErelstorageHeap,
@@ -446,7 +445,6 @@ void CJoinOrderGEM::SplitUnionAll(CExpression *pexpr, ULONG ulTarget,
                                            SComponent **splitted_components,
                                            BOOL is_first_time)
 {
-    // TODO: update m_rgpcomp, ...
     GPOS_ASSERT(NULL != pexpr);
 
 	// If first time, initialize split state
@@ -577,7 +575,6 @@ void CJoinOrderGEM::SplitGraphlets(IMdIdArray *pimdidarray,
                                             IMdIdArray *pdrgmdidSecond,
 											ULONG ulSplitIndex)
 {
-    // Split tables into two groups // TODO change split method
     // ULONG ulFirstGroupSize = ulTables / 2;
 	ULONG ulFirstGroupSize = 2;
 

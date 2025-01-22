@@ -47,7 +47,7 @@
 #include "naucrates/md/IMDType.h"
 #include "naucrates/traceflags/traceflags.h"
 
-#include <cstdio> // TODO remove this
+#include <cstdio> 
 
 using namespace gpos;
 using namespace gpmd;
@@ -615,7 +615,7 @@ CMDAccessor::GetImdObj(IMDId *mdid, IMDCacheObject::Emdtype mdtype)
 }
 
 IMDId *CMDAccessor::AddVirtualTable(IMDId *mdid, IMdIdArray *pdrgmdid) {
-	// TODO what is sysid?
+	
 	CSystemId default_sysid(IMDId::EmdidGeneral,
 								GPOS_WSZ_STR_LENGTH("GPDB"));
 	IMDProvider *pmdp = Pmdp(default_sysid);

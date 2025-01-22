@@ -53,7 +53,6 @@ PhysicalHashAggregate::PhysicalHashAggregate(
       output_projection_mapping(output_projection_mapping),
       grouping_key_idxs(move(grouping_key_idxs_p))
 {
-    // TODO no support for custom grouping sets and grouping functions
     D_ASSERT(grouping_sets.size() == 0);
     D_ASSERT(grouping_functions.size() == 0);
 
@@ -257,7 +256,6 @@ void PhysicalHashAggregate::Combine(ExecutionContext &context, LocalSinkState &l
 	//
 	// finalize content
 	//
-	// TODO new pipelinefinishevent (which is already being executed at this point)
 
 	bool any_partitioned = false;
 	for (idx_t i = 0; i < llstate.global_radix_states.size(); i++) {
@@ -267,16 +265,8 @@ void PhysicalHashAggregate::Combine(ExecutionContext &context, LocalSinkState &l
 		}
 	}
 	if (any_partitioned) {
-		D_ASSERT(false && "JHKO this logic encuntererd. plz add to execute child event when this encountered");
-		//auto new_event = make_shared<HashAggregateFinalizeEvent>(*this, llstate, *(context.client));
-		// make child event for pipelinefinish event
-		//event.InsertEvent(move(new_event));
+		D_ASSERT(false && "this logic encuntererd. plz add to execute child event when this encountered");
 	}
-	// finishevent
-	// TODO start event
-	// here
-	// new_event.start?
-
 }
 
 //===--------------------------------------------------------------------===//

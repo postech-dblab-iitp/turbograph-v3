@@ -256,7 +256,6 @@ vector<expression_pair> PropertyKeyValCollection::getPropertyKeyValPairs(
         return vector<expression_pair>{};
     }
     vector<expression_pair> result;
-    // jhko changed pair parsing expression for CPP17
     for (auto &val : varNameToPropertyKeyValPairs.at(varName)) {
         result.push_back(val.second);
     }
@@ -267,7 +266,6 @@ vector<expression_pair> PropertyKeyValCollection::getAllPropertyKeyValPairs()
     const
 {
     vector<expression_pair> result;
-    // jhko changed pair parsing expression for CPP17
     for (auto &val : varNameToPropertyKeyValPairs) {
         for (auto &innerval : val.second) {
             result.push_back(innerval.second);

@@ -298,7 +298,7 @@ CLogicalIndexPathGet::OsPrint(IOstream &os) const
 	}
 
 	os << SzId() << " ";
-	// TODO writeme
+	
 	// // index name
 	// os << "  Index Name: (";
 	// m_pindexdesc->Name().OsPrint(os);

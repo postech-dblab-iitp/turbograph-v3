@@ -42,7 +42,7 @@ typedef int BackendId;			/* unique currently active backend identifier */
  */
 #define TempRelBackendId		(-2)
 
-// TODO What?
+
 // extern PGDLLIMPORT BackendId MyBackendId;		/* backend id of this backend */
 
 #endif   /* BACKENDID_H */

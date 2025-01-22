@@ -5,7 +5,7 @@
 #include "common/helper.hpp"
 #include "common/string_util.hpp"
 // #include "duckdb/common/windows.hpp"
-//#include "function/scalar/string_functions.hpp" // TODO huh?
+//#include "function/scalar/string_functions.hpp" 
 
 // #include "main/client_context.hpp"
 //#include "main/database.hpp"
@@ -860,7 +860,7 @@ static void GlobFiles(FileSystem &fs, const string &path, const string &glob, bo
 	// 		}
 	// 	}
 	// });
-	D_ASSERT(false); // TODO remove string function.
+	D_ASSERT(false); 
 }
 
 vector<string> LocalFileSystem::Glob(const string &path, FileOpener *opener) {

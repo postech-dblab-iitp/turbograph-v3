@@ -30,7 +30,7 @@ class GraphStore {
 
 public:
 	// define APIs here
-	// TODO further need to be re-defined upon discussion
+	
 
 	// ! Scan used by scan operators
 	StoreAPIResult InitializeScan(ExtentIterator *&ext_it, LabelSet labels, std::vector<LabelSet> edgeLabels, LoadAdjListOption loadAdj, PropertyKeys properties, std::vector<s62::LogicalType> scanSchema) { return StoreAPIResult::OK; }

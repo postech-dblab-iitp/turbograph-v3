@@ -54,7 +54,7 @@ bool SchemalessDataChunk::isIthColStoredInRowStore(idx_t column_idx)
 
 void SchemalessDataChunk::CreateRowMajorStore(size_t size)
 {
-    // TODO optimize this code by avoiding dynamic memory allocation
+    
     unique_ptr<char[]> data = unique_ptr<char[]>(new char[size]);
     row_major_datas.push_back(std::move(data));
 }

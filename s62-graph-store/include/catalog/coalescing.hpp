@@ -154,7 +154,7 @@ class Coalescing {
                     string property_schema_name =
                         part_name + DEFAULT_TEMPORAL_INFIX +
                         std::to_string(
-                            part_cat->GetNewTemporalID());  // TODO vpart -> vps
+                            part_cat->GetNewTemporalID());  
                     // std::cout << "temp schema: " << property_schema_name
                     //           << std::endl;
                     vector<LogicalType> merged_types;
@@ -292,7 +292,7 @@ class Coalescing {
                 string property_schema_name =
                     new_partition_name + DEFAULT_TEMPORAL_INFIX +
                     std::to_string(
-                        new_part_cat->GetNewTemporalID());  // TODO vpart -> vps
+                        new_part_cat->GetNewTemporalID()); 
                 vector<LogicalType> merged_types;
                 vector<PropertyKeyID> merged_property_key_ids;
                 vector<string> key_names;
@@ -305,7 +305,6 @@ class Coalescing {
                     (PropertySchemaCatalogEntry *)catalog.CreatePropertySchema(
                         context, &propertyschema_info);
 
-                // TODO optimize this function
                 unordered_set<PropertyKeyID> merged_schema;
                 unordered_map<PropertyKeyID, LogicalTypeId> type_info;
                 uint64_t merged_num_tuples = 0;

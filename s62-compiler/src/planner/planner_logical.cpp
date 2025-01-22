@@ -13,7 +13,7 @@ LogicalPlan *Planner::lGetLogicalPlan()
     GPOS_ASSERT(this->bound_statement != nullptr);
     auto &regularQuery = *((BoundRegularQuery *)(this->bound_statement));
 
-    // TODO need union between single queries
+    
     GPOS_ASSERT(regularQuery.getNumSingleQueries() == 1);
     vector<LogicalPlan *> childLogicalPlans(regularQuery.getNumSingleQueries());
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
@@ -27,7 +27,7 @@ LogicalPlan *Planner::lPlanSingleQuery(const NormalizedSingleQuery &singleQuery)
 {
     CMemoryPool *mp = this->memory_pool;
     LogicalPlan *cur_plan = nullptr;
-    // TODO refer kuzu properties to scan
+    
     // populate properties to scan
     // propertiesToScan.clear();
 
@@ -85,8 +85,8 @@ LogicalPlan *Planner::lPlanProjectionBody(LogicalPlan *plan,
     /* Aggregate - generate LogicalGbAgg series */
     if (agg_required) {
         plan = lPlanGroupBy(proj_body->getProjectionExpressions(),
-                            plan);  // TODO what if agg + projection
-                                    // TODO plan is manipulated
+                            plan);  
+                                    
 
         // handle all non-agg projection + original columns first
         // orca will remove unnecessary columns so no worries!
@@ -167,8 +167,8 @@ LogicalPlan *Planner::lPlanMatchClause(BoundReadingClause *boundReadingClause,
         plan = lPlanRegularOptionalMatch(*queryGraphCollection, prev_plan);
     }
 
-    // TODO append edge isomorphism
-    // TODO need to know about the label info...
+    
+    
     // for each qg in qgc,
     // list all edges
     // nested for loops
@@ -429,7 +429,7 @@ LogicalPlan *Planner::lPlanRegularOptionalMatch(const QueryGraphCollection &qgc,
         }
     }
 
-    // TODO currently, we allow these cases only
+    
     GPOS_ASSERT(start_edge_idx == 0 ||
                 start_edge_idx == qg->getNumQueryRels() - 1);
 
@@ -976,7 +976,7 @@ LogicalPlan *Planner::lPlanProjection(const expression_vector &expressions,
                     prev_plan->getSchema()->getPropertyNameOfColRef(
                         var_expr->getUniqueName(), colref),
                     prev_plan));
-                // TODO aliasing???
+                
             }
             if (var_expr->getDataType().typeID == DataTypeID::NODE) {
                 new_schema.copyNodeFrom(prev_plan->getSchema(),
@@ -1152,7 +1152,7 @@ LogicalPlan *Planner::lPlanGroupBy(const expression_vector &expressions,
                 else {
                     for (auto &col : property_columns) {
                         // consider all columns as key columns
-                        // TODO this is inefficient
+                        
                         key_columns->Append(col);
                         if (proj_expr->hasAlias()) {
                             new_schema.appendColumn(col_name, col);
@@ -1246,7 +1246,7 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs,
 
         IMDType::ECmpType sort_type =
             sort_orders[i] == true ? IMDType::EcmptL
-                                   : IMDType::EcmptG;  // TODO not sure...
+                                   : IMDType::EcmptG;  
         auto x = colref->RetrieveType();
         CMDIdGPDB *x_id = CMDIdGPDB::CastMdid(x->MDId());
         IMDId *mdid = colref->RetrieveType()->GetMdidForCmpType(sort_type);
@@ -1265,15 +1265,13 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs,
         GPOS_NEW(mp) CExpression(mp, popLimit, prev_plan->getPlanExpr(),
                                  pexprLimitOffset, pexprLimitCount);
 
-    prev_plan->addUnaryParentOp(plan_orderby_expr);  // TODO ternary op?..
-    return prev_plan;
+    prev_plan->addUnaryParentOp(plan_orderby_expr);  
 }
 
 LogicalPlan *Planner::lPlanDistinct(const expression_vector &expressions,
                                     CColRefArray *colrefs,
                                     LogicalPlan *prev_plan)
 {
-    // TODO bug..
     CMemoryPool *mp = this->memory_pool;
     CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
     CColRefArray *key_columns = GPOS_NEW(mp) CColRefArray(mp);
@@ -1288,7 +1286,7 @@ LogicalPlan *Planner::lPlanDistinct(const expression_vector &expressions,
                                     ? proj_expr->getAlias()
                                     : proj_expr->getUniqueName();
         if (proj_expr->hasAggregationExpression()) {
-            D_ASSERT(false);  // TODO not implemented yet
+            D_ASSERT(false);  
         }
         else {
             if (proj_expr->expressionType ==
@@ -1317,10 +1315,10 @@ LogicalPlan *Planner::lPlanDistinct(const expression_vector &expressions,
             }
             else if (proj_expr->expressionType ==
                      kuzu::common::ExpressionType::FUNCTION) {
-                D_ASSERT(false);  // TODO not implemented yet
+                D_ASSERT(false);  
             }
             else {
-                D_ASSERT(false);  // TODO not implemented yet
+                D_ASSERT(false);  
             }
         }
     }
@@ -1373,9 +1371,9 @@ LogicalPlan *Planner::lPlanPathGet(RelExpression *edge_expr)
 
     CColumnDescriptorArray *pdrgpcoldesc =
         path_table_descs->operator[](0)
-            ->Pdrgpcoldesc();  // TODO need to change for Union All case
+            ->Pdrgpcoldesc(); 
     IMDId *mdid_table = path_table_descs->operator[](0)
-                            ->MDId();  // TODO need to change for Union All case
+                            ->MDId();  
     auto &prop_exprs = edge_expr->getPropertyExpressions();
     D_ASSERT(pdrgpcoldesc->Size() >= prop_exprs.size());
     for (int colidx = 0; colidx < prop_exprs.size(); colidx++) {
@@ -1411,7 +1409,7 @@ LogicalPlan *Planner::lPlanPathGet(RelExpression *edge_expr)
             // 	lGetMDAccessor()->RetrieveType(col_type_imdid), col_type_modifier, col_name);
             CColRef *new_colref = col_factory->PcrCreate(
                 pcoldesc, col_name, 0, false /* mark_as_used */,
-                mdid_table);  // TODO ulOpSourceId?
+                mdid_table);  
             path_output_cols->Append(new_colref);
 
             // add to schema
@@ -1472,7 +1470,7 @@ LogicalPlan *Planner::lPlanSkipOrLimit(BoundProjectionBody *proj_body,
         GPOS_NEW(mp) CExpression(mp, popLimit, prev_plan->getPlanExpr(),
                                  pexprLimitOffset, pexprLimitCount);
 
-    prev_plan->addUnaryParentOp(plan_orderby_expr);  // TODO ternary op?..
+    prev_plan->addUnaryParentOp(plan_orderby_expr);  
     return prev_plan;
 }
 
@@ -2283,7 +2281,7 @@ CTableDescriptor *Planner::lCreateTableDesc(CMemoryPool *mp, IMDId *mdid,
         mp, mdid,
         GPOS_WSZ_LIT("column_%04d"),  // format notused
         nameTable, rel_name,
-        false /* is_nullable */);  // TODO retrieve isnullable from the storage!
+        false /* is_nullable */);  
 
     return ptabdesc;
 }

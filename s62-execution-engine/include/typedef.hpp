@@ -39,7 +39,7 @@ class LabelSet {
         this->insert(e3);
     }
     void insert(std::string input);
-    // TODO support multiple insert at once by supporting variadic template
+    
 
     bool isSupersetOf(const LabelSet &elem);
     bool contains(const std::string st);
@@ -54,7 +54,7 @@ class LabelSet {
 
 enum class CypherValueType {
     // non-nested
-    DATA,  // TODO need to be specified more
+    DATA,  
     ID,
     RANGE,
     // nested
@@ -85,7 +85,7 @@ class Schema {
     uint64_t stored_types_size;
 };
 
-// TODO need to be improved & renaming
+
 struct PartialSchema {
    public:
     PartialSchema() {}

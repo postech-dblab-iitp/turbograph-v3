@@ -34,7 +34,7 @@ static void SetSeedFunction(DataChunk &args, ExpressionState &state, Vector &res
 			throw Exception("SETSEED accepts seed values between -1.0 and 1.0, inclusive");
 		}
 		uint32_t norm_seed = (input_seeds[i] + 1.0) * half_max;
-		D_ASSERT(false); // TODO what?
+		D_ASSERT(false); 
 		// info.context.random_engine.seed(norm_seed);
 	}
 

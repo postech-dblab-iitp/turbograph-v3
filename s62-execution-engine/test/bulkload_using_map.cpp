@@ -325,7 +325,6 @@ inline void FillAdjListBuffer(bool load_backward_edge, idx_t &begin_idx, idx_t &
 					   idx_t epid_base, idx_t src_lid = 0) {
 	idx_t cur_src_seqno = GET_SEQNO_FROM_PHYSICAL_ID(cur_src_pid);
 
-	// TODO need to be optimized
 	ExtentID cur_vertex_extentID = static_cast<ExtentID>(cur_src_pid >> 32);
 	ExtentID cur_vertex_localextentID = cur_vertex_extentID & 0xFFFF;
 	vector<vector<idx_t>> *adj_list_buffer;
@@ -412,7 +411,7 @@ inline void FillAdjListBuffer(bool load_backward_edge, idx_t &begin_idx, idx_t &
 				cur_dst_pid = dst_lid_to_pid_map_instance.at(dst_key);
 
 				// change lid -> pid
-				dst_key_columns[0][dst_seqno] = cur_dst_pid; // TODO
+				dst_key_columns[0][dst_seqno] = cur_dst_pid; 
 
 				// update adjlist buffer
 				(*adj_list_buffer)[cur_src_seqno].push_back(cur_dst_pid);

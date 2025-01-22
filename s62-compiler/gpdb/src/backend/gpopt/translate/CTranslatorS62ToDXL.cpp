@@ -358,7 +358,7 @@ IMDRelation *
 CTranslatorS62ToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 									  IMDId *mdid)
 {
-	OID oid = CMDIdGPDB::CastMdid(mdid)->Oid(); // TODO check how this works
+	OID oid = CMDIdGPDB::CastMdid(mdid)->Oid(); 
 	GPOS_ASSERT(InvalidOid != oid);
 
 	s62::PropertySchemaCatalogEntry *rel = s62::GetRelation(oid);
@@ -412,7 +412,7 @@ CTranslatorS62ToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 		// collect relation indexes
 		md_index_info_array = RetrieveRelIndexInfo(mp, rel);
 
-		// collect relation triggers // TODO we don't need this know
+		// collect relation triggers 
 		mdid_triggers_array = RetrieveRelTriggers(mp, rel);
 
 		// get key sets
@@ -892,7 +892,7 @@ CTranslatorS62ToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 
 	// get operator name
 	string name_str = s62::GetOpName(op_oid);
-	CHAR *name = std::strcpy(new char[name_str.length() + 1], name_str.c_str()); // TODO avoid copy?
+	CHAR *name = std::strcpy(new char[name_str.length() + 1], name_str.c_str()); 
 
 	if (NULL == name)
 	{
@@ -934,7 +934,7 @@ CTranslatorS62ToDXL::RetrieveScOp(CMemoryPool *mp, IMDId *mdid)
 		GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, func_oid);
 
 	// get result type
-	OID result_oid = LOGICAL_TYPE_BASE_ID + (OID) LogicalTypeId::BOOLEAN;// TODO = gpdb::GetFuncRetType(func_oid);
+	OID result_oid = LOGICAL_TYPE_BASE_ID + (OID) LogicalTypeId::BOOLEAN;
 
 	GPOS_ASSERT(InvalidOid != result_oid);
 

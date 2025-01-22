@@ -664,7 +664,7 @@ unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
     }
 }
 
-// TODO correctness check
+
 unique_ptr<ParsedExpression> Transformer::transformListPropertyOrLabelsExpression(
     CypherParser::KU_ListPropertyOrLabelsExpressionContext& ctx,
     unique_ptr<ParsedExpression> propertyExpression) {
@@ -980,7 +980,7 @@ string Transformer::transformPropertyKeyName(CypherParser::OC_PropertyKeyNameCon
 unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
     CypherParser::OC_IntegerLiteralContext& ctx) {
 
-    // TODO need to improve deciding literal type => need reference!
+    
     try {
         auto literal = make_unique<Literal>(TypeUtils::convertToInt32(ctx.DecimalInteger()->getText().c_str()));
         return make_unique<ParsedLiteralExpression>(std::move(literal), ctx.getText());    

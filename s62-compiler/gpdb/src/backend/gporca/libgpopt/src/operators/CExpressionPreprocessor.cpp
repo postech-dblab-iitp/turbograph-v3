@@ -2380,7 +2380,7 @@ CExpressionPreprocessor::PexprPruneUnusedComputedColsRecursive(
 	else if( COperator::EopLogicalGet == pop->Eopid() ) {
 		CLogicalGet* get_op = (CLogicalGet*) pop;
 		// unused =  output - used
-		CColRefSet *pcrsUnusedLocal = GPOS_NEW(mp) CColRefSet(mp); // TODO need to release pcrsUnusedLocal?
+		CColRefSet *pcrsUnusedLocal = GPOS_NEW(mp) CColRefSet(mp); 
 		pcrsUnusedLocal->Include(get_op->PdrgpcrOutput());
 		pcrsUnusedLocal->Difference(pcrsReqd);
 		CColRefArray* origOutputCols = get_op->PdrgpcrOutput();
@@ -2843,7 +2843,7 @@ CExpressionPreprocessor::CollapseSelectAndReplaceColrefColumnar(CMemoryPool *mp,
 {
 	// S62 added
 	if (pexpr->Pop()->Eopid() == COperator::EopLogicalSelect &&
-		(*pexpr)[0]->Pop()->Eopid() == COperator::EopLogicalProjectColumnar) // TODO right?
+		(*pexpr)[0]->Pop()->Eopid() == COperator::EopLogicalProjectColumnar) 
 	{
 		if (depth == 0) {
 			(*(*pexpr)[0])[0]->AddRef();
@@ -3083,7 +3083,7 @@ CExpressionPreprocessor::PexprTransposeSelectAndProjectColumnar(CMemoryPool *mp,
 		// GPOS_ASSERT(pproject->Arity() == 2);
 
 		// if( pprojectChildOpExpr->DeriveOutputColumns()->ContainsAll( pselect->DeriveOutputColumns() ) ) {
-		// 	// TODO only when scalar function
+		// 	
 
 		// 	// generate filter
 		// 	pprojectChildOpExpr->AddRef();
@@ -3269,7 +3269,7 @@ CExpressionPreprocessor::PexprPruneUnnecessaryTables(CMemoryPool *mp, CExpressio
 			CExpression *pScalarExpr = (*(*(*pexpr)[ul])[0])[1];
 			GPOS_ASSERT(pScalarExpr->Pop()->FScalar());
 			
-			// TODO recursively check
+			
 			if (pScalarExpr->Pop()->Eopid() == COperator::EopScalarCmp) {
                 GPOS_ASSERT(CScalarCmp::PopConvert(pScalarExpr->Pop())
                                 ->ParseCmpType() != IMDType::EcmptIDF);

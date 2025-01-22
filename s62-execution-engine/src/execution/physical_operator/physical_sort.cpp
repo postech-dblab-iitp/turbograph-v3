@@ -81,11 +81,6 @@ SinkResultType PhysicalSort::Sink(ExecutionContext &context, DataChunk &input,
     // Sink the data into the local sort state
     local_sort_state.SinkChunk(sort, input);
 
-    // When sorting data reaches a certain size, we sort it
-    // TODO currently, we operate as in-memory mode
-    // if (local_sort_state.SizeInBytes() >= gstate.memory_per_thread) {
-    // 	local_sort_state.Sort(global_sort_state, true);
-    // }
     return SinkResultType::NEED_MORE_INPUT;
 }
 

@@ -8,7 +8,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace binder {
 
-// TODO jhko extended - generated for
 class ParseTreeNode {
 public:
 

@@ -29,7 +29,7 @@ unique_ptr<OperatorState> PhysicalFilter::GetOperatorState(ExecutionContext &con
 
 OperatorResultType PhysicalFilter::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk, OperatorState &lstate) const {
 	auto &state = (FilterState &)lstate;
-	D_ASSERT( input.size() <= STANDARD_VECTOR_SIZE ); // TODO release me
+	D_ASSERT( input.size() <= STANDARD_VECTOR_SIZE ); 
 	
 	idx_t result_count = state.executor.SelectExpression(input, state.sel);
 	if (result_count == input.size()) {

@@ -22,7 +22,7 @@
 // }
 
 // bool BoundSubqueryExpression::PropagatesNullValues() const {
-// 	// TODO this can be optimized further by checking the actual subquery node
+// 	
 // 	return false;
 // }
 

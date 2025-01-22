@@ -148,7 +148,7 @@ void PhysicalAdjIdxJoin::IterateSourceVidsAndFillRHSOutput(
     Vector &src_vid_column_vector = input.data[sid_col_idx];
     auto &validity = src_vid_column_vector.GetValidity();
 
-    // todo cleaning these codes
+    
     if (validity.AllValid()) {
         switch (src_vid_column_vector.GetVectorType()) {
             case VectorType::DICTIONARY_VECTOR: {
@@ -267,7 +267,7 @@ void PhysicalAdjIdxJoin::IterateSourceVidsAndFillRHSOutput(
                 break;
             }
             case VectorType::CONSTANT_VECTOR: {
-                // TODO we can optimize this case
+                
                 auto src_vid_val =
                     src_vid_column_vector.GetValue(state.lhs_idx);
                 if (src_vid_val.IsNull()) {
@@ -303,7 +303,7 @@ void PhysicalAdjIdxJoin::IterateSourceVidsAndFillRHSOutputInto(
     Vector &src_vid_column_vector = input.data[sid_col_idx];
     Vector &tgt_vid_column_vector = input.data[tgt_col_idx];
 
-    // todo cleaning these codes
+    
     if (src_vid_column_vector.GetVectorType() ==
         VectorType::DICTIONARY_VECTOR) {
         auto src_vid_column_data = (uint64_t *)src_vid_column_vector.GetData();
@@ -714,7 +714,7 @@ void PhysicalAdjIdxJoin::InitializeAdjIdxJoin(AdjIdxJoinState &state,
                                               DataChunk &input,
                                               DataChunk &chunk) const
 {
-    // TODO do this once
+    
     state.outer_col_map = move(outer_col_map);
     state.outer_col_maps = move(outer_col_maps);
     state.inner_col_map = move(inner_col_map);
@@ -751,7 +751,7 @@ void PhysicalAdjIdxJoin::InitializeInfosForProcessing(
 
     cur_direction =
         adjListLogicalTypeToExpandDir(state.adj_col_types[state.adj_idx]);
-    // TODO we currently do not support iterate more than one edge types
+    
     D_ASSERT(state.adj_col_idxs.size() == 1);
 }
 

@@ -189,7 +189,7 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
             childrenAfterCast.push_back(
                 implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
 
-            // TODO we need to consider IS (NOT) NULL comparison
+            
             if (childrenAfterCast[i]->expressionType == ExpressionType::PROPERTY) {
                 auto &property = (PropertyExpression&)*children[i];
                 auto *node_expr = (NodeOrRelExpression *)property.getNodeOrRelExpr();
@@ -239,7 +239,7 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     auto& propertyExpression = (ParsedPropertyExpression&)parsedExpression;
     auto propertyName = propertyExpression.getPropertyName();
     
-// TODO s62 disabled
+
     // if (TableSchema::isReservedPropertyName(propertyName)) {
     //     // Note we don't expose direct access to internal properties in case user tries to modify
     //     // them. However, we can expose indirect read-only access through function e.g. ID().
@@ -616,23 +616,23 @@ shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
         return expression;
     }
     if (targetType.typeID == INT64 && expression->dataType.typeID == INTEGER) {
-        expression->dataType.typeID = INT64; // TODO temporary..
+        expression->dataType.typeID = INT64; 
         return expression;
     }
     if (targetType.typeID == UBIGINT && expression->dataType.typeID == INTEGER) {
-        expression->dataType.typeID = UBIGINT; // TODO temporary..
+        expression->dataType.typeID = UBIGINT; 
         return expression;
     }
     if (targetType.typeID == UBIGINT && expression->dataType.typeID == INT64) {
-        expression->dataType.typeID = UBIGINT; // TODO temporary..
+        expression->dataType.typeID = UBIGINT; 
         return expression;
     }
     if (targetType.typeID == DECIMAL && expression->dataType.typeID == INTEGER) {
-        expression->dataType.typeID = DECIMAL; // TODO temporary..
+        expression->dataType.typeID = DECIMAL; 
         return expression;
     }
     if (targetType.typeID == DECIMAL && expression->dataType.typeID == DOUBLE) {
-        expression->dataType.typeID = DECIMAL; // TODO temporary..
+        expression->dataType.typeID = DECIMAL; 
         return expression;
     }
     return implicitCast(expression, targetType);
@@ -690,7 +690,7 @@ void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression
     if (expression.getNumChildren() == 0) {
         return;
     }
-    // TODO why is this need?
+    
     // if (expression.getChild(0)->hasAggregationExpression()) {
     //     throw BinderException(
     //         "Expression " + expression.getRawName() + " contains nested aggregation.");

@@ -55,7 +55,7 @@ void Planner::pGenPhysicalPlan(CExpression *orca_plan_root)
     // calculate mapping for produceresults
     vector<uint64_t> projection_mapping;
     vector<vector<uint64_t>> projection_mappings;
-    // TODO strange code..
+    
     if (!generate_sfg) {
         for (uint64_t log_idx = 0; log_idx < logical_plan_output_colrefs.size();
              log_idx++) {
@@ -127,7 +127,7 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
 			- UnionAll-ComputeScalar-Filter-TableScan|IndexScan => NodeScan|NodeIndexScan or Filter-NodeScan|NodeIndexScan
 		- Projection => Projection
 		- TableScan => EdgeScan
-		// TODO fillme
+		
 	*/
 
     // based on op pass call to the corresponding func
@@ -291,7 +291,7 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
     /* Update latest plan output columns */
     auto *mp = this->memory_pool;
     CColRefArray *output_cols = plan_expr->Prpp()->PcrsRequired()->Pdrgpcr(mp);
-    physical_plan_output_colrefs.clear();  // TODO strange.. multiple times?
+    physical_plan_output_colrefs.clear();  
     for (ULONG idx = 0; idx < output_cols->Size(); idx++) {
         physical_plan_output_colrefs.push_back(output_cols->operator[](idx));
     }
@@ -1218,7 +1218,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToAdjIdxJoin(
         adj_inner_colset->Include(inner_colset);
     }
 
-    // TODO remove colrefarray
+    
     adj_output_cols = adj_output_colset->Pdrgpcr(mp);
     adj_inner_cols = adj_inner_colset->Pdrgpcr(mp);
     // seek_inner_cols = seek_inner_colset->Pdrgpcr(mp);
@@ -1464,7 +1464,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToVarlenAdjIdxJoin(
     }
     D_ASSERT(sid_col_idx_found);
 
-    // construct inner col map. // TODO we don't consider edge property now..
+    // construct inner col map. 
     for (ULONG col_idx = 0; col_idx < inner_cols->Size(); col_idx++) {
         // if (col_idx == 0) continue; // 0405 we don't need this condition anymore?
         CColRef *col = inner_cols->operator[](col_idx);
@@ -1748,8 +1748,8 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_e
             vector<unique_ptr<s62::Expression>> proj_exprs;
             tmp_schema.setStoredTypes(types);
 
-            // bool project_physical_id_column = (output_cols->Size() == outer_cols->Size()); // TODO always works?
-            bool project_physical_id_column = true;  // TODO we need a logic..
+            // bool project_physical_id_column = (output_cols->Size() == outer_cols->Size()); 
+            bool project_physical_id_column = true;  
             pGetAllScalarIdents(inner_root->operator[](0), sccmp_colids);
             for (ULONG col_idx = 0; col_idx < output_cols->Size(); col_idx++) {
                 CColRef *col = (*output_cols)[col_idx];
@@ -2078,7 +2078,7 @@ void Planner::
             COperator::EOperatorId::EopPhysicalSerialUnionAll) {
             for (uint32_t i = 0; i < inner_root->Arity();
                  i++) {  // for each idx(only)scan expression
-                // TODO currently support this pattern type only
+                
                 D_ASSERT(
                     inner_root->operator[](i)->Pop()->Eopid() ==
                     COperator::EOperatorId::EopPhysicalComputeScalarColumnar);
@@ -2705,7 +2705,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekDSI(CExpression *plan_expr
     vector<vector<ULONG>> inner_col_ids;
     vector<s62::LogicalType> scan_type_union;
 
-    // TODO improve this logic
+    
     while (true) {
         if (inner_root->Pop()->Eopid() ==
             COperator::EOperatorId::EopPhysicalComputeScalarColumnar)
@@ -2866,7 +2866,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekDSI(CExpression *plan_expr
                         // "_id" col
                         found = true;
                     } else {
-                        // TODO inefficient
+                        
                         for (ULONG k = 0; k < prop_key_ids->size(); k++) {
                             if (col_prop_id == (*prop_key_ids)[k]) {
                                 prop_key_idx = k + 1;
@@ -4708,7 +4708,7 @@ void Planner::pGenerateMappingInfo(vector<s62::idx_t> &scan_cols_id,
             scan_projection_mapping.push_back(0);
             local_types.push_back(s62::LogicalType::ID);
         } else {
-            // TODO this is super inefficient -> we need to sort key_ids
+            
             bool found = false;
             for (int j = 0; j < key_ids->size(); j++) {
                 if (scan_cols_id[i] == (*key_ids)[j]) {
@@ -4856,7 +4856,7 @@ void Planner::pTranslatePredicateToJoinCondition(
     CExpression *pred, vector<s62::JoinCondition> &out_conds,
     CColRefArray *lhs_cols, CColRefArray *rhs_cols)
 {
-    // TODO what about OR condition in duckdb ?? -> IDK
+    
     auto *op = pred->Pop();
     if (op->Eopid() == COperator::EOperatorId::EopScalarBoolOp) {
         CScalarBoolOp *boolop = (CScalarBoolOp *)op;
@@ -5022,7 +5022,7 @@ s62::JoinType Planner::pTranslateJoinType(COperator *op)
         case COperator::EOperatorId::EopPhysicalCorrelatedLeftSemiNLJoin: {
             return s62::JoinType::SEMI;
         }
-            // TODO where is FULL OUTER??????
+            
     }
     D_ASSERT(false);
 }
@@ -5817,8 +5817,6 @@ void Planner::pGetDuckDBTypesFromColRefs(CColRefArray *colrefs,
 void Planner::pGetObjetIdsForColRefs(CColRefArray *cols,
                                      vector<uint64_t> &out_oids)
 {
-    // TODO: This function is quite weird, since only returns the first value
-    // Check jhko's intended behavior
     for (ULONG col_idx = 0; col_idx < cols->Size(); col_idx++) {
         CColRef *colref = cols->operator[](col_idx);
         OID table_obj_id =

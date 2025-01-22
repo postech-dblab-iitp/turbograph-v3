@@ -92,7 +92,7 @@ void PhysicalTopNSort::GetData(ExecutionContext &context, DataChunk &chunk, Loca
 		return;
 	}
 
-	chunk.SetSchemaIdx(0); // TODO always 0? after sort, schemas are unified
+	chunk.SetSchemaIdx(0);
 }
 
 

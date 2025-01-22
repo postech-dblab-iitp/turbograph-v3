@@ -40,7 +40,7 @@ private:
 	static inline void UnaryFlatLoop(INPUT_TYPE *__restrict idata, FunctionData *bind_data,
 	                                 STATE_TYPE **__restrict states, ValidityMask &mask, idx_t count, bool is_input_valid) {
 		if (!is_input_valid) {
-			D_ASSERT(OP::IgnoreNull()); // TODO not implemented yet for not ignoring null case
+			D_ASSERT(OP::IgnoreNull()); 
 			return;
 		} else {
 			if (!mask.AllValid()) {

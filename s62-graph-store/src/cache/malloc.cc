@@ -527,7 +527,6 @@ void MemAllocator::PrintAvalaibleMemory() {
   std::cout << "total: " << total_available_memory << std::endl;
 }
 
-// todo: 매번 새로 계산하는 게 아니라 변수를 하나 두고 malloc/free 할 때 관리
 size_t MemAllocator::GetAvailableMemory() {
   uint64_t total_available_memory = 0;
   for (int i = 0; i < 64; i++) {

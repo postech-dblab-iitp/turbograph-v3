@@ -21,7 +21,7 @@ class DatumSerDes {
 public:
 
 	// kuzu literal -> in mp
-	// TODO may need to apply templates if necessary
+	
 	static void SerializeKUZULiteralIntoOrcaByteArray(uint32_t type_id, kuzu::common::Literal* kuzu_literal, void*& out_mem_ptr, uint64_t& out_length) {
 
 		// DataType kuzu_type = kuzu_literal->dataType;
@@ -94,7 +94,7 @@ public:
 				out_mem_ptr = (void *)mem_ptr;
 				break;
 			}
-			case DataTypeID::DECIMAL: { // TODO decimal temporary
+			case DataTypeID::DECIMAL: { 
 				out_length = 8;
 				int64_t* mem_ptr = (int64_t*) malloc(out_length);
 				(*mem_ptr) = kuzu_literal->val.int64Val;
@@ -137,30 +137,30 @@ public:
 	}
 
 	// datum mp -> duckdb value
-		// TODO api should not copy return value
+		
 	static s62::Value DeserializeOrcaByteArrayIntoDuckDBValue(uint32_t type_id, int32_t type_modifier, const void* mem_ptr, uint64_t length) {
 		s62::LogicalTypeId duckdb_type = (s62::LogicalTypeId) ((type_id - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES);
 
-		// TODO deallocation is responsible here
+		
 		switch (duckdb_type) {
 			case s62::LogicalTypeId::INTEGER: {
 				D_ASSERT(length == 4 || length == 0);
 				if (length == 0) {
-					return s62::Value(s62::LogicalType::INTEGER);	// TODO to BIGINT
+					return s62::Value(s62::LogicalType::INTEGER);	
 				} else {
 					int32_t value = *((int32_t*)mem_ptr);
-					return s62::Value::INTEGER((int32_t)value);	// TODO to BIGINT
+					return s62::Value::INTEGER((int32_t)value);	
 				}
 			}
 			case s62::LogicalTypeId::BIGINT: {
 				D_ASSERT(length == 8 || length == 0);
 				if (length == 0) {
-					// return s62::Value(s62::LogicalType::UBIGINT);	// TODO to BIGINT
-					return s62::Value(s62::LogicalType::BIGINT);	// TODO to BIGINT
+					// return s62::Value(s62::LogicalType::UBIGINT);	
+					return s62::Value(s62::LogicalType::BIGINT);	
 				} else {
 					int64_t value = *((int64_t*)mem_ptr);
-					// return s62::Value::UBIGINT((uint64_t)value);	// TODO to BIGINT
-					return s62::Value::BIGINT((uint64_t)value);	// TODO to BIGINT
+					// return s62::Value::UBIGINT((uint64_t)value);	
+					return s62::Value::BIGINT((uint64_t)value);	
 				}
 			}
 			case s62::LogicalTypeId::UINTEGER: {
@@ -225,7 +225,7 @@ public:
 				int32_t value = *((int32_t *)mem_ptr);
 				return s62::Value::DATE(s62::date_t(value));
 			}
-			case s62::LogicalTypeId::DECIMAL: { // TODO decimal temporary
+			case s62::LogicalTypeId::DECIMAL: { 
 				int64_t value = *((int64_t *)mem_ptr);
 				return s62::Value::DECIMAL(value, 12, 2);
 			}

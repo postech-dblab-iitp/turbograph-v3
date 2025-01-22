@@ -114,7 +114,7 @@ CQueryContext *Planner::_orcaGenQueryCtxt(CMemoryPool *mp,
     // no sort constraint
     // pos->Append(GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidGeneral, GPDB_INT4_LT_OP),
     // 			pcrsOutput->PcrAny(), COrderSpec::EntFirst);
-    // TODO error do we need to
+    
     // CDistributionSpec *pds = GPOS_NEW(mp)
     // 	CDistributionSpecStrictSingleton(CDistributionSpecSingleton::EstMaster);
     CDistributionSpec *pds = GPOS_NEW(mp)
@@ -207,7 +207,7 @@ gpmd::MDProviderS62 *Planner::_orcaGetProviderS62()
 
 void Planner::_orcaInitXForm()
 {
-    // TODO i want to remove this.
+    
     // CXformFactory::Pxff()->Shutdown();  // for allowing scan
     // GPOS_RESULT eres = CXformFactory::Init();
 }
@@ -719,7 +719,7 @@ vector<s62::CypherPipelineExecutor *> Planner::genPipelineExecutors()
 vector<string> Planner::getQueryOutputColNames()
 {
 
-    // TODO no asserts?
+    
     return logical_plan_output_col_names;
 }
 

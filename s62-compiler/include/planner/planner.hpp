@@ -231,7 +231,7 @@ public:
 class Planner {
 
 public:
-	Planner(PlannerConfig config, MDProviderType mdp_type, s62::ClientContext *context, string memory_mdp_path = "");	// TODO change client signature to reference
+	Planner(PlannerConfig config, MDProviderType mdp_type, s62::ClientContext *context, string memory_mdp_path = "");	
 	~Planner();
 
 	void execute(BoundStatement *bound_statement);
@@ -660,7 +660,7 @@ private:
 	const std::string memory_mdp_filepath;
 
 	// core
-	s62::ClientContext *context;	// TODO this should be reference - refer to plansuite
+	s62::ClientContext *context;	
 	CMemoryPool *memory_pool;
 
 	// logical plnaning

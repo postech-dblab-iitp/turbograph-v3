@@ -24,7 +24,7 @@ docker build -t antlr/antlr4 --platform linux/amd64 .
 
 ```
 # need to assign your directory
-MY_ANTLR_DIRECTORY=/home/jhko/dev/s62/s62-compiler/third_party/antlr4_cypher
+MY_ANTLR_DIRECTORY=/home/dev/s62/s62-compiler/third_party/antlr4_cypher
 cd $MY_ANTLR_DIRECTORY
 
 # execute

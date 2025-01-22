@@ -67,7 +67,7 @@
 #include "assert.hpp"	
 #include "logical_schema.hpp"
 
-// TODO need to cleanup imports
+
 
 namespace s62 {
 
@@ -102,7 +102,7 @@ public:
 		tree_root = parent;
 		// update internal states
 
-		// TODO after integrating information, lhs must deallocate rhs after merge.
+		
 	}
 
 	void setSchema(LogicalSchema root_schema_) {

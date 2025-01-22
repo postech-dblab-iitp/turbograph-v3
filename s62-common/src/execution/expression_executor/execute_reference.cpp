@@ -15,7 +15,7 @@ void ExpressionExecutor::Execute(const BoundReferenceExpression &expr, Expressio
 	D_ASSERT(expr.index != DConstants::INVALID_INDEX);
 	D_ASSERT(expr.index < chunk->ColumnCount());
 	// if (chunk->HasRowChunk()) {
-	// 	D_ASSERT(false); // TODO disable SchemalessDataChunk
+	// 	D_ASSERT(false); 
 	// 	// SchemalessDataChunk *sch_chunk = (SchemalessDataChunk *)chunk;
 	// 	// Vector &vec = sch_chunk->GetIthCol(expr.index);
 	// 	// if (sel) {

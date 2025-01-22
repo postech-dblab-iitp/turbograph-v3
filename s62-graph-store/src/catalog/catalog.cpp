@@ -37,7 +37,7 @@ string SimilarCatalogEntry::GetQualifiedName() const {
 
 Catalog::Catalog(DatabaseInstance &db)
     : db(db), dependency_manager(make_unique<DependencyManager>(*this)) {
-	catalog_version = 1; // TODO we need to load this
+	catalog_version = 1; 
 }
 
 Catalog::Catalog(DatabaseInstance &db, fixed_managed_mapped_file *&catalog_segment_)

@@ -426,7 +426,7 @@ public:
         idx_t left_type_id = GetLeftTypeId(op_id) + LOGICAL_TYPE_BASE_ID;
         idx_t right_type_id = GetRightTypeId(op_id) + LOGICAL_TYPE_BASE_ID;
         ExpressionType etype = GetComparisonType(op_id);
-        ExpressionType inv_etype; // TODO get inv_etype using NegateComparisionExpression API
+        ExpressionType inv_etype;
         switch (etype) {
             case ExpressionType::COMPARE_EQUAL:
                 inv_etype = ExpressionType::COMPARE_NOTEQUAL;
@@ -513,7 +513,7 @@ public:
             (PropertySchemaCatalogEntry *)catalog.CreatePropertySchema(
                 context, &propertyschema_info);
 
-        // Get original schema info // TODO string key names necessary?
+        // Get original schema info
         auto *original_types = original_property_schema_cat->GetTypes();
         auto *original_key_ids = original_property_schema_cat->GetKeyIDs();
         vector<string> key_names;

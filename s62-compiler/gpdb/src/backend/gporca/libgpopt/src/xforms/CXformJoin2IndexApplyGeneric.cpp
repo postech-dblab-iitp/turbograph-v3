@@ -202,7 +202,7 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 				if (((*pexprCurrInnerChild)[0]->Pop()->Eopid() == COperator::EopLogicalProjectColumnar) &&
 					((*(*pexprCurrInnerChild)[0])[0]->Pop()->Eopid() == COperator::EopLogicalGet)) {
 					pexprUnionAll = pexprCurrInnerChild;
-					pexprGet = (*(*pexprCurrInnerChild)[0])[0]; // TODO S62 currently consider only first Get
+					pexprGet = (*(*pexprCurrInnerChild)[0])[0]; 
 					CLogicalGet *popGet =
 						CLogicalGet::PopConvert(pexprGet->Pop());
 
@@ -221,7 +221,7 @@ CXformJoin2IndexApplyGeneric::Transform(CXformContext *pxfctxt,
 					((*(*pexprCurrInnerChild)[0])[0]->Pop()->Eopid() == COperator::EopLogicalSelect) &&
 					((*(*(*pexprCurrInnerChild)[0])[0])[0]->Pop()->Eopid() == COperator::EopLogicalGet)) {
 					pexprUnionAll = pexprCurrInnerChild;
-					pexprGet = (*(*(*pexprCurrInnerChild)[0])[0])[0]; // TODO S62 currently consider only first Get
+					pexprGet = (*(*(*pexprCurrInnerChild)[0])[0])[0]; 
 					CLogicalGet *popGet =
 						CLogicalGet::PopConvert(pexprGet->Pop());
 
@@ -476,7 +476,7 @@ CXformJoin2IndexApplyGeneric::TransformApplyOnPathGet(CXformContext *pxfctxt, CX
 	ComputeColumnSets(mp, pexprInner, pexprScalar, &pcrsScalarExpr, &outer_refs,
 					  &pcrsReqd);
 	
-	CColRefArray *colref_array = outer_refs->Pdrgpcr(mp);	// TODO this is wrong
+	CColRefArray *colref_array = outer_refs->Pdrgpcr(mp);	
 	colref_array->AddRef();
 	pexprScalar->AddRef();
 
@@ -490,7 +490,7 @@ CXformJoin2IndexApplyGeneric::TransformApplyOnPathGet(CXformContext *pxfctxt, CX
 		pdrgpcrOutput->AddRef();
 
 		GPOS_ASSERT(path_op->PtabdescArray()->Size() == 1);
-		// TODO currently only one index
+		
 		CTableDescriptor* first_table_desc = path_op->PtabdescArray()->operator[](0);
 
 		CMDAccessor *md_accessor = COptCtxt::PoctxtFromTLS()->Pmda();
@@ -622,9 +622,9 @@ CXformJoin2IndexApplyGeneric::TransformApplyOnPathGet(CXformContext *pxfctxt, CX
 // 	// flag to handle union all
 // 	bool isUnionAllIncluded = false;
 
-// 	// TODO implement recursive
+// 	
 
-// 	// TODO recursive inner function should be called for recursive manner.
+// 	
 
 // 	// if all childs possible, then add indexjoin plan
 

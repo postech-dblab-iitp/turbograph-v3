@@ -104,7 +104,6 @@ SinkResultType PhysicalHashJoin::Sink(ExecutionContext &context,
     // resolve the join keys for the right chunk
     lstate.join_keys.Reset();
     lstate.build_executor.Execute(input, lstate.join_keys);
-    // TODO: add statement to check for possible per
     // build the HT
     if (!right_projection_map.empty()) {
         // there is a projection map: fill the build chunk with the projected columns
@@ -204,32 +203,6 @@ OperatorResultType PhysicalHashJoin::Execute(ExecutionContext &context,
 	 * This means that DuckDB does not consider the case where the some columns in the lhs are not used in the output.
 	 * For example, if the join key is not included in the final output, since it only used in the join, DuckDB outputs error.
 	*/
-
-    // DataChunk preprocessed_input;
-    // // Get types. See output_left_projection_map. if std::numeric_limits<uint32_t>::max(), then it is not used in the output
-    // vector<LogicalType> input_types = input.GetTypes();
-    // vector<LogicalType> prep_input_types;
-    // for (auto i = 0; i < output_left_projection_map.size(); i++) {
-    //     if (output_left_projection_map[i] !=
-    //         std::numeric_limits<uint32_t>::max()) {
-    //         prep_input_types.push_back(input_types[i]);
-    //     }
-    // }
-    // // Initialize and fill preprocessed_input
-    // preprocessed_input.Initialize(prep_input_types);
-    // idx_t prep_idx = 0;
-    // for (idx_t input_idx = 0; input_idx < output_left_projection_map.size();
-    //      input_idx++) {
-    //     if (output_left_projection_map[input_idx] !=
-    //         std::numeric_limits<uint32_t>::max()) {
-    //         preprocessed_input.data[prep_idx++].Reference(
-    //             input.data[input_idx]);
-    //     }
-    // }
-    // preprocessed_input.SetCardinality(input.size());
-    // preprocessed_input.SetSchemaIdx(input.GetSchemaIdx());
-
-    // TODO: currently, for debug purpose, we assume the chunk is UNION schema.
     chunk.SetSchemaIdx(0);
 
     num_loops++;

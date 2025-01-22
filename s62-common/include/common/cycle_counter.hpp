@@ -15,7 +15,6 @@ namespace s62 {
 
 //! The cycle counter can be used to measure elapsed cycles for a function, expression and ...
 //! Optimized by sampling mechanism. Once per 100 times.
-//! //Todo Can be optimized further by calling RDTSC once per sample
 class CycleCounter {
 	friend struct ExpressionInfo;
 	friend struct ExpressionRootInfo;

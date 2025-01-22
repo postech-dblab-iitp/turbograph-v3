@@ -33,7 +33,7 @@ class SchemalessDataChunk : public DataChunk {
 
     //! Vector caches, used to store data when ::CreateRowCol is called
     vector<VectorCache> schemaless_vector_caches;
-    //! row major format data // TODO use heap?
+    //! row major format data 
     vector<unique_ptr<char[]>> row_major_datas;
 };
 

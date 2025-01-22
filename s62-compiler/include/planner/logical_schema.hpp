@@ -76,7 +76,7 @@ class LogicalSchema {
 
     void appendSchema(LogicalSchema *sch1)
     {
-        // TODO ASSERT key does not collapse
+        
         // schema
         auto &sch = *sch1;
         for (auto &prop : sch.schema) {

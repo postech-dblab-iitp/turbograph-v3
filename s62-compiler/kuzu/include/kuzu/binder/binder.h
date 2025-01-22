@@ -238,13 +238,11 @@ class Binder {
     static void validateReadNotFollowUpdate(
         const NormalizedSingleQuery &singleQuery);
 
-    // TODO JHKO catalog disabled
     // static void validateTableExist(const Catalog& _catalog, string& tableName);
     static void validateTableExist(string &tableName);
 
     static bool validateStringParsingOptionName(string &parsingOptionName);
 
-    // TODO JHKO catalog disabled
     // static void validateNodeTableHasNoEdge(const Catalog& _catalog, table_id_t tableID);
     static void validateNodeTableHasNoEdge(table_id_t tableID);
 

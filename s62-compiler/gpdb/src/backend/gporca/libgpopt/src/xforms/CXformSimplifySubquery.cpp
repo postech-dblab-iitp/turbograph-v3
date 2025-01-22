@@ -161,7 +161,7 @@ CXformSimplifySubquery::FSimplify(CMemoryPool *mp, CExpression *pexprScalar,
 	GPOS_ASSERT(NULL != mp);
 	GPOS_ASSERT(NULL != pexprScalar);
 
-	// TODO currently, s62 do not allow to simplify subquerynotexists. it generates wrong plan
+	
 	if ((COperator::EopScalarSubqueryNotExists != pexprScalar->Pop()->Eopid()) &&
 		pfnmatch(pexprScalar->Pop()))
 	{

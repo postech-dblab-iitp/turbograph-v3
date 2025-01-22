@@ -426,7 +426,7 @@ struct SequenceVector {
 	}
 };
 
-// TODO renaming
+
 struct RowColVector {
 	
 };

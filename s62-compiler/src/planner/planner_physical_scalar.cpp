@@ -167,7 +167,7 @@ unique_ptr<s62::Expression> Planner::pTransformScalarBoolOp(CExpression * scalar
 		// unary - NOT
 		auto result = make_unique<s62::BoundOperatorExpression>(op_type, s62::LogicalType::BOOLEAN);
 		result->children.push_back(std::move(pTransformScalarExpr(scalar_expr->operator[](0), lhs_child_cols, rhs_child_cols)));
-		// TODO uncertain if this is right.s
+		
 		return std::move(result);
 	} else if (op_type == s62::ExpressionType::CONJUNCTION_AND) {
 		ULONG num_remaining_exprs = scalar_expr->Arity();
@@ -250,7 +250,7 @@ unique_ptr<s62::Expression> Planner::pTransformScalarAggFunc(CExpression * scala
 	CScalarAggFunc* op = (CScalarAggFunc*)scalar_expr->Pop();
 	CExpression* aggargs_expr = scalar_expr->operator[](0);
 	CScalarValuesList* aggargs = (CScalarValuesList*)(scalar_expr->operator[](0)->Pop());
-		// TODO may need to expand four childs (aggargs, aggdirectargs, aggorder, aggdistinct)
+		
 	unique_ptr<s62::Expression> result;
 
 	vector<unique_ptr<s62::Expression>> child;
@@ -388,7 +388,7 @@ unique_ptr<s62::Expression> Planner::pTransformScalarSwitch(CExpression *scalar_
 	e_else = std::move(pTransformScalarExpr(scalar_expr->operator[](num_childs - 1), lhs_child_cols, rhs_child_cols));
 
 	// try casting 
-	// TODO below logic is not correct (MaxLogicalType returns the type with higher typeid) 
+	
 	// e.g. varchar id < ubigint id, which is not the situation we want
 	if (e_then->return_type != e_else->return_type) {
 		s62::LogicalType max_type = s62::LogicalType::MaxLogicalType(e_then->return_type, e_else->return_type);

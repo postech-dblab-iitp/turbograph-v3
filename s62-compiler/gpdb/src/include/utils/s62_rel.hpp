@@ -104,9 +104,9 @@ typedef struct RelationData
 	SubTransactionId rd_newRelfilenodeSubid;	/* new relfilenode assigned in
 												 * current xact */
 
-	// Form_pg_class rd_rel;		/* RELATION tuple */ // TODO --> change this to our class
+	// Form_pg_class rd_rel;		/* RELATION tuple */ 
 	s62::PropertySchemaCatalogEntry *rd_rel;
-	// TupleDesc	rd_att;			/* tuple descriptor */ // TODO --> change this to our class
+	// TupleDesc	rd_att;			/* tuple descriptor */ 
 	Oid			rd_id;			/* relation's object id */
 	LockInfoData rd_lockInfo;	/* lock mgr's info for locking relation */
 	// RuleLock   *rd_rules;		/* rewrite rules */

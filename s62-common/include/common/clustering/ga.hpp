@@ -220,7 +220,7 @@ class Individual {
         return intra;
     }
 
-    // TODO can be used for non-numeric data?
+    
     void mutation(double pmut)
     {
         std::random_device rd;

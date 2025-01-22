@@ -59,7 +59,7 @@ SortLayout::SortLayout(const vector<BoundOrderByNode> &orders)
 		// 	has_null.push_back(stats.back()->CanHaveNull());
 		// } else {
 		// 	stats.push_back(nullptr);
-		// TODO check correctness
+		
 		has_null.push_back(true);
 		// }
 

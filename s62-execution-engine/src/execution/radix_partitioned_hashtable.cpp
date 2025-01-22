@@ -244,7 +244,7 @@ bool RadixPartitionedHashTable::Finalize(ClientContext &context, GlobalSinkState
 		gstate.is_partitioned = true;
 		return true;
 	} else { // in the non-partitioned case we immediately combine all the unpartitioned hts created by the threads.
-		     // TODO possible optimization, if total count < limit for 32 bit ht, use that one
+		     
 		     // create this ht here so finalize needs no lock on gstate
 
 		gstate.finalized_hts.push_back(make_unique<GroupedAggregateHashTable>(BufferManager::GetBufferManager(context),
