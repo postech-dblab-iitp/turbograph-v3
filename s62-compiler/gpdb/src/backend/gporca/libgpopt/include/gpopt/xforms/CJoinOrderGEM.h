@@ -161,6 +161,8 @@ private:
 
     CExpression *FindLogicalGetExpr(CExpression *pexpr);
 
+	CExpression *PushJoinBelowUnionAll(CExpression *pexpr) const;
+
    public:
 	// ctor
 	CJoinOrderGEM(CMemoryPool *mp, CExpressionArray *pdrgpexprComponents,

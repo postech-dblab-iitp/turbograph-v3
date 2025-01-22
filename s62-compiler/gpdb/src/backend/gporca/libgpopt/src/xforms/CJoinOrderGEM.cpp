@@ -21,6 +21,7 @@
 #include "gpopt/base/CUtils.h"
 #include "gpopt/exception.h"
 #include "gpopt/operators/CLogicalInnerJoin.h"
+#include "gpopt/operators/CLogicalLeftOuterJoin.h"
 #include "gpopt/operators/CNormalizer.h"
 #include "gpopt/operators/CPatternLeaf.h"
 #include "gpopt/operators/CPredicateUtils.h"
@@ -28,6 +29,9 @@
 #include "gpopt/operators/CLogicalUnionAll.h"
 
 using namespace gpopt;
+
+#define SPLIT_TIME_LIMIT 10
+#define COMPONENT_TIME_LIMIT 100
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -596,19 +600,18 @@ void CJoinOrderGEM::SplitGraphlets(IMdIdArray *pimdidarray,
 CExpression *CJoinOrderGEM::ProcessUnionAllComponents(CDouble &dCost)
 {
     CExpression *pexprResultUnionAll = NULL;
+	CDouble dTotalTime = 0;
 
     // Iterate through components
     for (ULONG ul = 0; ul < m_ulComps; ul++) {
+		CTimerUser timerComponent;
+		timerComponent.Restart();
+
         // Get component
         SComponent *pcomp = m_rgpcomp[ul];
         if (NULL == pcomp) {
             continue;
         }
-
-		// CWStringDynamic str(m_mp, L"\n");
-		// COstreamString oss(&str);
-		// pcomp->m_pexpr->OsPrint(oss);
-		// GPOS_TRACE(str.GetBuffer());
 
 		CExpression *pexpr = FindLogicalGetExpr(pcomp->m_pexpr);
 		if (pexpr == NULL) {
@@ -647,14 +650,14 @@ CExpression *CJoinOrderGEM::ProcessUnionAllComponents(CDouble &dCost)
 		else {
 			pexprGOO->Release();
 		}
-    }
 
-	// if (pexprResultUnionAll != NULL) {
-	// 	CWStringDynamic str(m_mp, L"\n");
-	// 	COstreamString oss(&str);
-	// 	pexprResultUnionAll->OsPrint(oss);
-	// 	GPOS_TRACE(str.GetBuffer());
-	// }
+        CDouble dComponentTime(timerComponent.ElapsedUS() /
+                               CDouble(GPOS_USEC_IN_MSEC));
+        dTotalTime = CDouble(dTotalTime.Get() + dComponentTime.Get());
+        if (dTotalTime.Get() > COMPONENT_TIME_LIMIT) {
+            break;
+        }
+    }
 	
 	return pexprResultUnionAll;
 }
@@ -705,14 +708,6 @@ void
 CJoinOrderGEM::CalcEdgeSelectivity(CDoubleArray **pdrgdSelectivity)
 {
 	*pdrgdSelectivity = GPOS_NEW(m_mp) CDoubleArray(m_mp);
-
-	// for (ULONG ulComp = 0; ulComp < m_ulComps; ulComp++) {
-	// 	SComponent *pcomp = m_rgpcomp[ulComp];
-	// 	CWStringDynamic strComp(m_mp, L"\n");
-	// 	COstreamString ossComp(&strComp);
-	// 	pcomp->m_pexpr->OsPrint(ossComp);
-	// 	GPOS_TRACE(strComp.GetBuffer());
-	// }
 
 	for (ULONG ulEdge = 0; ulEdge < m_ulEdges; ulEdge++)
 	{
@@ -788,11 +783,6 @@ void CJoinOrderGEM::UpdateEdgeSelectivity(
 		GPOS_ASSERT(IsValidJoinCombination(comp1, comp2));
 
 		CJoinOrder::SComponent *compTemp = PcompCombine(comp1, comp2);
-
-		// CWStringDynamic str(m_mp, L"\n");
-		// COstreamString oss(&str);
-		// compTemp->m_pexpr->OsPrint(oss);
-		// GPOS_TRACE(str.GetBuffer());
 
 		GPOS_ASSERT(!CUtils::FCrossJoin(compTemp->m_pexpr));
 		
@@ -904,11 +894,6 @@ CExpression *CJoinOrderGEM::RunGOO(ULONG ulComps, SComponent **rgpcomp,
 			comp->m_pexpr->AddRef();
 			tree->Append(comp->m_pexpr);
 
-			// CWStringDynamic strExpr(m_mp, L"\n");
-			// COstreamString ossExpr(&strExpr);
-			// comp->m_pexpr->OsPrint(ossExpr);
-			// GPOS_TRACE(strExpr.GetBuffer());
-
 			// Initialize each element as its own set
 			parent[ul] = ul;
 			rank[ul] = 0;
@@ -1002,8 +987,6 @@ CExpression *CJoinOrderGEM::RunGOO(ULONG ulComps, SComponent **rgpcomp,
 		}
 
 		// Get expressions from tree array and increase their reference counts
-		// CExpression *pexprLeft = (*tree)[ulMinI];
-		// CExpression *pexprRight = (*tree)[ulMinJ]; 
 		CExpression *pexprLeft = (*tree)[ulMinJ];
 		CExpression *pexprRight = (*tree)[ulMinI]; 
 		pexprLeft->AddRef();
@@ -1012,21 +995,6 @@ CExpression *CJoinOrderGEM::RunGOO(ULONG ulComps, SComponent **rgpcomp,
 		// Create join expression using the referenced expressions
 		CExpression *pexprJoin = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(
 			m_mp, pexprLeft, pexprRight, pexprPred);
-
-		// CWStringDynamic strLeft(m_mp, L"\n");
-		// COstreamString ossLeft(&strLeft);
-		// pexprLeft->OsPrint(ossLeft);
-		// GPOS_TRACE(strLeft.GetBuffer());
-
-		// CWStringDynamic strRight(m_mp, L"\n");
-		// COstreamString ossRight(&strRight);
-		// pexprRight->OsPrint(ossRight);
-		// GPOS_TRACE(strRight.GetBuffer());
-
-		// CWStringDynamic strJoin(m_mp, L"\n");
-		// COstreamString ossJoin(&strJoin);
-		// pexprJoin->OsPrint(ossJoin);
-		// GPOS_TRACE(strJoin.GetBuffer());
 		
 		// Union the sets
 		ULONG new_root = Union(parent, rank, ulMinI, ulMinJ);
@@ -1042,11 +1010,6 @@ CExpression *CJoinOrderGEM::RunGOO(ULONG ulComps, SComponent **rgpcomp,
 	ULONG rootIndex = Find(parent, 0);
 	CExpression *pexprResult = (*tree)[rootIndex];
 	pexprResult->AddRef();
-
-	// CWStringDynamic str(m_mp, L"\n");
-	// COstreamString oss(&str);
-	// pexprResult->OsPrint(oss);
-	// GPOS_TRACE(str.GetBuffer());
 
 	// Cleanup
 	size->Release();
@@ -1074,7 +1037,10 @@ CJoinOrderGEM::BuildQueryGraphAndRunGOO(CExpression *pexpr, ULONG ulTarget, CDou
 
 	CExpression *pexprResult = NULL;
     const ULONG ulMaxTrySplit = 10;
+	CDouble dTotalTime = 0;
     for (ULONG ulTrySplit = 0; ulTrySplit < ulMaxTrySplit; ulTrySplit++) {
+		CTimerUser timerSplit;
+		timerSplit.Restart();
         SplitUnionAll(pexpr, ulTarget, splitted_components, ulTrySplit == 0);
 
 		CExpressionArray *pexprArray = GPOS_NEW(m_mp) CExpressionArray(m_mp);
@@ -1108,6 +1074,13 @@ CJoinOrderGEM::BuildQueryGraphAndRunGOO(CExpression *pexpr, ULONG ulTarget, CDou
                     CLogicalUnionAll(m_mp, pdrgpcrOutput, pdrgdrgpcrInput),
                 pexprArray);
         }
+		
+		CDouble dSplitTime(timerSplit.ElapsedUS() / CDouble(GPOS_USEC_IN_MSEC));
+		dTotalTime = CDouble(dTotalTime.Get() + dSplitTime.Get());
+		
+		if (dTotalTime.Get() > SPLIT_TIME_LIMIT) {
+			break;
+		}
     }
 
     return pexprResult;
@@ -1141,6 +1114,137 @@ CExpression *CJoinOrderGEM::FindLogicalGetExpr(CExpression *pexpr) {
 	return NULL;
 }
 
+CExpression *CJoinOrderGEM::PushJoinBelowUnionAll(CExpression *pexpr) const
+{
+	CMemoryPool *mp = this->m_mp;
+
+	// extract components
+	CExpression *pexprLeft = (*pexpr)[0];
+	CExpression *pexprRight = (*pexpr)[1];
+	CExpression *pexprScalar = (*pexpr)[2];
+
+	CExpression *pexprUnionAll, *pexprOther;
+
+	// This is used to preserve the join order, which we leave
+	// for other xforms to optimize
+	BOOL isLeftChildUnion;
+
+	if (COperator::EopLogicalUnionAll == pexprLeft->Pop()->Eopid())
+	{
+		pexprUnionAll = pexprLeft;
+		pexprOther = pexprRight;
+		isLeftChildUnion = true;
+	}
+	else
+	{
+		pexprUnionAll = pexprRight;
+		pexprOther = pexprLeft;
+		isLeftChildUnion = false;
+	}
+
+	CLogicalUnionAll *popUnionAll =
+		CLogicalUnionAll::PopConvert(pexprUnionAll->Pop());
+	CColRef2dArray *union_input_columns = popUnionAll->PdrgpdrgpcrInput();
+
+	if (!popUnionAll->CanPushJoinBelowUnionAll()) 
+	{
+		return;
+	}
+
+	// used for alternative union all expression
+	CColRef2dArray *input_columns = GPOS_NEW(mp) CColRef2dArray(mp);
+	CExpressionArray *join_array = GPOS_NEW(mp) CExpressionArray(mp);
+
+	CColRefArray *other_colref_array =
+		pexprOther->DeriveOutputColumns()->Pdrgpcr(mp);
+	CColRefArray *colref_array_from = GPOS_NEW(mp) CColRefArray(mp);
+
+	// Iterate through all union all children
+	const ULONG arity = pexprUnionAll->Arity();
+	for (ULONG ul = 0; ul < arity; ul++)
+	{
+		CExpression *pexprChild = (*pexprUnionAll)[ul];
+		CColRefArray *child_colref_array = (*union_input_columns)[ul];
+
+		CExpression *pexprLeftChild, *pexprRightChild, *pexprRemappedScalar,
+			*pexprRemappedOther, *join_expr;
+
+        if (ul == 0)
+        {
+            // The 1st child is special
+            // The join table and condition can be readily used
+            // and doesn't require remapping
+            pexprRemappedScalar = pexprScalar;
+            pexprRemappedOther = pexprOther;
+            pexprRemappedScalar->AddRef();
+            pexprRemappedOther->AddRef();
+            // We append the output columns from the 1st union all child,
+            // and from the other table, and use them as the source
+            // of column remapping
+            colref_array_from->AppendArray(child_colref_array);
+            colref_array_from->AppendArray(other_colref_array);
+            input_columns->Append(colref_array_from);
+        }
+        else
+        {
+            CColRefArray *colref_array_to = GPOS_NEW(mp) CColRefArray(mp);
+            // We append the output columns from the 2nd (and onward)
+            // union all child, and a copy of the other table's output
+            // columns, and use them as the destination of column
+            // remapping
+            colref_array_to->AppendArray(child_colref_array);
+            colref_array_to->AppendArray(other_colref_array);
+            input_columns->Append(colref_array_to);
+            UlongToColRefMap *colref_mapping =
+                CUtils::PhmulcrMapping(mp, colref_array_from, colref_array_to);
+            // Create a copy of the join condition with remapped columns,
+            // and a copy of the other expression with remapped columns
+            pexprRemappedScalar = pexprScalar->PexprCopyWithRemappedColumns(
+                mp, colref_mapping, true /*must_exist*/);
+            pexprRemappedOther = pexprOther;
+            pexprRemappedOther->AddRef();
+            colref_mapping->Release();
+        }
+
+		// Preserve the join order
+		if (isLeftChildUnion)
+		{
+			pexprLeftChild = pexprChild;
+			pexprRightChild = pexprRemappedOther;
+			pexprLeftChild->AddRef();
+		}
+		else
+		{
+			pexprLeftChild = pexprRemappedOther;
+			pexprRightChild = pexprChild;
+			pexprRightChild->AddRef();
+		}
+
+
+		BOOL isOuterJoin =
+			pexpr->Pop()->Eopid() == COperator::EopLogicalLeftOuterJoin;
+		if (isOuterJoin)
+		{
+			join_expr = CUtils::PexprLogicalJoin<CLogicalLeftOuterJoin>(
+				mp, pexprLeftChild, pexprRightChild, pexprRemappedScalar);
+		}
+		else
+		{
+			join_expr = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(
+				mp, pexprLeftChild, pexprRightChild, pexprRemappedScalar);
+		}
+		join_array->Append(join_expr);
+	}
+	other_colref_array->Release();
+
+	CColRefArray *output_columns = pexpr->DeriveOutputColumns()->Pdrgpcr(mp);
+	CExpression *pexprAlt = GPOS_NEW(mp) CExpression(
+		mp, GPOS_NEW(mp) CLogicalUnionAll(mp, output_columns, input_columns),
+		join_array);
+
+	return pexprAlt;
+}
+
 FORCE_GENERATE_DBGSTR(gpopt::CJoinOrderGEM);
 
 //---------------------------------------------------------------------------
@@ -1154,48 +1258,5 @@ FORCE_GENERATE_DBGSTR(gpopt::CJoinOrderGEM);
 IOstream &
 CJoinOrderGEM::OsPrint(IOstream &os) const
 {
-	// increase GPOS_LOG_MESSAGE_BUFFER_SIZE in file ILogger.h if the output of this method gets truncated
-	CHashMapIter<CBitSet, CExpression, UlHashBitSet, FEqualBitSet,
-				 CleanupRelease<CBitSet>, CleanupRelease<CExpression> >
-		bitset_to_expr_map_iterator(m_phmbsexpr);
-	CPrintPrefix pref(NULL, "      ");
-
-	while (bitset_to_expr_map_iterator.Advance())
-	{
-		CDouble *cost =
-			m_phmexprcost->Find(bitset_to_expr_map_iterator.Value());
-
-		os << "Bitset: ";
-		bitset_to_expr_map_iterator.Key()->OsPrint(os);
-		os << std::endl;
-		if (NULL != cost)
-		{
-			os << "Cost: " << *cost << std::endl;
-		}
-		else
-		{
-			os << "Cost: None" << std::endl;
-		}
-		os << "Best expression: " << std::endl;
-		bitset_to_expr_map_iterator.Value()->OsPrintExpression(os, &pref);
-	}
-
-	for (ULONG k = 0; k < m_pdrgpexprTopKOrders->Size(); k++)
-	{
-		CDouble *cost = m_phmexprcost->Find((*m_pdrgpexprTopKOrders)[k]);
-
-		os << "Best top-level expression [" << k << "]: " << std::endl;
-		if (NULL != cost)
-		{
-			os << "Cost: " << *cost << std::endl;
-		}
-		else
-		{
-			os << "Cost: None" << std::endl;
-		}
-		(*m_pdrgpexprTopKOrders)[k]->OsPrintExpression(os, &pref);
-	}
-	os << std::endl;
-
 	return os;
 }
