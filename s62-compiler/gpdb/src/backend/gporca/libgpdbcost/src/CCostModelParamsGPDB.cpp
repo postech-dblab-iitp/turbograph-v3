@@ -191,7 +191,7 @@ const CDouble CCostModelParamsGPDB::DScalarFuncCost(1.0e-04);
 const CDouble CCostModelParamsGPDB::DNodeScanCostFactor(1.0);
 
 // default edge scan cost
-const CDouble CCostModelParamsGPDB::DEdgeScanCostFactor(1000000000.0);
+const CDouble CCostModelParamsGPDB::DEdgeScanCostFactor(10.0);
 
 #define GPOPT_COSTPARAM_NAME_MAX_LENGTH 80
 
