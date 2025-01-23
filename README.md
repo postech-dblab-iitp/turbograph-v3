@@ -1,4 +1,4 @@
-# S62
+# S62: Schemaless Graph Engine Strikes Back for General-Purpose Analytics
 
 Fast, scalable, and flexible OLAP graph database, S62.
 
