@@ -4,9 +4,9 @@ Fast, scalable, and flexible OLAP graph database, S62.
 
 ## Notes
 
-We build the system over
-- Duckdb: 0.3.4
-- Kuzu: 0.3.1
+Some components of S62 are implemented using code from other projects. Notably:
+- Cypher Parser: Adapted from Kuzu version 0.3.1
+- Expression Evaluator: Based on DuckDB version 0.3.4
 
 ## Getting Started
 
@@ -56,7 +56,7 @@ ninja
 
 After building the project, you can run the following command to execute S62.
 
-Executing is comprised of three steps, loading dataset, executing client, building statistics.
+Executing is comprised of three steps, loading dataset (with statistics creation) and executing client.
 
 For executing LDBC,
 
