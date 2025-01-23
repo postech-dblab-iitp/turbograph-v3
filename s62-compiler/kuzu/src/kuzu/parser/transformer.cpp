@@ -299,8 +299,8 @@ unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
                         transformRelTypes(*relDetail->oC_RelationshipTypes()) :
                         vector<string>{};
     
-    string lowerBound = "0";    // default value
-    string upperBound = "0";
+    string lowerBound = "1";    // default value
+    string upperBound = "1";
     string infBoundStr = "inf";
     if (relDetail->oC_RangeLiteral()) {
         if(relDetail->oC_RangeLiteral()->RANGE()) { // *X..Y

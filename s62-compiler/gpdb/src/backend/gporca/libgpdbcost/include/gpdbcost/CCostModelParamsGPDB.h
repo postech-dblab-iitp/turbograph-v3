@@ -106,10 +106,10 @@ public:
 
 		EcpScalarFuncCost,	// cost of scalar func
 
-		EcpSentinel, //
-
 		EcpNodeScanCostFactor, // cost of node scan
-		EcpEdgeScanCostFactor // cost of edge scan
+		EcpEdgeScanCostFactor, // cost of edge scan
+		
+		EcpSentinel
 	};
 
 private:

@@ -7,7 +7,7 @@ layering_orders=("DESCENDING")
 
 # Define target and log directories
 target_dir_base="/data/dbpedia/"
-log_dir_base="/s62/logs"
+log_dir_base="/turbograph-v3/logs"
 
 # Get current date and time for log directory
 current_datetime=$(date +"%Y-%m-%d")
@@ -15,8 +15,8 @@ log_dir="${log_dir_base}/query/${current_datetime}"
 mkdir -p ${log_dir}
 
 # Input parameters
-queries_path="/s62/queries/kg/dbpedia-col-10/"
-query_numbers="1-19"
+queries_path="/turbograph-v3/queries/dbpedia"
+query_numbers="1-20"
 
 # Function to parse query numbers
 parse_query_numbers() {
@@ -54,12 +54,12 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                 log_file="${log_dir}/dbpedia_Q${query_num}_${cluster_algo}_${cost_model}_${layering_order}.txt"
 
                 # Run store
-                /s62/build-release/s62-graph-store/store 365GB&
+                /turbograph-v3/build-release/s62-graph-store/store 365GB&
                 sleep 15
 
                 # Run query
                 timeout 3600s \
-                    /s62/build-release/s62-client/S62-CLI --workspace:${target_dir} --query-file:${query_file} --disable-merge-join --num-iterations:3 --join-order-optimizer:exhaustive --warmup \
+                    /turbograph-v3/build/s62-client/s62_cli --workspace:${target_dir} --query-file:${query_file} --disable-merge-join --num-iterations:3 --join-order-optimizer:exhaustive --warmup \
                     >> ${log_file}
 
                 pkill -f store

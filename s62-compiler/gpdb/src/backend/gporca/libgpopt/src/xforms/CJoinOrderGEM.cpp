@@ -1148,7 +1148,7 @@ CExpression *CJoinOrderGEM::PushJoinBelowUnionAll(CExpression *pexpr) const
 
 	if (!popUnionAll->CanPushJoinBelowUnionAll()) 
 	{
-		return;
+		return pexpr;
 	}
 
 	// used for alternative union all expression
