@@ -520,13 +520,6 @@ CTranslatorS62ToDXL::RetrieveRelColumns(
 		//    length.
 		// 4. Otherwise, assign it to default column width which is 8.
 		col_len = rel->GetTypeSize(ul);
-		if (rel->is_fake) {
-			// TODO: change hard coded value
-			// 1000 means the number of schemas.
-			// This is for scaling the width for the temporal table
-			col_len = col_len / 500;
-		}
-
 		auto type_mod = rel->GetExtraTypeInfo(ul);
 		CMDColumn *md_col = GPOS_NEW(mp)
 			CMDColumn(md_colname, attnum++/*att->attnum*/, mdid_col, type_mod,

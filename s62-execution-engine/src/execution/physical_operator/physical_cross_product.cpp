@@ -110,10 +110,6 @@ OperatorResultType PhysicalCrossProduct::Execute(ExecutionContext &context, Data
 	// now match the current vector of the left relation with the current row
 	// from the right relation
 	chunk.SetCardinality(left_chunk.size());
-	// create a reference to the vectors of the left column
-	// for (idx_t i = 0; i < left_chunk.ColumnCount(); i++) {
-	// 	chunk.data[outer_col_map[i]].Reference(left_chunk.data[i]);
-	// }
 	for (idx_t i = 0; i < outer_col_map.size(); i++) { 
 		chunk.data[outer_col_map[i]].Reference(left_chunk.data[i]);
 	}

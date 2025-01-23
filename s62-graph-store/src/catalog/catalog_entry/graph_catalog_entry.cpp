@@ -224,7 +224,7 @@ void GraphCatalogEntry::GetPropertyKeyIDs(ClientContext &context, vector<string>
 		if (property_key_id != propertykey_map.end()) {
 			property_key_ids.push_back(property_key_id->second);
 		} else {
-			PropertyKeyID new_pkid = GetPropertyKeyID(); // TODO key name + type ==> prop key id
+			PropertyKeyID new_pkid = GetPropertyKeyID();
 			uint8_t type_id = (uint8_t) property_types[i].id();
 			propertykey_map.insert(std::make_pair(property_schema_, new_pkid));
 			propertykey_to_typeid_map.insert(std::make_pair(new_pkid, type_id));
