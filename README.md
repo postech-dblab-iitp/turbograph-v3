@@ -25,24 +25,6 @@ Directory Definitions
 - Database Folder: This directory contains the database files. In a Docker environment, this folder can be accessed at /data.
 - Source Data Folder: This directory is designated for storing source CSV files. In a Docker environment, access this folder via /source-data.
 
-#### Error handling
-
-If you failed in bulding docker image, change change
-
-```
-# (boost)
-RUN apt-get install -y libboost-all-dev=1.71.0.0ubuntu2
-
-to
-
-# (boost)
-RUN apt-get update
-RUN apt-get update --fix-missing
-RUN apt-get install -y libboost-all-dev=1.71.0.0ubuntu2
-```
-
-Also, if you failed to find image while executing run-docker-container.sh, then change the IMAGE_NAME to the appropriate name.
-
 ### Building Project
 
 Before build, please run the following command
@@ -76,40 +58,13 @@ After building the project, you can run the following command to execute S62.
 
 Executing is comprised of three steps, loading dataset, executing client, building statistics.
 
-1. Loading Dataset
+For executing LDBC,
 
-    You have to use three terminals for this.
-
-    ```
-    # Terminal 1 (runs storage server)
-    cd build
-    ./s62-graph-store/store <storage size (e.g., 10GB, 100gb)>
-
-    # Terminal 2 (runs catalog server)
-    cd build
-    ./s62-graph-store/catalog_test_catalog_server <db_dir>
-
-    # Terminal 3 (runs bulkloading process)
-    cp scripts/bulkload/run-ldbc-bulkload.sh build
-    cd build
-    bash run-ldbc-bulkload.sh <db_dir> <data_dir>
-    ```
-
-    db_dir is a directory where the database will located.
-
-    data_dir is a directory where the source data is located.
-
-2. Executing Client
-
-    You have to run analyze to make optimizers use statistics.
-
-    ```
-    cp scripts/runner/run-ldbc.sh build
-    cd build
-    bash run-ldbc.sh <db_dir>
-    ```
-
-    You will see `S62 >> ` prompt. You can execute queries here.
+```
+cp scripts/run-ldbc.sh build
+cd build
+bash run-ldbc.sh <db_dir>
+```
 
 ## Execution Options
 

@@ -316,7 +316,7 @@ StoreAPIResult S62GraphStore::InitializeVertexIndexSeek(
         }
     }
     else if (validity.CheckAllInValid()) {
-        D_ASSERT(false);  // not implemented yet
+        // When LEFT AdjIdxJoin cannot find any matched rows, it can be ALL NULL
         return StoreAPIResult::OK;
     }
     else {

@@ -481,7 +481,13 @@ void PhysicalIdSeek::doSeekUnionAll(
     auto &state = (IdSeekState &)lstate;
     idx_t nodeColIdx = id_col_idx;
     if (!do_filter_pushdown) {
-        // fprintf(stdout, "target_eids.size() = %ld\n", target_eids.size());
+        // Special handling for OPTIONAL MATCH (ALL NULL Case)
+        if (target_eids.size() == 0) {
+            for (auto inner_col_idx: union_inner_col_map) {
+                chunk.data[inner_col_idx].SetIsValid(false);
+            }
+            return;
+        }
         for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
              extentIdx++) {
             const vector<uint32_t> &output_col_idx =
@@ -575,6 +581,8 @@ void PhysicalIdSeek::doSeekSchemaless(
     D_ASSERT(target_eids.size() > 0);
     auto &state = (IdSeekState &)lstate;
     idx_t nodeColIdx = id_col_idx;
+
+    if (target_eids.size() == 0) throw NotImplementedException("doSeekSchemaless No TargetEIDs");
 
     if (!do_filter_pushdown) {
         if (union_inner_col_map_wo_id.size() == 0) {
