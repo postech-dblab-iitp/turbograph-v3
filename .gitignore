@@ -50,8 +50,6 @@ test*.cmake
 
 r*hs
 
-*.txt
-
 *.png
 *.pdf
 
