@@ -94,7 +94,7 @@ void StringStatistics::Update(const string_t &value) {
 		// } else if (unicode == duckdb::UnicodeType::INVALID) {
 		// 	throw InternalException("Invalid unicode detected in segment statistics update!");
 		// }
-		throw InternalException("No Unicode - jhko");
+		throw InternalException("No Unicode");
 	}
 }
 

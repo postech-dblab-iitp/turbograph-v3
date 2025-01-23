@@ -122,3 +122,17 @@ target_include_directories(store PUBLIC
 target_link_libraries(store lightning)
 target_link_libraries(store s62-common-lib)
 target_link_libraries(store s62-main)
+
+file(GLOB CATALOG_TEST_SRC
+  "${PROJECT_SOURCE_DIR}/catalog/catalog_test_catalog_server.cpp"
+)
+
+if (TRUE)
+foreach(test_file ${CATALOG_TEST_SRC})
+  get_filename_component(prog_name ${test_file} NAME_WE)
+  add_executable(${prog_name} ${test_file})
+  target_compile_options(${prog_name} PRIVATE ${CXX_FLAGS})
+	target_compile_definitions(${prog_name} PRIVATE ${CXX_DEFINITION})
+  target_link_libraries(${prog_name} PRIVATE tbgpp-graph-store-lib  Catch2::Catch2WithMain)
+endforeach(test_file ${CATALOG_TEST_SRC})
+endif()
