@@ -1266,6 +1266,7 @@ LogicalPlan *Planner::lPlanOrderBy(const expression_vector &orderby_exprs,
                                  pexprLimitOffset, pexprLimitCount);
 
     prev_plan->addUnaryParentOp(plan_orderby_expr);  
+    return prev_plan;
 }
 
 LogicalPlan *Planner::lPlanDistinct(const expression_vector &expressions,

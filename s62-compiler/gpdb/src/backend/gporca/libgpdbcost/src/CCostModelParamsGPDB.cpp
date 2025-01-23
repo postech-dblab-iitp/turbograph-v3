@@ -191,7 +191,7 @@ const CDouble CCostModelParamsGPDB::DScalarFuncCost(1.0e-04);
 const CDouble CCostModelParamsGPDB::DNodeScanCostFactor(1.0);
 
 // default edge scan cost
-const CDouble CCostModelParamsGPDB::DEdgeScanCostFactor(10.0);
+const CDouble CCostModelParamsGPDB::DEdgeScanCostFactor(1000000000.0);
 
 #define GPOPT_COSTPARAM_NAME_MAX_LENGTH 80
 
@@ -444,11 +444,11 @@ CCostModelParamsGPDB::CCostModelParamsGPDB(CMemoryPool *mp) : m_mp(mp)
 		GPOS_NEW(mp) SCostParam(EcpScalarFuncCost, DScalarFuncCost,
 								DScalarFuncCost - 0.0, DScalarFuncCost + 0.0);
 	m_rgpcp[EcpNodeScanCostFactor] =
-		GPOS_NEW(mp) SCostParam(EcpNodeScanCostFactor, DEdgeScanCostFactor,
-								DEdgeScanCostFactor - 0.0, DEdgeScanCostFactor + 0.0);
-	m_rgpcp[EcpEdgeScanCostFactor] =
-		GPOS_NEW(mp) SCostParam(EcpEdgeScanCostFactor, DNodeScanCostFactor,
+		GPOS_NEW(mp) SCostParam(EcpNodeScanCostFactor, DNodeScanCostFactor,
 								DNodeScanCostFactor - 0.0, DNodeScanCostFactor + 0.0);
+	m_rgpcp[EcpEdgeScanCostFactor] =
+		GPOS_NEW(mp) SCostParam(EcpEdgeScanCostFactor, DEdgeScanCostFactor,
+								DEdgeScanCostFactor - 0.0, DEdgeScanCostFactor + 0.0);
 }
 
 
