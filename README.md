@@ -61,9 +61,8 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
 For executing LDBC,
 
 ```
-cp scripts/run-ldbc.sh build
 cd build
-bash run-ldbc.sh <db_dir>
+./s62-client/s62_cli <options>
 ```
 
 ## Execution Options
@@ -81,5 +80,3 @@ bash run-ldbc.sh <db_dir>
 ## Execution Commands
 
 - `:exit`: Exits the client.
-- `analyze`: Update the statistics
-- `flush_file_meta`: increase client initialization speed by flushing file metadata
