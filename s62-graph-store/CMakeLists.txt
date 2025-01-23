@@ -124,7 +124,7 @@ target_link_libraries(store s62-common-lib)
 target_link_libraries(store s62-main)
 
 file(GLOB CATALOG_TEST_SRC
-  "${PROJECT_SOURCE_DIR}/catalog/catalog_test_catalog_server.cpp"
+  "${PROJECT_SOURCE_DIR}/catalog_test_catalog_server.cpp"
 )
 
 if (TRUE)
