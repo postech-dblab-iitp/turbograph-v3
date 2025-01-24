@@ -270,33 +270,6 @@ void VectorOperations::CopyRowStore(const Vector &source, Vector &target, const 
 
 	SelectionVector owned_sel;
 	const SelectionVector *sel = &sel_p;
-	switch (source.GetVectorType()) {
-	// case VectorType::DICTIONARY_VECTOR: {
-	// 	// dictionary vector: merge selection vectors
-	// 	auto &child = DictionaryVector::Child(source);
-	// 	auto &dict_sel = DictionaryVector::SelVector(source);
-	// 	// merge the selection vectors and verify the child
-	// 	auto new_buffer = dict_sel.Slice(*sel, source_count);
-	// 	SelectionVector merged_sel(new_buffer);
-	// 	VectorOperations::Copy(child, target, merged_sel, source_count, source_offset, target_offset);
-	// 	return;
-	// }
-	// case VectorType::SEQUENCE_VECTOR: {
-	// 	int64_t start, increment;
-	// 	Vector seq(source.GetType());
-	// 	SequenceVector::GetSequence(source, start, increment);
-	// 	VectorOperations::GenerateSequence(seq, source_count, *sel, start, increment);
-	// 	VectorOperations::Copy(seq, target, *sel, source_count, source_offset, target_offset);
-	// 	return;
-	// }
-	// case VectorType::CONSTANT_VECTOR:
-	// 	sel = ConstantVector::ZeroSelectionVector(copy_count, owned_sel);
-	// 	break; // carry on with below code
-	case VectorType::ROW_VECTOR:
-		break;
-	default:
-		throw NotImplementedException("FIXME unimplemented vector type for VectorOperations::Copy");
-	}
 
 	if (copy_count == 0) {
 		return;

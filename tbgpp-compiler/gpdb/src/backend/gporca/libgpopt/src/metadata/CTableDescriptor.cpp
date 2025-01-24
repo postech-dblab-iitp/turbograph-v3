@@ -180,6 +180,7 @@ CTableDescriptor::AddColumn(CColumnDescriptor *pcoldesc)
 	GPOS_ASSERT(NULL != pcoldesc);
 
 	m_pdrgpcoldesc->Append(pcoldesc);
+	m_org_pdrgpcoldesc->Append(pcoldesc);
 }
 
 //---------------------------------------------------------------------------

@@ -2073,12 +2073,16 @@ CCostModelGPDB::CostScan(CMemoryPool *,	 // mp
 			->Get();
 	GPOS_ASSERT(0 < dTableScanCostUnit);
 
-	// S62 get table name to penalize edge table scans
-	CDouble scanPenalization(1.0);
-	const CName &tab_name =
-		CPhysicalScan::PopConvert(pop)->Ptabdesc()->Name();
-	if (wcsncmp(tab_name.Pstr()->GetBuffer(), L"eps_", 4) == 0) {
-		scanPenalization = 10.0;
+	CDouble dScanFactor(0);
+	if (CUtils::FEdgeScan(pop)) {
+		dScanFactor = pcmgpdb->GetCostModelParams()
+			->PcpLookup(CCostModelParamsGPDB::EcpEdgeScanCostFactor)
+			->Get();
+	}
+	else {
+		dScanFactor = pcmgpdb->GetCostModelParams()
+			->PcpLookup(CCostModelParamsGPDB::EcpNodeScanCostFactor)
+			->Get();
 	}
 
 	switch (op_id)
@@ -2093,7 +2097,7 @@ CCostModelGPDB::CostScan(CMemoryPool *,	 // mp
 			// we add Scan output tuple cost in the parent operator and not here
 			return CCost(
 				pci->NumRebinds() *
-				(dInitScan * 0/* S62 in-memory */ + pci->Rows() * dTableWidth * dTableScanCostUnit * scanPenalization)); // S62 add scan penalization
+				(dInitScan * 0/* S62 in-memory */ + pci->Rows() * dTableWidth * dTableScanCostUnit * dScanFactor)); // S62 add scan penalization
 		default:
 			GPOS_ASSERT(!"invalid index scan");
 			return CCost(0);

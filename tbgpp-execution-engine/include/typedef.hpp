@@ -89,14 +89,26 @@ class Schema {
 struct PartialSchema {
    public:
     PartialSchema() {}
-    bool hasIthCol(uint64_t col_idx) { return offset_info[col_idx] >= 0; }
-    uint64_t getIthColOffset(uint64_t col_idx) { return offset_info[col_idx]; }
+    bool hasIthCol(uint64_t col_idx) { 
+        if (col_idx >= offset_info.size()) {
+            return false;
+        }
+        return offset_info[col_idx] >= 0; 
+    }
+    uint64_t getIthColOffset(uint64_t col_idx) { 
+        if (col_idx >= offset_info.size()) {
+            return 0;
+        }
+        return offset_info[col_idx]; 
+    }
     uint64_t getStoredTypesSize() { return stored_types_size; }
 
    public:
     std::vector<int32_t> offset_info;
     uint64_t stored_types_size;
 };
+
+static const PartialSchema EMPTY_PARTIAL_SCHEMA;
 
 /** Scan Related */
 #define FILTERED_CHUNK_BUFFER_SIZE 2

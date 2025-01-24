@@ -63,3 +63,5 @@ tbgpp-common/third_party/velox/scripts/fizz
 tbgpp-common/third_party/velox/scripts/fmt
 tbgpp-common/third_party/velox/scripts/folly
 tbgpp-common/third_party/velox/scripts/wangle
+
+tbgpp-common/third_party/velox/fbthrift/conda/Miniconda3-latest-Linux-x86_64.sh 

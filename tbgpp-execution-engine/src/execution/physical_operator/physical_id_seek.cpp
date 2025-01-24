@@ -486,7 +486,13 @@ void PhysicalIdSeek::doSeekUnionAll(
     auto &state = (IdSeekState &)lstate;
     idx_t nodeColIdx = id_col_idx;
     if (!do_filter_pushdown) {
-        // fprintf(stdout, "target_eids.size() = %ld\n", target_eids.size());
+        // Special handling for OPTIONAL MATCH (ALL NULL Case)
+        if (target_eids.size() == 0) {
+            for (auto inner_col_idx: union_inner_col_map) {
+                chunk.data[inner_col_idx].SetIsValid(false);
+            }
+            return;
+        }
         for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
              extentIdx++) {
             const vector<uint32_t> &output_col_idx =
@@ -581,6 +587,8 @@ void PhysicalIdSeek::doSeekSchemaless(
     auto &state = (IdSeekState &)lstate;
     idx_t nodeColIdx = id_col_idx;
 
+    if (target_eids.size() == 0) throw NotImplementedException("doSeekSchemaless No TargetEIDs");
+
     if (!do_filter_pushdown) {
         if (union_inner_col_map_wo_id.size() == 0) {
             doSeekUnionAll(context, input, chunk, state, target_eids,
@@ -605,6 +613,17 @@ void PhysicalIdSeek::doSeekSchemaless(
                         .schema_ptr = (char *)schema_ptr;
                     rowcol_arr[target_seqnos_per_extent[extentIdx][i]].offset =
                         schema_ptr->getStoredTypesSize();
+                }
+            }
+            
+            // For pruned seqnos
+            for (u_int64_t extentIdx = target_eids.size(); extentIdx < target_seqnos_per_extent.size();
+                 extentIdx++) {
+                for (idx_t i = 0;
+                     i < target_seqnos_per_extent[extentIdx].size(); i++) {
+                    rowcol_arr[target_seqnos_per_extent[extentIdx][i]]
+                        .schema_ptr = (char *)&EMPTY_PARTIAL_SCHEMA;
+                    rowcol_arr[target_seqnos_per_extent[extentIdx][i]].offset = 0;
                 }
             }
 

@@ -112,9 +112,6 @@ OperatorResultType PhysicalAllShortestPathJoin::Execute(ExecutionContext &contex
                 Value path_val = Value::LIST(path_vec);
                 chunk.data[output_idx].SetValue(all_srtp_state.output_idx, path_val);
                 all_srtp_state.output_idx++;
-                if (all_srtp_state.output_idx > 1024) {
-                    break;
-                }
             }
         }
         all_srtp_state.input_idx++;

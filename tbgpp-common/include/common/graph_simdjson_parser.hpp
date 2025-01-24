@@ -846,32 +846,9 @@ public:
         cost_null *= (num_nulls1 * schema_group2.second + num_nulls2 * schema_group1.second);
         cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
             - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
-        // if (schema_group1.second < VEC_OVHD_THRESHOLD ||
-        //     schema_group2.second < VEC_OVHD_THRESHOLD) {
-        //     cost_vectorization *= (_ComputeVecOvh(schema_group1.second + schema_group2.second)
-        //         - _ComputeVecOvh(schema_group1.second) - _ComputeVecOvh(schema_group2.second));
-        // } else {
-        //     cost_vectorization = 0.0;
-        // }
+
         double distance = cost_schema + cost_null + cost_vectorization;
-        // if (distance >= 0) {
-            // std::cout << "Distance: " << distance
-            //         << ", Cost Schema: " << cost_schema
-            //         << ", Cost Null: " << cost_null
-            //         << ", Cost Vectorization: " << cost_vectorization
-            //         << std::endl;
-            // std::cout << "Schema Group 1 (" << schema_group1.second << "): ";
-            // for (auto idx1 = 0; idx1 < schema_group1.first.size(); idx1++) {
-            //     std::cout << schema_group1.first[idx1] << " ";
-            // }
-            // std::cout << "Schema Group 2 (" << schema_group2.second << "): ";
-            // for (auto idx2 = 0; idx2 < schema_group2.first.size(); idx2++) {
-            //     std::cout << schema_group2.first[idx2] << " ";
-            // }
-            // std::cout << std::endl;
-            // std::cout << "Num Nulls 1: " << num_nulls1
-            //         << ", Num Nulls 2: " << num_nulls2 << std::endl;
-        // }
+
         return distance;
     }
 
@@ -1099,7 +1076,7 @@ public:
 
     double _ComputeVecOvh(size_t num_tuples) {
         D_ASSERT(num_tuples >= 1);
-        if (num_tuples > VEC_OVHD_THRESHOLD) return 1;
+        if (num_tuples > VEC_OVHD_THRESHOLD) return 0.0;
         else return (double) VEC_OVHD_THRESHOLD / num_tuples;
     }
 
