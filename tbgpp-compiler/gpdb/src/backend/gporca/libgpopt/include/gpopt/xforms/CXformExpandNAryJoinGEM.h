@@ -9,8 +9,8 @@
 //		Expand n-ary join into series of binary joins using dynamic
 //		programming
 //---------------------------------------------------------------------------
-#ifndef GPOPT_CXformExpandNAryJoinDPCoalescing_H
-#define GPOPT_CXformExpandNAryJoinDPCoalescing_H
+#ifndef GPOPT_CXformExpandNAryJoinGEM_H
+#define GPOPT_CXformExpandNAryJoinGEM_H
 
 #include "gpos/base.h"
 
@@ -22,25 +22,25 @@ using namespace gpos;
 
 //---------------------------------------------------------------------------
 //	@class:
-//		CXformExpandNAryJoinDPCoalescing
+//		CXformExpandNAryJoinGEM
 //
 //	@doc:
 //		Expand n-ary join into series of binary joins using dynamic
 //		programming
 //
 //---------------------------------------------------------------------------
-class CXformExpandNAryJoinDPCoalescing : public CXformExploration
+class CXformExpandNAryJoinGEM : public CXformExploration
 {
 private:
 	// private copy ctor
-	CXformExpandNAryJoinDPCoalescing(const CXformExpandNAryJoinDPCoalescing &);
+	CXformExpandNAryJoinGEM(const CXformExpandNAryJoinGEM &);
 
 public:
 	// ctor
-	explicit CXformExpandNAryJoinDPCoalescing(CMemoryPool *mp);
+	explicit CXformExpandNAryJoinGEM(CMemoryPool *mp);
 
 	// dtor
-	virtual ~CXformExpandNAryJoinDPCoalescing()
+	virtual ~CXformExpandNAryJoinGEM()
 	{
 	}
 
@@ -48,14 +48,14 @@ public:
 	virtual EXformId
 	Exfid() const
 	{
-		return ExfExpandNAryJoinDPCoalescing;
+		return ExfExpandNAryJoinGEM;
 	}
 
 	// return a string for xform name
 	virtual const CHAR *
 	SzId() const
 	{
-		return "CXformExpandNAryJoinDPCoalescing";
+		return "CXformExpandNAryJoinGEM";
 	}
 
 	// compute xform promise for a given expression handle
@@ -72,11 +72,11 @@ public:
 	void Transform(CXformContext *pxfctxt, CXformResult *pxfres,
 				   CExpression *pexpr) const;
 
-};	// class CXformExpandNAryJoinDPCoalescing
+};	// class CXformExpandNAryJoinGEM
 
 }  // namespace gpopt
 
 
-#endif	// !GPOPT_CXformExpandNAryJoinDPCoalescing_H
+#endif	// !GPOPT_CXformExpandNAryJoinGEM_H
 
 // EOF

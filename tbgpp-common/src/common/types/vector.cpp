@@ -919,6 +919,35 @@ void Vector::Normalify(idx_t count) {
 	}
 }
 
+template <class T>
+static void TemplatedFlattenRowStore(const Vector &source, const SelectionVector &sel, Vector &target, idx_t count) {
+	// source data
+	auto ldata = FlatVector::GetData<rowcol_t>(source);
+	auto rowcol_idx = source.GetRowColIdx();
+	auto *row_buffer = (VectorRowStoreBuffer *)(source.GetAuxiliary().get());
+	char *row_data = row_buffer->GetRowData();
+
+	// target data
+	auto tdata = FlatVector::GetData<T>(target);
+	auto &target_validity = FlatVector::Validity(target);
+
+	D_ASSERT(rowcol_idx >= 0);
+
+	for (idx_t i = 0; i < count; i++) {
+		auto idx = sel.get_index(i);
+		auto base_offset = ldata[idx].offset;
+		PartialSchema *schema_ptr = (PartialSchema *)ldata[idx].schema_ptr;
+		if (schema_ptr->hasIthCol(rowcol_idx)) {
+			auto offset = schema_ptr->getIthColOffset(rowcol_idx);
+			memcpy(tdata + idx,
+				row_data + offset,
+				sizeof(T));
+		} else {
+			target_validity.SetInvalid(idx);
+		}
+	}
+}
+
 void Vector::Normalify(const SelectionVector &sel, idx_t count) {
 	switch (GetVectorType()) {
 	case VectorType::FLAT_VECTOR:
@@ -931,6 +960,84 @@ void Vector::Normalify(const SelectionVector &sel, idx_t count) {
 		buffer = VectorBuffer::CreateStandardVector(GetType());
 		data = buffer->GetData();
 		VectorOperations::GenerateSequence(*this, count, sel, start, increment);
+		break;
+	}
+	case VectorType::ROW_VECTOR: {
+		Vector other(GetType());
+		auto &other_validity = FlatVector::Validity(other);
+
+		if(!this->is_valid) {
+			other_validity.SetAllInvalid(count);
+			break;
+		}
+
+		switch(GetType().InternalType()) {
+		case PhysicalType::BOOL:
+			TemplatedFlattenRowStore<bool>(*this, sel, other, count);
+			break;
+		case PhysicalType::INT8:
+			TemplatedFlattenRowStore<int8_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::INT16:
+			TemplatedFlattenRowStore<int16_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::INT32:
+			TemplatedFlattenRowStore<int32_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::INT64:
+			TemplatedFlattenRowStore<int64_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::UINT8:
+			TemplatedFlattenRowStore<uint8_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::UINT16:
+			TemplatedFlattenRowStore<uint16_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::UINT32:
+			TemplatedFlattenRowStore<uint32_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::UINT64:
+			TemplatedFlattenRowStore<uint64_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::INT128:
+			TemplatedFlattenRowStore<hugeint_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::FLOAT:
+			TemplatedFlattenRowStore<float>(*this, sel, other, count);
+			break;
+		case PhysicalType::DOUBLE:
+			TemplatedFlattenRowStore<double>(*this, sel, other, count);
+			break;
+		case PhysicalType::INTERVAL:
+			TemplatedFlattenRowStore<interval_t>(*this, sel, other, count);
+			break;
+		case PhysicalType::VARCHAR: {
+			auto ldata = FlatVector::GetData<rowcol_t>(*this);
+			auto rowcol_idx = this->GetRowColIdx();
+			auto *row_buffer = (VectorRowStoreBuffer *)(this->GetAuxiliary().get());
+			char *row_data = row_buffer->GetRowData();
+			auto tdata = FlatVector::GetData<string_t>(other);
+			auto &target_validity = FlatVector::Validity(other);
+
+			for (idx_t i = 0; i < count; i++) {
+				auto idx = sel.get_index(i);
+				auto base_offset = ldata[idx].offset;
+				PartialSchema *schema_ptr = (PartialSchema *)ldata[idx].schema_ptr;
+				if (schema_ptr->hasIthCol(rowcol_idx)) {
+					auto offset = schema_ptr->getIthColOffset(rowcol_idx);
+					string_t str = *((string_t *)(row_data + offset));
+					tdata[idx] = StringVector::AddStringOrBlob(other, str);
+				} else {
+					target_validity.SetInvalid(idx);
+				}
+			}
+			break;
+		}
+		default:
+			throw InternalException("Unimplemented type for VectorOperations::Normalify");
+		}
+
+		this->Reference(other);
 		break;
 	}
 	default:

@@ -187,6 +187,12 @@ const CDouble CCostModelParamsGPDB::DPenalizeHJSkewUpperLimit(10.0);
 // default scalar func cost
 const CDouble CCostModelParamsGPDB::DScalarFuncCost(1.0e-04);
 
+// default node scan cost
+const CDouble CCostModelParamsGPDB::DNodeScanCostFactor(1.0);
+
+// default edge scan cost
+const CDouble CCostModelParamsGPDB::DEdgeScanCostFactor(10.0);
+
 #define GPOPT_COSTPARAM_NAME_MAX_LENGTH 80
 
 // parameter names in the same order of param enumeration
@@ -437,6 +443,12 @@ CCostModelParamsGPDB::CCostModelParamsGPDB(CMemoryPool *mp) : m_mp(mp)
 	m_rgpcp[EcpScalarFuncCost] =
 		GPOS_NEW(mp) SCostParam(EcpScalarFuncCost, DScalarFuncCost,
 								DScalarFuncCost - 0.0, DScalarFuncCost + 0.0);
+	m_rgpcp[EcpNodeScanCostFactor] =
+		GPOS_NEW(mp) SCostParam(EcpNodeScanCostFactor, DNodeScanCostFactor,
+								DNodeScanCostFactor - 0.0, DNodeScanCostFactor + 0.0);
+	m_rgpcp[EcpEdgeScanCostFactor] =
+		GPOS_NEW(mp) SCostParam(EcpEdgeScanCostFactor, DEdgeScanCostFactor,
+								DEdgeScanCostFactor - 0.0, DEdgeScanCostFactor + 0.0);
 }
 
 

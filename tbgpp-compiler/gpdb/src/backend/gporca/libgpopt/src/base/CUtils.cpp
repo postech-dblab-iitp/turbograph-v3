@@ -5210,4 +5210,15 @@ CUtils::AddExprs(CExpressionArrays *results_exprs,
 	}
 	GPOS_ASSERT(results_exprs->Size() >= input_exprs->Size());
 }
+
+BOOL
+CUtils::FEdgeScan(COperator *pop)
+{
+	COperator::EOperatorId op_id = pop->Eopid();
+	GPOS_ASSERT(COperator::EopPhysicalTableScan == op_id);
+	const CName &tab_name =
+		CPhysicalScan::PopConvert(pop)->Ptabdesc()->Name();
+	return (wcsncmp(tab_name.Pstr()->GetBuffer(), L"eps_", 4) == 0);
+}
+
 // EOF

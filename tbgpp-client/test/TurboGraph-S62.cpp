@@ -486,11 +486,7 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
                 //           << "Bind Time: " << bind_time_ms << " ms" << std::endl
                 //           << std::endl;
 
-                if (planner_config.num_iterations == 1) {
-					// Print result plan
-					exportQueryPlanVisualizer(executors, curtime, query_exec_time_ms);
-				}
-				else {
+                if (planner_config.num_iterations != 1) {
 					std::cout << "Iteration " << i + 1 << " done" << std::endl;
 					sleep(1);
 				}

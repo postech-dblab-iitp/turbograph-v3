@@ -1043,6 +1043,8 @@ public:
 						 CExpressionArrays *input_exprs);
 
 	static BOOL FScalarConstBoolNull(CExpression *pexpr);
+
+	static BOOL FEdgeScan(COperator *pop);
 };	// class CUtils
 
 // hash set from expressions

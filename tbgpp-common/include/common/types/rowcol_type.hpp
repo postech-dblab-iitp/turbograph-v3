@@ -12,8 +12,8 @@ struct rowcol_t {
     }
 
 public:
-    idx_t offset;
-    char *schema_ptr;
+    idx_t offset = 0;
+    char *schema_ptr = nullptr;
 };
 
 } // namespace duckdb
