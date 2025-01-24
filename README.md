@@ -69,13 +69,16 @@ Also, if you failed to find image while executing run-docker-example.sh, then ch
 
 ### Building Project
 
-To build in debug mode, you can run the following commands.
+After docker setup, please execute this. You only need to execute once.
 
 ```
 cd /turbograph-v3
-git checkout remotes/origin/dev/velox-integration
 cd tbgpp-common/third_party/velox
 ./scripts/setup-ubuntu.sh
+```
+
+To build in debug mode, you can run the following commands.
+```
 cd /turbograph-v3
 mkdir build
 cd build/
@@ -86,10 +89,6 @@ ninja
 To build in release mode, you can run the following commands.
 
 ```
-cd /turbograph-v3
-git checkout remotes/origin/dev/velox-integration
-cd tbgpp-common/third_party/velox
-./scripts/setup-ubuntu.sh
 cd /turbograph-v3
 mkdir build
 cd build/
@@ -162,3 +161,105 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
     - COUNT(): Not Supported
     - COUNT(*): Supported
     - COUNT(column_name): Supported
+
+
+## API Documentation
+
+### Supported APIs
+
+1. **C/C++ APIs**:
+   - The C/C++ APIs follow DuckDB's API design.
+   - Refer to the DuckDB API documentation for detailed usage examples.
+
+2. **Socket APIs**:
+   - A simple socket-based API for client-server architecture.
+   - Socket APIs enable communication between the client and the S62 server.
+   - Refer to the `tbgpp-api/server` directory for implementation details.
+
+### Socket API List
+
+The following API identifiers (`API_ID`) are supported for socket communication:
+
+- **PrepareStatement (`API_ID = 0`)**: Prepares a query.
+- **ExecuteStatement (`API_ID = 1`)**: Executes a prepared query.
+- **Fetch (`API_ID = 2`)**: Fetches a single row from the result set.
+- **FetchAll (`API_ID = 3`)**: Fetches all rows from the result set.
+
+### How to Send Requests to the Socket Server
+
+1. **Connect to the Socket**:
+   - Use a TCP socket to connect to the S62 server at the configured address and port.
+   - Default port: `8080`.
+
+2. **Message Format**:
+   - Each request message begins with the `API_ID`, followed by the payload (e.g., query text, client ID).
+
+3. **Example**:
+   - **PrepareStatement**: Send the query string.
+   - **ExecuteStatement**: Send the prepared client ID.
+   - **FetchAll**: Retrieve all rows of the result set in CSV format.
+
+### How to Run Socket Server
+
+1. **Start the Store**:
+     ```bash
+     cd /turbograph-v3/build
+     ./tbgpp-graph-store/store <storage size (e.g., 10GB, 100gb)>
+     ```
+
+2. **Start the Socket Server**:
+     ```bash
+     cd /turbograph-v3/build/tbgpp-api/server
+     ./socket_server_run <workspace> # e.g., ./socket_server_run /data/tpch/sf1
+     ```
+
+### Python Flask Server/Client Examples
+
+The `tbgpp-api/server/test/python-example` directory contains examples for integrating with the Flask server. This includes:
+
+- **Flask Server**:
+  - Handles API requests and communicates with the S62 server over sockets.
+  - Converts query results (in CSV format) to JSON for JavaScript compatibility.
+- **Flask Client**:
+  - Demonstrates how to send queries and interpret the JSON responses.
+
+Note that you SHOULD run socket server before running the Flask server.
+
+### Running the Flask Server
+
+1. **Start the Flask Server**:
+   - Run the server script:
+     ```bash
+     python3 flask-server.py
+     ```
+   - The server listens on `http://localhost:6543` by default.
+
+2. **Example Endpoint**:
+   - `/execute-s62` (POST): Executes an S62 query and returns the results.
+
+3. **Query Format**:
+   - JSON payload with the `query` field:
+     ```json
+     {
+       "query": "MATCH (item:LINEITEM) WHERE item.L_SHIPDATE <= date('1998-08-25') RETURN ..."
+     }
+     ```
+
+### Running the Flask Client
+
+1. **Run the Client**:
+   - Use the provided test script to send a query to the server:
+     ```bash
+     python3 flask-client.py
+     ```
+
+2. **Expected Output**:
+   - The client sends a query to the Flask server, and the response includes:
+     ```json
+     {
+       "elapsed_time": 960,
+       "property_names": ["ret_flag", "line_stat", "sum_qty", "sum_base_price", ...],
+       "result_set_size": 4,
+       "results": "A|F|18064037556|56586554400.73|53758257134.8700|55909065222.827692|12217.871546|38273.129735|0.049985|1478493\nN|F..."
+     }
+     ```

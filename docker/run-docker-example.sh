@@ -2,8 +2,6 @@
 
 # Example usage: ./run-docker-example.sh /mnt/md0/jhha/data /mnt/md0/jhha/source-data
 
-# Parse user input
-
 # Target image
 IMAGE_NAME="turbograph-image"
 IMAGE_TAG="latest"
@@ -22,11 +20,6 @@ DATA_DIR=$1
 [[ -z "$2" ]] && { echo "Provide SOURCE_DATA_DIR where you load input data!!!"; exit 1;}
 SOURCE_DATA_DIR=$2
 
-# TODO you need to set /etc/passwd thus make another user, to access vscode
-# TODO and then mkdir /home/USERNAME and chown
-# TODO set entrypoints refer to commercial dbmss 
-	# e.g. https://github.com/docker-library/postgres/blob/master/12/bullseye/docker-entrypoint.sh
-
 	#--user "${CONTAINER_USERNAME}:${CONTAINER_GID}" \
 docker run -itd --cap-add SYS_ADMIN \
 	--cap-add SYS_PTRACE \
@@ -35,6 +28,9 @@ docker run -itd --cap-add SYS_ADMIN \
 	-v ${DATA_DIR}:/data \
 	-v ${SOURCE_DATA_DIR}:/source-data \
 	-v /mnt:/mnt \
+	-p 8629:8269 \
+	-p 30000:30000 \
+	-p 39000:39000 \
 	--shm-size=${SHARED_MEM_SIZE} \
 	--entrypoint="/bin/bash" \
 	--name ${CONTAINER_NAME} \

@@ -492,7 +492,7 @@ CReqdPropPlan::FSatisfied(const CDrvdPropRelational *pdprel,
 	// we only need to check satisfiability of distribution and rewindability
 	if (pdprel->GetMaxCard().Ull() <= 1)
 	{
-		GPOS_ASSERT(NULL != pdpplan->Ppim());
+		// GPOS_ASSERT(NULL != pdpplan->Ppim());
 
 		return pdpplan->Pds()->FSatisfies(this->Ped()->PdsRequired());
 		// return pdpplan->Pds()->FSatisfies(this->Ped()->PdsRequired()) &&

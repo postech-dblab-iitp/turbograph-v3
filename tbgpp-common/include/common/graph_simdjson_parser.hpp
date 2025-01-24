@@ -1998,6 +1998,8 @@ public:
                 break;
             }
 
+            std::cout << "GenerateCostMatrix done" << std::endl;
+
             /* START_OF_COST_MODEL_BASED */
             auto cost_compare_great = [](const std::pair<double, std::pair<uint32_t, uint32_t>> &a,
                                         const std::pair<double, std::pair<uint32_t, uint32_t>> &b) {

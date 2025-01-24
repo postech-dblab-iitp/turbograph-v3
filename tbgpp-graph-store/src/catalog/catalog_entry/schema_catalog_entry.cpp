@@ -44,6 +44,7 @@
 //#include "planner/constraints/bound_foreign_key_constraint.hpp"
 //#include "parser/constraints/foreign_key_constraint.hpp"
 #include "catalog/catalog_entry/table_macro_catalog_entry.hpp"
+#include "main/client_context.hpp"
 
 #include <algorithm>
 #include <sstream>
@@ -100,10 +101,9 @@ SchemaCatalogEntry::SchemaCatalogEntry(Catalog *catalog, string name_p, bool int
 		extents(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_extents")), 
 		chunkdefinitions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_chunkdefinitions")),
 		indexes(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_indexes")),
-		functions(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_functions")),
 		oid_to_catalog_entry_array((void_allocator) catalog_segment->get_segment_manager()) {
 	this->internal = internal;
-	this->catalog_segment = catalog_segment;
+	// this->catalog_segment = catalog_segment;
 }
 
 CatalogEntry *SchemaCatalogEntry::AddEntry(ClientContext &context, StandardEntry *entry,
@@ -236,46 +236,43 @@ ChunkDefinitionCatalogEntry *SchemaCatalogEntry::AddChunkDefinitionEntry(ClientC
 
 CatalogEntry *SchemaCatalogEntry::CreateGraph(ClientContext &context, CreateGraphInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
-	void_allocator alloc_inst (catalog_segment->get_segment_manager());
-	auto graph = catalog_segment->find_or_construct<GraphCatalogEntry>(info->graph.c_str())(catalog, this, info, alloc_inst);
-	//auto graph = boost::interprocess::make_managed_unique_ptr(
-	//	catalog_segment->construct<GraphCatalogEntry>(info->graph.c_str())(catalog, this, info),
-	//	*catalog_segment);
+	void_allocator alloc_inst (context.GetCatalogSHM()->get_segment_manager());
+	auto graph = context.GetCatalogSHM()->find_or_construct<GraphCatalogEntry>(info->graph.c_str())(catalog, this, info, alloc_inst);
 	return AddEntry(context, move(graph), info->on_conflict, dependencies);
 }
 
 CatalogEntry *SchemaCatalogEntry::CreatePartition(ClientContext &context, CreatePartitionInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
-	void_allocator alloc_inst (catalog_segment->get_segment_manager());
-	auto partition = catalog_segment->find_or_construct<PartitionCatalogEntry>(info->partition.c_str())(catalog, this, info, alloc_inst);
+	void_allocator alloc_inst (context.GetCatalogSHM()->get_segment_manager());
+	auto partition = context.GetCatalogSHM()->find_or_construct<PartitionCatalogEntry>(info->partition.c_str())(catalog, this, info, alloc_inst);
 	return AddEntry(context, move(partition), info->on_conflict, dependencies);
 }
 
 CatalogEntry *SchemaCatalogEntry::CreatePropertySchema(ClientContext &context, CreatePropertySchemaInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
-	void_allocator alloc_inst (catalog_segment->get_segment_manager());
-	auto propertyschema = catalog_segment->find_or_construct<PropertySchemaCatalogEntry>(info->propertyschema.c_str())(catalog, this, info, alloc_inst);
+	void_allocator alloc_inst (context.GetCatalogSHM()->get_segment_manager());
+	auto propertyschema = context.GetCatalogSHM()->find_or_construct<PropertySchemaCatalogEntry>(info->propertyschema.c_str())(catalog, this, info, alloc_inst);
 	return AddEntry(context, move(propertyschema), info->on_conflict, dependencies);
 }
 
 CatalogEntry *SchemaCatalogEntry::CreateExtent(ClientContext &context, CreateExtentInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
-	void_allocator alloc_inst (catalog_segment->get_segment_manager());
-	auto extent = catalog_segment->find_or_construct<ExtentCatalogEntry>(info->extent.c_str())(catalog, this, info, alloc_inst);
+	void_allocator alloc_inst (context.GetCatalogSHM()->get_segment_manager());
+	auto extent = context.GetCatalogSHM()->find_or_construct<ExtentCatalogEntry>(info->extent.c_str())(catalog, this, info, alloc_inst);
 	return AddEntry(context, move(extent), info->on_conflict, dependencies);
 }
 
 CatalogEntry *SchemaCatalogEntry::CreateChunkDefinition(ClientContext &context, CreateChunkDefinitionInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
-	void_allocator alloc_inst (catalog_segment->get_segment_manager());
-	auto chunkdefinition = catalog_segment->find_or_construct<ChunkDefinitionCatalogEntry>(info->chunkdefinition.c_str())(catalog, this, info, alloc_inst);
+	void_allocator alloc_inst (context.GetCatalogSHM()->get_segment_manager());
+	auto chunkdefinition = context.GetCatalogSHM()->find_or_construct<ChunkDefinitionCatalogEntry>(info->chunkdefinition.c_str())(catalog, this, info, alloc_inst);
 	return AddEntry(context, move(chunkdefinition), info->on_conflict, dependencies);
 }
 
 CatalogEntry *SchemaCatalogEntry::CreateIndex(ClientContext &context, CreateIndexInfo *info) {
 	unordered_set<CatalogEntry *> dependencies;
-	void_allocator alloc_inst (catalog_segment->get_segment_manager());
-	auto index = catalog_segment->find_or_construct<IndexCatalogEntry>(info->index_name.c_str())(catalog, this, info, alloc_inst);
+	void_allocator alloc_inst (context.GetCatalogSHM()->get_segment_manager());
+	auto index = context.GetCatalogSHM()->find_or_construct<IndexCatalogEntry>(info->index_name.c_str())(catalog, this, info, alloc_inst);
 	return AddEntry(context, move(index), info->on_conflict, dependencies);
 }
 
@@ -342,10 +339,10 @@ CatalogEntry *SchemaCatalogEntry::CreatePragmaFunction(ClientContext &context, C
 CatalogEntry *SchemaCatalogEntry::CreateFunction(ClientContext &context, CreateFunctionInfo *info) {
 	// unique_ptr<StandardEntry> function;
 	StandardEntry *function;
-	void_allocator alloc_inst (catalog_segment->get_segment_manager());
+	void_allocator alloc_inst (context.GetCatalogSHM()->get_segment_manager());
 	switch (info->type) {
 	case CatalogType::SCALAR_FUNCTION_ENTRY:
-		function = catalog_segment->find_or_construct<ScalarFunctionCatalogEntry>(info->name.c_str())(catalog, this, 
+		function = context.GetCatalogSHM()->find_or_construct<ScalarFunctionCatalogEntry>(info->name.c_str())(catalog, this, 
 																										(CreateScalarFunctionInfo *)info, alloc_inst);
 		break;
 	case CatalogType::MACRO_ENTRY:
@@ -362,7 +359,7 @@ CatalogEntry *SchemaCatalogEntry::CreateFunction(ClientContext &context, CreateF
 	case CatalogType::AGGREGATE_FUNCTION_ENTRY:
 		D_ASSERT(info->type == CatalogType::AGGREGATE_FUNCTION_ENTRY);
 		// create an aggregate function
-		function = catalog_segment->find_or_construct<AggregateFunctionCatalogEntry>(info->name.c_str())(catalog, this, 
+		function = context.GetCatalogSHM()->find_or_construct<AggregateFunctionCatalogEntry>(info->name.c_str())(catalog, this, 
 																										(CreateAggregateFunctionInfo *)info, alloc_inst);
 		break;
 	default:
@@ -479,27 +476,19 @@ unique_ptr<CreateSchemaInfo> SchemaCatalogEntry::Deserialize(Deserializer &sourc
 	//return info;
 }
 
-void SchemaCatalogEntry::LoadCatalogSet() {
-	// fprintf(stdout, "Load Graph Catalog\n");
+void SchemaCatalogEntry::LoadCatalogSet(fixed_managed_mapped_file *&catalog_segment) {
 	graphs.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_graphs"));
-	// fprintf(stdout, "Load Partition Catalog\n");
 	partitions.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_partitions"));
-	// fprintf(stdout, "Load PropertySchema Catalog\n");
 	propertyschemas.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_propertyschemas"));
-	// fprintf(stdout, "Load Extent Catalog\n");
 	extents.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_extents"));
-	// fprintf(stdout, "Load ChunkDefinitions Catalog\n");
 	chunkdefinitions.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_chunkdefinitions"));
-	// fprintf(stdout, "Load Indexes Catalog\n");
 	indexes.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_indexes"));
-	// fprintf(stdout, "Load Functions Catalog\n");
-	functions.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_functions"));
-	// fprintf(stdout, "Load CatalogSet Done\n");
+	// functions.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_functions"));
 }
 
-void SchemaCatalogEntry::SetCatalogSegment(fixed_managed_mapped_file *&catalog_segment) {
-	this->catalog_segment = catalog_segment;
-}
+// void SchemaCatalogEntry::SetCatalogSegment(fixed_managed_mapped_file *catalog_segment) {
+// 	this->catalog_segment = catalog_segment;
+// }
 
 string SchemaCatalogEntry::ToSQL() {
 	std::stringstream ss;
@@ -529,7 +518,8 @@ CatalogSet &SchemaCatalogEntry::GetCatalogSet(CatalogType type) {
 	case CatalogType::AGGREGATE_FUNCTION_ENTRY:
 	case CatalogType::SCALAR_FUNCTION_ENTRY:
 	case CatalogType::MACRO_ENTRY:
-		return functions;
+		throw InternalException("Function catalog is not supported in the schema anymore");
+		// return functions;
 	/*case CatalogType::VIEW_ENTRY:
 	case CatalogType::TABLE_ENTRY:
 		return tables;
