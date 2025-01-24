@@ -73,7 +73,7 @@ After docker setup, please execute this. You only need to execute once.
 
 ```
 cd /turbograph-v3
-cd tbgpp-common/third_party/velox
+cd common/third_party/velox
 ./scripts/setup-ubuntu.sh
 ```
 
@@ -109,11 +109,11 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
     ```
     # Terminal 1 (runs storage server)
     cd build
-    ./tbgpp-graph-store/store <storage size (e.g., 10GB, 100gb)>
+    ./storage/store <storage size (e.g., 10GB, 100gb)>
 
     # Terminal 2 (runs catalog server)
     cd build
-    ./tbgpp-graph-store/catalog_test_catalog_server <db_dir>
+    ./storage/catalog_test_catalog_server <db_dir>
 
     # Terminal 3 (runs bulkloading process)
     cp scripts/bulkload/run-ldbc-bulkload.sh build
@@ -174,7 +174,7 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
 2. **Socket APIs**:
    - A simple socket-based API for client-server architecture.
    - Socket APIs enable communication between the client and the S62 server.
-   - Refer to the `tbgpp-api/server` directory for implementation details.
+   - Refer to the `api/server` directory for implementation details.
 
 ### Socket API List
 
@@ -204,18 +204,18 @@ The following API identifiers (`API_ID`) are supported for socket communication:
 1. **Start the Store**:
      ```bash
      cd /turbograph-v3/build
-     ./tbgpp-graph-store/store <storage size (e.g., 10GB, 100gb)>
+     ./storage/store <storage size (e.g., 10GB, 100gb)>
      ```
 
 2. **Start the Socket Server**:
      ```bash
-     cd /turbograph-v3/build/tbgpp-api/server
+     cd /turbograph-v3/build/api/server
      ./socket_server_run <workspace> # e.g., ./socket_server_run /data/tpch/sf1
      ```
 
 ### Python Flask Server/Client Examples
 
-The `tbgpp-api/server/test/python-example` directory contains examples for integrating with the Flask server. This includes:
+The `api/server/test/python-example` directory contains examples for integrating with the Flask server. This includes:
 
 - **Flask Server**:
   - Handles API requests and communicates with the S62 server over sockets.

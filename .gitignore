@@ -1,10 +1,16 @@
 # Refer to https://github.com/github/gitignore for useful templates
 
-# Basic rules
+# General build files
 build*/
-build
+build/
 tmp/
+
+# Logs and temporary files
 *.log
+logs/*
+*.html
+*.csv
+*.csv.backward
 
 # C/C++
 *.o
@@ -13,53 +19,63 @@ tmp/
 *.elf
 *.slo
 *.lo
-*.o
-*.obj
 *.so
 *.a
+*.bin
+*.exe
+*.d
+*.dSYM/
+*.out
+*.h.gch
 
 # Python
 __pycache__/
+*.py[cod]
+*.pyo
 
-# JAVA
+# Java
 *.class
+*.jar
+*.war
+*.ear
 
 # OS-specific
 .DS_Store
 ._*
 Thumbs.db
+*.ini
 
-# Cmake cache
+# CMake
 CMakeCache.txt
 CMakeFiles/
-test*.cmake
+*.cmake
 
-# Vim swap files
-*.swp
+# Editor-specific
+*.swp              # Vim swap files
+.idea/             # IntelliJ IDEA
+.vscode/           # VSCode directory
+*.code-workspace   # VSCode workspace files
 
-# vscode directory
-.vscode/
-*.code-workspace
-
-# logs
-*.html
-
-# Tools
-*.csv
-*.csv.backward
-
-r*hs
-
+# Images and media
 *.png
+*.jpg
+*.jpeg
+*.gif
 *.pdf
+*.svg
 
-logs/*
+# Tools-generated binaries and scripts
+src/common/third_party/velox/fbthrift
+src/common/third_party/velox/fizz
+src/common/third_party/velox/fmt
+src/common/third_party/velox/folly
+src/common/third_party/velox/wangle
+src/common/third_party/velox/fbthrift
+src/common/third_party/velox/scripts/fizz
+src/common/third_party/velox/scripts/fmt
+src/common/third_party/velox/scripts/folly
+src/common/third_party/velox/scripts/wangle
+src/common/third_party/velox/fbthrift/conda/Miniconda3-latest-Linux-x86_64.sh
 
-# Binaries
-tbgpp-common/third_party/velox/scripts/fbthrift
-tbgpp-common/third_party/velox/scripts/fizz
-tbgpp-common/third_party/velox/scripts/fmt
-tbgpp-common/third_party/velox/scripts/folly
-tbgpp-common/third_party/velox/scripts/wangle
-
-tbgpp-common/third_party/velox/fbthrift/conda/Miniconda3-latest-Linux-x86_64.sh 
+# Miscellaneous
+r*hs
