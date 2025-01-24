@@ -1,18 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 
-# Section headers in this CMakeLists file
-# - Project metadata
-# - Set environment
-# - Add subdirectories
-# - Set compiler
-# - Target > unittest
-# - Target > format
-# - Target > check-format
-
 ########################
 ### Project metadata ###
 ########################
-project(turbograph-v3)
+project(s62-gdbms)
 
 #######################
 ### Set environment ###
@@ -33,12 +24,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 ##########################
 ### Add subdirectories ###
 ##########################
-add_subdirectory(tbgpp-common)
-add_subdirectory(tbgpp-graph-store)
-add_subdirectory(tbgpp-execution-engine)
-add_subdirectory(tbgpp-compiler)
-add_subdirectory(tbgpp-client)
-add_subdirectory(tbgpp-api)
+add_subdirectory(src)
 
 ####################
 ### Set compiler ###
@@ -54,48 +40,3 @@ if(CCACHE)
     set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE})
     set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE})
 endif(CCACHE)
-
-#########################
-### Target > unittest ###
-#########################
-if( 0 )	# TODO Add option
-else()
-	add_custom_target(unittest
-		echo "unittest"
-		USES_TERMINAL
-	)
-endif()
-
-#######################
-### Target > format ###
-#######################
-if( 0 )	# TODO Add option
-else()
-	add_custom_target(format
-		echo "format"
-		USES_TERMINAL
-	)
-endif()
-
-#############################
-### Target > check-format ###
-#############################
-if( 0 )	# TODO Add option
-else()
-	add_custom_target(check-format
-		echo "check-format"
-		USES_TERMINAL
-	)
-endif()
-
-###########################
-### Target > check-lint ###
-###########################
-# TODO target format overlaps
-if( 0 )	# TODO Add option
-else()
-	add_custom_target(formatttttttt
-		echo "format"
-		USES_TERMINAL
-	)
-endif()
