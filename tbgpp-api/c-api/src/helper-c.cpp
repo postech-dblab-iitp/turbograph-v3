@@ -180,14 +180,14 @@ std::string pipelineToPostgresPlan(
 
 // Helper to check if a pipeline's sink is a binary operator
 bool isBinaryOperatorSink(duckdb::CypherPipeline* pipeline) {
-    std::string sink_type = pipeline->sink->ToString();
+    std::string sink_type = pipeline->GetSink()->ToString();
     return sink_type == "HashJoin";
 }
 
 // Helper to find a matching binary operator in the middle of lhs pipeline
 bool hasMatchingOperator(duckdb::CypherPipeline* lhs_pipeline, duckdb::CypherPipeline* rhs_pipeline) {
-    std::string rhs_op_type = rhs_pipeline->sink->ToString();
-    for (auto& op : lhs_pipeline->operators) {
+    std::string rhs_op_type = rhs_pipeline->GetSink()->ToString();
+    for (auto& op : lhs_pipeline->GetOperators()) {
         if (op->ToString() == rhs_op_type) {
             return true;
         }
@@ -218,7 +218,7 @@ std::string generatePostgresStylePlan(std::vector<CypherPipelineExecutor*>& exec
             }
 
             // Unary operators connected through source-sink
-            if (next_pipeline->source == pipeline->sink) {
+            if (next_pipeline->GetSource() == pipeline->GetSink()) {
                 parent_map[next_pipeline] = pipeline;
             }
         }
@@ -263,9 +263,9 @@ std::string pipelineToPostgresPlan(
     std::ostringstream oss;
 
     // Traverse operators in this pipeline from top to bottom
-	std::vector<CypherPhysicalOperator *> operators = pipeline->operators;
-	if (indent == 0) operators.push_back(pipeline->sink);
-	operators.insert(operators.begin(), pipeline->source);
+	std::vector<CypherPhysicalOperator *> operators = pipeline->GetOperators();
+	if (indent == 0) operators.push_back(pipeline->GetSink());
+	operators.insert(operators.begin(), pipeline->GetSource());
 
 	std::vector<int> idxscan_idents;
 
@@ -289,7 +289,7 @@ std::string pipelineToPostgresPlan(
         } else {
             // Unary operators, simply add them to the output
 			indent == 0 ? printOperator(oss, op, indent_str, true, is_executed) : printOperator(oss, op, indent_str, false, is_executed);
-            if (parent_map.find(pipeline) != parent_map.end() && op == pipeline->source) {
+            if (parent_map.find(pipeline) != parent_map.end() && op == pipeline->GetSource()) {
                 oss << pipelineToPostgresPlan(parent_map[pipeline], parent_map, rhs_map, indent + 4, is_executed);
             }
         }
