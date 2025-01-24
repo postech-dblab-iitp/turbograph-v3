@@ -134,7 +134,7 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 		// temporary directories explicitly disabled
 		config.temporary_directory = string();
 	}*/
-
+	
 	storage =
 	    make_unique<StorageManager>(*this, path ? string(path) : string(), false);
 
@@ -154,7 +154,6 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 		// A pointer to the name of the named object
 		const void *value = named_beg->value();
 		const boost::interprocess::managed_shared_memory::char_type *name = named_beg->name();
-		// fprintf(stdout, "%s %p\n", name, value);
 		if (startsWith(name, "schemacatalogentry")) { // SchemaCatalogEntry
 			object_names[0].push_back(name);
 		} else if (startsWith(name, "graph")) { // GraphCatalogEntry

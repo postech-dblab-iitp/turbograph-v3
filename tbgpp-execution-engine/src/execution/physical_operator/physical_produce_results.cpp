@@ -15,41 +15,14 @@ class ProduceResultsState : public LocalSinkState {
     explicit ProduceResultsState(std::vector<uint64_t> projection_mapping, std::vector<std::vector<uint64_t>> projection_mappings)
         : projection_mapping(projection_mapping), projection_mappings(projection_mappings)
     {
-        isResultTypeDetermined = false;
-    }
-
-    void DetermineResultTypes(const std::vector<LogicalType> input_types)
-    {
-        if (projection_mapping.size() == 0 && projection_mappings.size() == 0) {
-            result_types = input_types;
-        }
-        else {
-            if (projection_mapping.size() != 0) {
-                for (auto &target : projection_mapping) {
-                    result_types.push_back(input_types[target]);
-                }
-            }
-            else if (projection_mappings.size() != 0) {
-                idx_t schema_idx = 0;
-                for (auto &target : projection_mappings[schema_idx]) {
-                    result_types.push_back(input_types[target]);
-                }
-            }
-            else {
-                D_ASSERT(false);
-            }
-        }
-        isResultTypeDetermined = true;
     }
 
    public:
     // ChunkCollection resultCollection;
     vector<unique_ptr<DataChunk>> resultChunks;
 
-    bool isResultTypeDetermined;
     std::vector<uint64_t> projection_mapping;
     std::vector<std::vector<uint64_t>> projection_mappings;
-    std::vector<duckdb::LogicalType> result_types;
 };
 
 unique_ptr<LocalSinkState> PhysicalProduceResults::GetLocalSinkState(
@@ -64,40 +37,15 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext &context,
 {
     auto &state = (ProduceResultsState &)lstate;
 
-    // // for debugging
-    // for (auto i = 0; i < input.ColumnCount(); i++) {
-    //     auto &validity = FlatVector::Validity(input.data[i]);
-    //     num_nulls += (input.size() - validity.CountValid(input.size()));
-    // }
-
-    if (!state.isResultTypeDetermined) {
-        state.DetermineResultTypes(input.GetTypes());
-    }
-
-    // if (projection_mapping.size() == 0 && projection_mappings.size() == 0) {
-    //     state.resultCollection.Append(input);
-    // }
-    // else {
-    //     if (projection_mapping.size() != 0) {
-    //         state.resultCollection.Append(input,state.result_types, state.projection_mapping);
-    //     }
-    //     else if (projection_mappings.size() != 0) {
-    //         state.resultCollection.Append(input, state.result_types, state.projection_mappings[0]);
-    //     }
-    //     else {
-    //         D_ASSERT(false);
-    //     }
-    // }
-
     auto copyChunk = make_unique<DataChunk>();
     if (projection_mapping.size() == 0 &&
         projection_mappings.size() == 0) {  // projection mapping not provided
-        copyChunk->Initialize(state.result_types, input, projection_mappings, input.size());
+        copyChunk->Initialize(types, input, projection_mappings, input.size());
         input.Copy(*copyChunk, 0);
     }
     else {  // projection mapping provided
         if (projection_mapping.size() != 0) {
-            copyChunk->Initialize(state.result_types, input, projection_mappings, input.size());
+            copyChunk->Initialize(types, input, projection_mappings, input.size());
             for (idx_t idx = 0; idx < copyChunk->ColumnCount(); idx++) {
                 VectorOperations::Copy(input.data[projection_mapping[idx]],
                                        copyChunk->data[idx], input.size(), 0,
@@ -108,9 +56,9 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext &context,
             bool copy_rowstore = false;
             vector<bool> column_has_rowvec;
             vector<vector<uint32_t>> rowstore_idx_list_per_depth;
-            IdentifyRowVectors(input, state.result_types.size(),
+            IdentifyRowVectors(input, types.size(),
                                column_has_rowvec, rowstore_idx_list_per_depth);
-            copyChunk->Initialize(state.result_types, input,
+            copyChunk->Initialize(types, input,
                                   projection_mappings, column_has_rowvec,
                                   input.size());
             // idx_t schema_idx = input.GetSchemaIdx();
@@ -295,6 +243,32 @@ Vector &PhysicalProduceResults::GetRowVectorAtSpecificDepth(
                                            current_depth + 1, source_count,
                                            target_sel);
     }
+}
+
+
+void PhysicalProduceResults::DetermineResultTypes() 
+{
+    vector<LogicalType> new_types;
+    if (projection_mapping.size() == 0 && projection_mappings.size() == 0) {
+        new_types = types;
+    }
+    else {
+        if (projection_mapping.size() != 0) {
+            for (auto &target : projection_mapping) {
+                new_types.push_back(types[target]);
+            }
+        }
+        else if (projection_mappings.size() != 0) {
+            idx_t schema_idx = 0;
+            for (auto &target : projection_mappings[schema_idx]) {
+                new_types.push_back(types[target]);
+            }
+        }
+        else {
+            D_ASSERT(false);
+        }
+    }
+    types = new_types;
 }
 
 std::string PhysicalProduceResults::ParamsToString() const

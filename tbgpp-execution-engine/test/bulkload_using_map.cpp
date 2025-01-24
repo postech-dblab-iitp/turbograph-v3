@@ -71,6 +71,7 @@ vector<std::tuple<string, string, size_t>> edge_files;
 vector<std::tuple<string, string, size_t>> edge_files_backward;
 string output_dir;
 double set_sim_threshold = 0.99;
+size_t max_extent_id = 0;
 
 bool load_edge;
 bool load_backward_edge;
@@ -660,6 +661,8 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 		std::chrono::duration<double> duration = vertex_file_end - vertex_file_start;
 
 		fprintf(stdout, "\nLoad %s, %s Done! Elapsed: %.3f\n", std::get<0>(vertex_file).c_str(), std::get<1>(vertex_file).c_str(), duration.count());
+
+		if (max_extent_id < partition_cat->GetLocalExtentID()) max_extent_id = partition_cat->GetLocalExtentID();
 	}
 	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
 	fprintf(stdout, "\nLoad CSV Vertex Files Done!\n");
