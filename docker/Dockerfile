@@ -54,29 +54,6 @@ RUN apt-get install -y \
 		numactl \
 		libnuma-dev
 
-# Install Velox Related Libraries
-RUN apt-get install -y \
-		liblz4-dev \
-		liblz4-tool \
-		liblzo2-dev \
-		liblzo2-2 \
-		libzstd-dev \
-		libsnappy-dev \
-		libdouble-conversion-dev \
-		libevent-dev \
-		libssl-dev \
-		bison \
-		flex \
-		libfmt-dev \
-  		libprotobuf-dev \
-		ccache \
-        libreadline-dev
-
-RUN apt-get install -y \
-		libgoogle-glog-dev \
-		libsodium-dev \
-		libre2-dev
-
 # (boost)
 RUN apt-get install -y libboost-all-dev=1.71.0.0ubuntu2
 
@@ -96,36 +73,6 @@ RUN apt-get install -y \
 
 ## Update
 RUN apt-get update
-
-### Install Velox Dependencies
-RUN apt-get install -y \
-    libunwind-dev \
-    libc-ares-dev \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    libboost-all-dev \
-    libicu-dev \
-    libdouble-conversion-dev \
-    libgoogle-glog-dev \
-    libbz2-dev \
-    libgflags-dev \
-    libgmock-dev \
-    libevent-dev \
-    liblz4-dev \
-    libzstd-dev \
-    libre2-dev \
-    libsnappy-dev \
-    libsodium-dev \
-    libthrift-dev \
-    liblzo2-dev \
-    libprotobuf-dev \
-    bison \
-    flex \
-    libfl-dev \
-    tzdata \
-    wget \
-    libmlpack-dev \
-    libgoogle-perftools-dev
 
 # Install pip3
 RUN apt-get install -y python3-pip

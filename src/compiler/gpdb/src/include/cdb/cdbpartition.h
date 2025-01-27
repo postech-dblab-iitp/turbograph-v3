@@ -15,9 +15,9 @@
 #ifndef CDBPARTITION_H
 #define CDBPARTITION_H
 
-// #include "catalog/gp_policy.h"
-// #include "catalog/pg_partition.h"
-// #include "catalog/pg_partition_rule.h"
+// #include "storage/catalog/gp_policy.h"
+// #include "storage/catalog/pg_partition.h"
+// #include "storage/catalog/pg_partition_rule.h"
 // #include "nodes/execnodes.h"
 // #include "nodes/relation.h"
 // #include "optimizer/clauses.h"

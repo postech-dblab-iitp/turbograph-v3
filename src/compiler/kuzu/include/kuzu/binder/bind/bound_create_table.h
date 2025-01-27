@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/bound_statement.h"
-#include "catalog/catalog_structs.h"
+#include "storage/catalog/catalog_structs.h"
 
 using namespace kuzu::catalog;
 

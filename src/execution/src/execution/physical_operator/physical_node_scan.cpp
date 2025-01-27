@@ -1,5 +1,5 @@
 #include "execution/physical_operator/physical_node_scan.hpp"
-#include "extent/extent_iterator.hpp"
+#include "storage/extent/extent_iterator.hpp"
 #include "icecream.hpp"
 #include "planner/expression.hpp"
 #include "planner/expression/bound_columnref_expression.hpp"

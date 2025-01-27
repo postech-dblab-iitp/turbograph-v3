@@ -13,7 +13,7 @@
 #include "parser/column_definition.hpp"
 #include "parser/constraint.hpp"
 #include "parser/statement/select_statement.hpp"
-//#include "catalog/catalog_entry/column_dependency_manager.hpp"
+//#include "storage/catalog/catalog_entry/column_dependency_manager.hpp"
 
 namespace duckdb {
 

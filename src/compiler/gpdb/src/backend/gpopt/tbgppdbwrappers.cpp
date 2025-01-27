@@ -1,5 +1,5 @@
 #include "tbgppdbwrappers.hpp"
-#include "catalog/catalog_wrapper.hpp"
+#include "storage/catalog/catalog_wrapper.hpp"
 #include "client_context.hpp"
 #include "utils/tbgppcache.hpp"
 // #include <setjmp.h>

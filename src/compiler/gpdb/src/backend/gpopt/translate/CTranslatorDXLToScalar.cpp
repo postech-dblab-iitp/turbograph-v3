@@ -15,7 +15,7 @@
 // extern "C" {
 // #include "postgres.h"
 
-// #include "catalog/pg_collation.h"
+// #include "storage/catalog/pg_collation.h"
 // #include "nodes/makefuncs.h"
 // #include "nodes/parsenodes.h"
 // #include "nodes/plannodes.h"

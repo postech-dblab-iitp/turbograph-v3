@@ -2,8 +2,8 @@
 // #include "planner/expression/bound_function_expression.hpp"
 // #include "function/scalar/nested_functions.hpp"
 // #include "planner/expression_binder.hpp"
-// #include "catalog/catalog.hpp"
-// #include "catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
+// #include "storage/catalog/catalog.hpp"
+// #include "storage/catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
 // #include "execution/expression_executor.hpp"
 
 // namespace duckdb {

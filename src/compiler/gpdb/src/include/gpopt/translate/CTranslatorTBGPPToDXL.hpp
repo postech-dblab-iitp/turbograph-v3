@@ -22,7 +22,7 @@ extern "C" {
 #include "postgres.h"
 
 // #include "access/tupdesc.h"
-// #include "catalog/gp_policy.h"
+// #include "storage/catalog/gp_policy.h"
 }
 
 // Temporary defines..
@@ -51,7 +51,7 @@ typedef int16 AttrNumber; // From src/include/access/attnum.h
 #include "naucrates/statistics/CStatisticsUtils.h"
 
 #include "common/common.hpp"
-#include "catalog/catalog_entry/list.hpp"
+#include "storage/catalog/catalog_entry/list.hpp"
 // fwd decl
 struct RelationData;
 typedef struct RelationData *Relation;

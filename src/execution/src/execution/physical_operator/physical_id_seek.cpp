@@ -6,7 +6,7 @@
 #include "typedef.hpp"
 
 // catalog related
-#include "catalog/catalog.hpp"
+#include "storage/catalog/catalog.hpp"
 #include "main/client_context.hpp"
 #include "main/database.hpp"
 
@@ -15,7 +15,7 @@
 #include "common/types/rowcol_type.hpp"
 #include "common/types/schemaless_data_chunk.hpp"
 #include "execution/physical_operator/physical_id_seek.hpp"
-#include "extent/extent_iterator.hpp"
+#include "storage/extent/extent_iterator.hpp"
 #include "icecream.hpp"
 #include "planner/expression.hpp"
 #include "planner/expression/bound_conjunction_expression.hpp"

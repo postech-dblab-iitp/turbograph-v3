@@ -3,9 +3,9 @@
 //#include "main/client_context_file_opener.hpp"
 #include "main/query_profiler.hpp"
 //#include "common/random_engine.hpp"
-//#include "catalog/catalog_entry/schema_catalog_entry.hpp"
-//#include "catalog/catalog_search_path.hpp"
-//#include "catalog/catalog.hpp"
+//#include "storage/catalog/catalog_entry/schema_catalog_entry.hpp"
+//#include "storage/catalog/catalog_search_path.hpp"
+//#include "storage/catalog/catalog.hpp"
 //#include "common/serializer/buffered_file_writer.hpp"
 
 namespace duckdb {

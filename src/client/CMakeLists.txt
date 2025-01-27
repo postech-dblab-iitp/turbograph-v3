@@ -10,14 +10,6 @@ project(client)
 ####################################################
 
 ####################################################
-# COMPILATION FLAGS
-####################################################
-set(CMAKE_CXX_STANDARD 17)
-if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE Release)
-endif()
-
-####################################################
 # DECLARE TARGETS
 ####################################################
 add_library(tbgpp-main STATIC)

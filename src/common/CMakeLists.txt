@@ -11,16 +11,6 @@ project(common)
 add_subdirectory(third_party)
 
 ####################################################
-# COMPILATION FLAGS
-####################################################
-set(CMAKE_CXX_STANDARD 17)
-if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE Release)
-endif()
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-
-####################################################
 # FIND PACKAGES
 ####################################################
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
@@ -77,7 +67,6 @@ target_include_directories(common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/third_party/icecream-cpp/include/"
 	"${PROJECT_SOURCE_DIR}/third_party/tblr"
 	"${PROJECT_SOURCE_DIR}/third_party/cuckoofilter/src/"
-	"${PROJECT_SOURCE_DIR}/third_party/velox"
 	"${PROJECT_SOURCE_DIR}/third_party/range-v3"
 	"${PROJECT_SOURCE_DIR}/third_party/fplus"
 	"${PROJECT_SOURCE_DIR}/include/third_party/simdjson"
@@ -85,7 +74,6 @@ target_include_directories(common-lib PUBLIC
 	# external - client
 	"${PROJECT_SOURCE_DIR}/../client/include/"
 	"${PROJECT_SOURCE_DIR}/../execution/include/"
-	"${PROJECT_SOURCE_DIR}/../storage/include/"
 	# python
 	${Python3_INCLUDE_DIRS}
 )

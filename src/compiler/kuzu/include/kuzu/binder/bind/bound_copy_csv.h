@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "binder/bound_statement.h"
-#include "catalog/catalog_structs.h"
+#include "storage/catalog/catalog_structs.h"
 #include "common/csv_reader/csv_reader.h"
 
 using namespace kuzu::catalog;

@@ -1,7 +1,7 @@
 #include "planner/expression/bound_aggregate_expression.hpp"
 #include "parser/expression/function_expression.hpp"
 
-// #include "catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
+// #include "storage/catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
 #include "common/types/hash.hpp"
 #include "planner/expression/bound_cast_expression.hpp"
 

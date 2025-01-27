@@ -1,6 +1,6 @@
 #include "execution/physical_operator/physical_hash_aggregate.hpp"
 
-#include "catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
+#include "storage/catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
 #include "common/vector_operations/vector_operations.hpp"
 #include "execution/aggregate_hashtable.hpp"
 #include "execution/partitionable_hashtable.hpp"

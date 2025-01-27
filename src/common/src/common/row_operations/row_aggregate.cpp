@@ -8,7 +8,7 @@
 #include "common/row_operations/row_operations.hpp"
 
 #include "common/types/row_layout.hpp"
-// #include "catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
+// #include "storage/catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
 #include "execution/expression_executor.hpp"
 
 namespace duckdb {

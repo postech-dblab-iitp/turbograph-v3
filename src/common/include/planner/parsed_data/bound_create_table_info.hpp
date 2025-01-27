@@ -14,9 +14,9 @@
 #include "planner/logical_operator.hpp"
 #include "storage/table/persistent_table_data.hpp"
 #include "common/case_insensitive_map.hpp"
-//#include "catalog/catalog_entry/table_column_type.hpp"
+//#include "storage/catalog/catalog_entry/table_column_type.hpp"
 #include "parser/column_definition.hpp"
-#include "catalog/catalog_entry/column_dependency_manager.hpp"
+#include "storage/catalog/catalog_entry/column_dependency_manager.hpp"
 #include "storage/table_index.hpp"
 
 namespace duckdb {
