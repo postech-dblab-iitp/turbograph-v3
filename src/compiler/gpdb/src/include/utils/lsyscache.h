@@ -15,7 +15,7 @@
 
 // #include "access/attnum.h"
 // #include "access/htup.h"
-// #include "catalog/gp_policy.h"
+// #include "storage/catalog/gp_policy.h"
 // #include "nodes/pg_list.h"
 // #include "parser/parse_coerce.h"
 // #include "utils/relcache.h"

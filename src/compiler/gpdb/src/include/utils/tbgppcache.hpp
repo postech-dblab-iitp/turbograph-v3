@@ -19,7 +19,7 @@
 // #include "access/tupdesc.h"
 // #include "nodes/bitmapset.h"
 #include "common/common.hpp"
-#include "catalog/catalog_entry/list.hpp"
+#include "storage/catalog/catalog_entry/list.hpp"
 
 // typedef struct RelationData *Relation;
 

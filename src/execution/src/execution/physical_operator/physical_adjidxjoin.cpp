@@ -4,7 +4,7 @@
 #include "common/types/rowcol_type.hpp"
 #include "common/types/selection_vector.hpp"
 #include "execution/physical_operator/physical_adjidxjoin.hpp"
-#include "extent/extent_iterator.hpp"
+#include "storage/extent/extent_iterator.hpp"
 #include "planner/joinside.hpp"
 
 #include <string>

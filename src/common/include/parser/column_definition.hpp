@@ -12,7 +12,7 @@
 #include "common/types/value.hpp"
 #include "parser/parsed_expression.hpp"
 #include "common/enums/compression_type.hpp"
-// #include "catalog/catalog_entry/table_column_type.hpp"
+// #include "storage/catalog/catalog_entry/table_column_type.hpp"
 #include "common/case_insensitive_map.hpp"
 
 namespace duckdb {

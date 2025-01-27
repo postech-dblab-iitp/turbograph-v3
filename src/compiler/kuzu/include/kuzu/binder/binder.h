@@ -8,8 +8,8 @@
 
 #include "main/database.hpp"
 #include "main/client_context.hpp"
-#include "catalog/catalog.hpp"
-#include "catalog/catalog_entry/graph_catalog_entry.hpp"
+#include "storage/catalog/catalog.hpp"
+#include "storage/catalog/catalog_entry/graph_catalog_entry.hpp"
 
 #include "function/built_in_vector_operations.h"
 #include "function/aggregate/built_in_aggregate_functions.h"

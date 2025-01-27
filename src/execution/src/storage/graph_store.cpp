@@ -4,12 +4,12 @@
 #include <set>
 #include <vector>
 
-#include "catalog/catalog.hpp"
-#include "catalog/catalog_entry/list.hpp"
+#include "storage/catalog/catalog.hpp"
+#include "storage/catalog/catalog_entry/list.hpp"
 #include "common/boost_typedefs.hpp"
 #include "common/vector_size.hpp"
-#include "extent/adjlist_iterator.hpp"
-#include "extent/extent_iterator.hpp"
+#include "storage/extent/adjlist_iterator.hpp"
+#include "storage/extent/extent_iterator.hpp"
 #include "main/client_context.hpp"
 #include "main/database.hpp"
 #include "storage/graph_store.hpp"

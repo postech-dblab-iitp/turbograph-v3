@@ -2,8 +2,8 @@
 // #include "planner/binder.hpp"
 // #include "parser/parser.hpp"
 
-// #include "catalog/catalog.hpp"
-// #include "catalog/catalog_entry/pragma_function_catalog_entry.hpp"
+// #include "storage/catalog/catalog.hpp"
+// #include "storage/catalog/catalog_entry/pragma_function_catalog_entry.hpp"
 
 // #include "parser/parsed_data/pragma_info.hpp"
 // #include "function/function.hpp"

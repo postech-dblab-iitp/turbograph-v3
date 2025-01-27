@@ -15,15 +15,6 @@ add_subdirectory(kuzu)
 add_subdirectory(gpdb)
 add_subdirectory(gpdb/src/backend/gporca)
 
-####################################################
-# COMPILATION FLAGS
-####################################################
-set(CMAKE_CXX_STANDARD 17)
-if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE Release)
-endif()
-#SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGPOS_DEBUG")
-
 # apply gporca configurations
 add_compile_options(-DUSE_CMAKE)
 
@@ -31,22 +22,6 @@ add_compile_options(-DUSE_CMAKE)
 # FIND PACKAGES
 ####################################################
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
-
-# dependencies - boost
-#set(Boost_DEBUG 1)
-
-#dependencies - threads
-find_package(Threads REQUIRED)
-link_libraries(Threads::Threads)
-include_directories(${TBB_INCLUDE_DIRS})
-link_directories(${TBB_LIBRARY_DIRS})
-link_libraries(${TBB_LIBRARIES})
-
-# dependencies - openmp
-find_package(OpenMP REQUIRED)
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 
 ####################################################
 # DECLARE TARGETS

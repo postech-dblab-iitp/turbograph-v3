@@ -3,8 +3,8 @@
 #include <ctime>
 #include "capi_internal.hpp"
 #include "main/database.hpp"
-#include "cache/chunk_cache_manager.h"
-#include "catalog/catalog_wrapper.hpp"
+#include "storage/cache/chunk_cache_manager.h"
+#include "storage/catalog/catalog_wrapper.hpp"
 #include "planner/planner.hpp"
 #include "main/client_context.hpp"
 #include "main/database.hpp"
@@ -16,7 +16,7 @@
 #include "types/decimal.hpp"
 #include "parser/parsed_data/create_schema_info.hpp"
 #include "parser/parsed_data/create_graph_info.hpp"
-#include "catalog/catalog_entry/list.hpp"
+#include "storage/catalog/catalog_entry/list.hpp"
 #include "common/types/decimal.hpp"
 
 using namespace duckdb;

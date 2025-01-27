@@ -1,7 +1,7 @@
 #include "execution/physical_operator/physical_all_shortestpathjoin.hpp"
 #include "typedef.hpp"
 #include "common/output_util.hpp"
-#include "extent/adjlist_iterator.hpp"
+#include "storage/extent/adjlist_iterator.hpp"
 
 namespace duckdb {
 

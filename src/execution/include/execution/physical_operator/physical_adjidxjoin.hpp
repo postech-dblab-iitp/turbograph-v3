@@ -3,7 +3,7 @@
 
 #include "common/enums/join_type.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
-#include "extent/adjlist_iterator.hpp"
+#include "storage/extent/adjlist_iterator.hpp"
 #include "planner/joinside.hpp"
 
 #include <boost/timer/timer.hpp>

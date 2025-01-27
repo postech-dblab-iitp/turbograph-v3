@@ -8,7 +8,7 @@
 
 // #pragma once
 
-// //#include "catalog/catalog.hpp"
+// //#include "storage/catalog/catalog.hpp"
 // #include "common/common.hpp"
 // #include "common/enums/logical_operator_type.hpp"
 // #include "planner/expression.hpp"

@@ -3,7 +3,7 @@
 #include <string>
 #include <memory>
 #include <string>
-#include "cache/disk_aio/TypeDef.hpp"
+#include "storage/cache/disk_aio/TypeDef.hpp"
 #include "common/types.hpp"
 #include "common/boost_typedefs.hpp"
 #include "types/data_chunk.hpp"

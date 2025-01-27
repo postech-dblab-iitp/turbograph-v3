@@ -29,7 +29,7 @@
 // #include "gpopt/utils/gpdbdefs.h"
 // #include "naucrates/exception.h"
 // extern "C" {
-// #include "catalog/pg_collation.h"
+// #include "storage/catalog/pg_collation.h"
 // #include "utils/memutils.h"
 // }
 // #define GP_WRAP_START                                            \

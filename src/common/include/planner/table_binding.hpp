@@ -13,7 +13,7 @@
 #include "parser/column_definition.hpp"
 #include "parser/parsed_expression.hpp"
 #include "planner/expression_binder.hpp"
-// #include "catalog/catalog_entry/table_column_type.hpp"
+// #include "storage/catalog/catalog_entry/table_column_type.hpp"
 #include "parser/column_definition.hpp"
 
 

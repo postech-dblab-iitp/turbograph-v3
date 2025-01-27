@@ -40,20 +40,20 @@ using json = nlohmann::json;
 
 #include "main/database.hpp"
 #include "main/client_context.hpp"
-#include "extent/extent_manager.hpp"
-#include "extent/extent_iterator.hpp"
-#include "index/index.hpp"
-#include "index/art/art.hpp"
-#include "statistics/histogram_generator.hpp"
-#include "cache/chunk_cache_manager.h"
-#include "catalog/catalog.hpp"
+#include "storage/extent/extent_manager.hpp"
+#include "storage/extent/extent_iterator.hpp"
+#include "storage/index/index.hpp"
+#include "storage/index/art/art.hpp"
+#include "storage/statistics/histogram_generator.hpp"
+#include "storage/cache/chunk_cache_manager.h"
+#include "storage/catalog/catalog.hpp"
 #include "parser/parsed_data/create_schema_info.hpp"
 #include "parser/parsed_data/create_graph_info.hpp"
 #include "parser/parsed_data/create_partition_info.hpp"
 #include "parser/parsed_data/create_property_schema_info.hpp"
 #include "parser/parsed_data/create_extent_info.hpp"
 #include "parser/parsed_data/create_chunkdefinition_info.hpp"
-#include "catalog/catalog_entry/list.hpp"
+#include "storage/catalog/catalog_entry/list.hpp"
 
 // compiler-related
 #include "gpos/_api.h"
@@ -104,7 +104,7 @@ using json = nlohmann::json;
 
 #include "mdprovider/MDProviderTBGPP.h"
 
-#include "catalog/catalog_wrapper.hpp"
+#include "storage/catalog/catalog_wrapper.hpp"
 #include "tbgppdbwrappers.hpp"
 
 #include <readline/readline.h>

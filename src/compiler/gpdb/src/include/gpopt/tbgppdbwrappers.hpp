@@ -12,7 +12,7 @@ extern "C" {
 }
 
 #include "enums/index_type.hpp"
-#include "catalog/catalog_entry/list.hpp"
+#include "storage/catalog/catalog_entry/list.hpp"
 
 namespace duckdb {
 

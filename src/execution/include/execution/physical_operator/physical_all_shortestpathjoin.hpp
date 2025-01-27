@@ -4,7 +4,7 @@
 #include "typedef.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "planner/expression.hpp"
-#include "extent/adjlist_iterator.hpp"
+#include "storage/extent/adjlist_iterator.hpp"
 
 namespace duckdb {
 

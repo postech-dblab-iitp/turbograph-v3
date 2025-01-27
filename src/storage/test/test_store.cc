@@ -5,9 +5,9 @@
 #include <stdexcept>
 #include <cctype>
 
-#include "log_disk.h"
-#include "object_log.h"
-#include "store.h"
+#include "storage/cache/log_disk.h"
+#include "storage/cache/object_log.h"
+#include "storage/cache/store.h"
 
 long parseSize(const std::string& sizeStr) {
     std::istringstream iss(sizeStr);

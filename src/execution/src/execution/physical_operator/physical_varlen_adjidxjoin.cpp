@@ -2,8 +2,8 @@
 #include "typedef.hpp"
 
 #include "execution/physical_operator/physical_varlen_adjidxjoin.hpp"
-#include "extent/extent_iterator.hpp"
-#include "extent/adjlist_iterator.hpp"
+#include "storage/extent/extent_iterator.hpp"
+#include "storage/extent/adjlist_iterator.hpp"
 #include "common/types/selection_vector.hpp"
 #include "planner/joinside.hpp"
 
