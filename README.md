@@ -49,33 +49,7 @@ Directory Definitions
 - Database Folder: This directory contains the database files. In a Docker environment, this folder can be accessed at /data.
 - Source Data Folder: This directory is designated for storing source CSV files. In a Docker environment, access this folder via /source-data.
 
-#### Error handling
-
-If you failed in bulding docker image, change change
-
-```
-# (boost)
-RUN apt-get install -y libboost-all-dev=1.71.0.0ubuntu2
-
-to
-
-# (boost)
-RUN apt-get update
-RUN apt-get update --fix-missing
-RUN apt-get install -y libboost-all-dev=1.71.0.0ubuntu2
-```
-
-Also, if you failed to find image while executing run-docker-example.sh, then change the IMAGE_NAME to the appropriate name.
-
 ### Building Project
-
-After docker setup, please execute this. You only need to execute once.
-
-```
-cd /turbograph-v3
-cd common/third_party/velox
-./scripts/setup-ubuntu.sh
-```
 
 To build in debug mode, you can run the following commands.
 ```

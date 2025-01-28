@@ -5,22 +5,6 @@ project(gpopt_6X LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 98)
 
-# Default to shared libraries.
-option(BUILD_SHARED_LIBS "build shared libraries" ON)
-
-# Configure CCache if available
-find_program(CCACHE_FOUND ccache)
-if(CCACHE_FOUND)
-       set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-       set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-endif(CCACHE_FOUND)
-
-# Check build type
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "RelWithDebInfo")
-endif(NOT CMAKE_BUILD_TYPE)
-message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-
 # Turn on compiler flags for all warnings if available.
 include(CheckCXXCompilerFlag)
 
@@ -36,8 +20,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
   endif()
 endif()
-
-
 
 check_cxx_compiler_flag("-Wextra" COMPILER_HAS_WEXTRA)
 if (COMPILER_HAS_WEXTRA)
@@ -85,7 +67,7 @@ add_compile_options(-DUSE_CMAKE)
 set(GPOS_${CMAKE_SYSTEM_NAME} 1)
 set(GPOS_${CMAKE_SYSTEM_PROCESSOR} 1)
 
-# Library dependencies for optimizer.
+# # Library dependencies for optimizer.
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 # Xerces. - try finding or install from third_party/

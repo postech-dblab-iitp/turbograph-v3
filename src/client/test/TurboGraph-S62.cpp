@@ -43,7 +43,6 @@ using json = nlohmann::json;
 #include "storage/extent/extent_manager.hpp"
 #include "storage/extent/extent_iterator.hpp"
 #include "storage/index/index.hpp"
-#include "storage/index/art/art.hpp"
 #include "storage/statistics/histogram_generator.hpp"
 #include "storage/cache/chunk_cache_manager.h"
 #include "storage/catalog/catalog.hpp"

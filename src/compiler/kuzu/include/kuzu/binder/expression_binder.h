@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/expression/expression.h"
-#include "storage/catalog/catalog_structs.h"
+#include "catalog/catalog_structs.h"
 #include "common/types/literal.h"
 #include "parser/expression/parsed_expression.h"
 

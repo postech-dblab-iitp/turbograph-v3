@@ -9,13 +9,12 @@
 
 #include "common/vector.hpp"
 #include "common/enums/json_file_type.hpp"
-#include "schemaless/schema_hash_table.hpp"
-#include "schemaless/ssj/allpairs_cluster.h"
 #include "simdjson.h"
 #include "fptree.hpp"
 #include "icecream.hpp"
 #include "clustering/dbscan.h"
 #include "clustering/optics.hpp"
+#include "storage/schemaless/schema_hash_table.hpp"
 
 using namespace simdjson;
 
@@ -51,7 +50,6 @@ class GraphSIMDJSONFileParser {
 /** CONFIGURATIONS **/
 public:
     enum class ClusterAlgorithmType {
-        ALLPAIRS,
         DBSCAN,
         OPTICS,
         AGGLOMERATIVE,
@@ -100,8 +98,6 @@ public:
         cat_instance = cat_instance_;
 
         sch_HT.resize(1000); // TODO appropriate size
-
-        cluster_algo = new AllPairsCluster<Jaccard>(SET_SIM_THRESHOLD);
     }
 
     GraphSIMDJSONFileParser(std::shared_ptr<ClientContext> client_, ExtentManager *ext_mng_, Catalog *cat_instance_, double set_sim_threshold) {
@@ -110,8 +106,6 @@ public:
         cat_instance = cat_instance_;
 
         sch_HT.resize(1000); // TODO appropriate size
-
-        cluster_algo = new AllPairsCluster<Jaccard>(set_sim_threshold);
     }
 
     void SetLidToPidMap (vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> *lid_to_pid_map_) {
@@ -176,20 +170,6 @@ public:
             // _IterateJson(label_name, json_key, data, graph_cat, partition_cat);
         } else if (jftype == JsonFileType::JSONL) {
             switch (cluster_algo_type) {
-            case ClusterAlgorithmType::ALLPAIRS: {
-                // Extract Schema & Preprocessing
-                _ExtractSchema(gctype);
-                _PreprocessSchemaForClustering();
-
-                clustering_timer.start();
-                // Clustering
-                _ClusterSchema();
-                clustering_timer.stop();
-
-                // Create Extents
-                _CreateExtents(gctype, graph_cat, label_name, label_set);
-                break;
-            }
             case ClusterAlgorithmType::DBSCAN: {
                 // Extract Schema (bag semantic) & Preprocessing (calculate distance matrix)
                 _ExtractSchema(gctype);
@@ -700,33 +680,6 @@ public:
         });
 
         if (!use_setsim_algo) return;
-
-        vector<uint64_t> inv_order(order.size());
-        for (size_t i = 0; i < order.size(); i++) {
-            inv_order[order[i]] = i;
-        }
-        // for (int i = 0; i < order.size(); i++) {
-        //     printf("%ld - freq %ld, ", order[i], schema_property_freq_vec[order[i]]);
-        // }
-        // printf("\n");
-
-        // TODO sort schema groups by their size
-        // TODO? do not use addrecord to avoid copy?
-        for (size_t i = 0; i < schema_groups_with_num_tuples.size(); i++) {
-            IntRecord rec;
-            // rec.recordid = i;
-            for (size_t j = 0; j < schema_groups_with_num_tuples[i].first.size(); j++) {
-                rec.tokens.push_back(inv_order[schema_groups_with_num_tuples[i].first[j]]);
-            }
-            std::sort(rec.tokens.begin(), rec.tokens.end(), [&](size_t a, size_t b) {
-                return a < b;
-            });
-            // for (size_t x = 0; x < rec.tokens.size(); x++) {
-            //     printf("%ld, ", rec.tokens[x]);
-            // }
-            // printf("\n");
-            cluster_algo->addrecord(rec);
-        }
     }
 
     void _GenerateDistanceMatrix() {
@@ -1193,25 +1146,6 @@ public:
             std::cerr << "Error in _ComputeDistanceMergingSchemaOurs: " << e.what() << std::endl;
             throw; // Re-throw the exception after logging
         }
-    }
-
-
-    void _ClusterSchema() {
-        cluster_algo->doindex();
-        cluster_algo->docluster();
-
-        auto &cluster_to_rid_lists = cluster_algo->getctorlists();
-        sg_to_cluster_vec.resize(schema_groups_with_num_tuples.size(), -1);
-        for (size_t i = 0; i < cluster_to_rid_lists.size(); i++) {
-            for (size_t j = 0; j < cluster_to_rid_lists[i].size(); j++) {
-                D_ASSERT(sg_to_cluster_vec.size() > cluster_to_rid_lists[i][j]);
-                D_ASSERT(sg_to_cluster_vec[cluster_to_rid_lists[i][j]] == -1);
-                sg_to_cluster_vec[cluster_to_rid_lists[i][j]] = i;
-            }
-        }
-        num_clusters = cluster_to_rid_lists.size();
-
-        // TODO phase 2
     }
 
     void _ClusterSchemaDBScan() {
@@ -2342,8 +2276,6 @@ public:
 
     vector<unsigned int> &GetClusterTokens(size_t cluster_idx) {
         switch(cluster_algo_type) {
-            case ClusterAlgorithmType::ALLPAIRS:
-                return cluster_algo->getclustertokens(cluster_idx);
             case ClusterAlgorithmType::OPTICS:
             case ClusterAlgorithmType::DBSCAN:
             case ClusterAlgorithmType::AGGLOMERATIVE:
@@ -2435,13 +2367,8 @@ public:
                 vector<unsigned int> &tokens = GetClusterTokens(cluster_id);
                 for (size_t token_idx = 0; token_idx < tokens.size(); token_idx++) {
                     // std::cout << tokens[token_idx] << ", ";
-                    uint64_t original_idx;
-                    if (cluster_algo_type == ClusterAlgorithmType::ALLPAIRS) {
-                        original_idx = order[tokens[token_idx]];
-                    } else {
-                        original_idx = tokens[token_idx];
-                    }
-                    
+                    uint64_t original_idx = tokens[token_idx];
+
                     if (get_key_and_type(id_to_property_vec[original_idx], cur_cluster_schema_names, cur_cluster_schema_types)) {
                         per_cluster_key_column_idxs[i].push_back(token_idx);
                     }
@@ -3471,7 +3398,6 @@ private:
     vector<unordered_map<string, uint64_t>> property_to_id_map_per_cluster;
     uint64_t propertyIDver = 0;
     SchemaHashTable sch_HT;
-    Algorithm *cluster_algo;
     size_t num_clusters;
     vector<vector<uint32_t>> cluster_tokens;
 

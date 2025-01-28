@@ -12,7 +12,7 @@ file(GLOB_RECURSE srcs ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 # Add headers to make them visible in some IDEs (Clion, VS, Xcode)
 list(APPEND srcs ${hdrs})
 
-add_library(gpdbcost ${srcs})
+add_library(gpdbcost SHARED ${srcs})
 
 target_link_libraries(gpdbcost  
                       ${CMAKE_DL_LIBS}

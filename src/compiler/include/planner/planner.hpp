@@ -7,7 +7,7 @@
 #include "storage/catalog/catalog_entry/index_catalog_entry.hpp"
 #include "storage/catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
 #include "main/database.hpp"
-#include "catalog_wrapper.hpp"
+#include "storage/catalog/catalog_wrapper.hpp"
 #include "function/function.hpp"
 #include "function/aggregate_function.hpp"
 #include "function/aggregate/distributive_functions.hpp"
