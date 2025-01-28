@@ -16,15 +16,6 @@ add_subdirectory(json)
 ####################################################
 # FIND PACKAGES
 ####################################################
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
-
-# dependencies - boost
-#set(Boost_DEBUG 1)
-include(cmake/FindBoost.cmake)
-find_package(Boost REQUIRED)
-include_directories(${Boost_INCLUDE_DIRS})
-link_directories(${Boost_LIBRARY_DIRS})
-link_libraries(${Boost_LIBRARIES})
 
 ####################################################
 # DECLARE TARGETS

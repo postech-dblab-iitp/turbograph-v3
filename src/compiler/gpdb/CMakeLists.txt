@@ -1,5 +1,6 @@
 # include gporca library (managed by separate cmakefile)
 include_directories(src/backend/gporca)
+add_subdirectory(src/backend/gporca)
 
 # add libraries
 add_library(gpdb STATIC)

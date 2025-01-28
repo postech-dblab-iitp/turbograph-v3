@@ -13,15 +13,10 @@ project(compiler)
 add_subdirectory(third_party)
 add_subdirectory(kuzu)
 add_subdirectory(gpdb)
-add_subdirectory(gpdb/src/backend/gporca)
-
-# apply gporca configurations
-add_compile_options(-DUSE_CMAKE)
 
 ####################################################
 # FIND PACKAGES
 ####################################################
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 ####################################################
 # DECLARE TARGETS

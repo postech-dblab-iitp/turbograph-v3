@@ -136,7 +136,7 @@ private:
     bool _CheckIsMemoryEnough();
 
     template <typename T, typename TFilter>
-    void evalEQPredicateSIMD(Vector& column_vec, size_t data_len, std::unique_ptr<TFilter>& filter, 
+    void evalPredicateSIMD(Vector& column_vec, size_t data_len, std::unique_ptr<TFilter>& filter, 
                             idx_t scan_start_offset, idx_t scan_end_offset, vector<idx_t>& matched_row_idxs);
 
     idx_t findColumnIdx(ChunkDefinitionID filter_cdf_id);

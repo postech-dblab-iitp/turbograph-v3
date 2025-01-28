@@ -15,19 +15,8 @@
 #include "common/types/value.hpp"
 #include "velox/dwio/common/DecoderUtil.h"
 #include "velox/type/Filter.h"
-#include "velox/vector/TypeAliases.h"
 
 using namespace facebook::velox;
-
-namespace facebook::velox::dwio::common {
-struct NoHook {
-    void addValue(vector_size_t /*row*/, const void *FOLLY_NULLABLE /*value*/)
-    {}
-    void addValues(const int32_t * /*rows*/, const void * /*values*/,
-                   int32_t /*size*/, uint8_t /*valueWidth*/)
-    {}
-};
-}  // namespace facebook::velox::dwio::common
 
 namespace duckdb {
 
@@ -1186,7 +1175,7 @@ void ExtentIterator::findMatchedRowsEQFilter(
         auto bigint_value = filterValue.GetValue<int64_t>();
         auto filter = std::make_unique<common::BigintRange>(
             bigint_value, bigint_value, false);
-        evalEQPredicateSIMD<int64_t, common::BigintRange>(
+        evalPredicateSIMD<int64_t, common::BigintRange>(
             column_vec, comp_header.data_len, filter, scan_start_offset,
             scan_end_offset, matched_row_idxs);
     }
@@ -1195,7 +1184,7 @@ void ExtentIterator::findMatchedRowsEQFilter(
         auto filter = std::make_unique<common::BigintRange>(
             static_cast<int64_t>(int_value), static_cast<int64_t>(int_value),
             false);
-        evalEQPredicateSIMD<int32_t, common::BigintRange>(
+        evalPredicateSIMD<int32_t, common::BigintRange>(
             column_vec, comp_header.data_len, filter, scan_start_offset,
             scan_end_offset, matched_row_idxs);
     }
@@ -1210,7 +1199,7 @@ void ExtentIterator::findMatchedRowsEQFilter(
                 auto filter = std::make_unique<common::BigintRange>(
                     static_cast<int64_t>(int16_value),
                     static_cast<int64_t>(int16_value), false);
-                evalEQPredicateSIMD<int16_t, common::BigintRange>(
+                evalPredicateSIMD<int16_t, common::BigintRange>(
                     column_vec, comp_header.data_len, filter, scan_start_offset,
                     scan_end_offset, matched_row_idxs);
                 break;
@@ -1220,7 +1209,7 @@ void ExtentIterator::findMatchedRowsEQFilter(
                 auto filter = std::make_unique<common::BigintRange>(
                     static_cast<int64_t>(int32_value),
                     static_cast<int64_t>(int32_value), false);
-                evalEQPredicateSIMD<int32_t, common::BigintRange>(
+                evalPredicateSIMD<int32_t, common::BigintRange>(
                     column_vec, comp_header.data_len, filter, scan_start_offset,
                     scan_end_offset, matched_row_idxs);
                 break;
@@ -1230,7 +1219,7 @@ void ExtentIterator::findMatchedRowsEQFilter(
                 auto filter = std::make_unique<common::BigintRange>(
                     static_cast<int64_t>(int64_value),
                     static_cast<int64_t>(int64_value), false);
-                evalEQPredicateSIMD<int64_t, common::BigintRange>(
+                evalPredicateSIMD<int64_t, common::BigintRange>(
                     column_vec, comp_header.data_len, filter, scan_start_offset,
                     scan_end_offset, matched_row_idxs);
                 break;
@@ -1243,7 +1232,7 @@ void ExtentIterator::findMatchedRowsEQFilter(
         auto date_value = filterValue.GetValue<date_t>();
         auto days = date_value.days;
         auto filter = std::make_unique<common::BigintRange>(days, days, false);
-        evalEQPredicateSIMD<int32_t, common::BigintRange>(
+        evalPredicateSIMD<int32_t, common::BigintRange>(
             column_vec, comp_header.data_len, filter, scan_start_offset,
             scan_end_offset, matched_row_idxs);
     }
@@ -1303,7 +1292,7 @@ void ExtentIterator::findMatchedRowsRangeFilter(
             r_bigint_value = r_bigint_value - 1;
         auto filter = std::make_unique<common::BigintRange>(
             l_bigint_value, r_bigint_value, false);
-        evalEQPredicateSIMD<int64_t, common::BigintRange>(
+        evalPredicateSIMD<int64_t, common::BigintRange>(
             column_vec, comp_header.data_len, filter, scan_start_offset,
             scan_end_offset, matched_row_idxs);
     }
@@ -1317,7 +1306,7 @@ void ExtentIterator::findMatchedRowsRangeFilter(
         auto filter = std::make_unique<common::BigintRange>(
             static_cast<int64_t>(l_int_value),
             static_cast<int64_t>(r_int_value), false);
-        evalEQPredicateSIMD<int32_t, common::BigintRange>(
+        evalPredicateSIMD<int32_t, common::BigintRange>(
             column_vec, comp_header.data_len, filter, scan_start_offset,
             scan_end_offset, matched_row_idxs);
     }
@@ -1337,7 +1326,7 @@ void ExtentIterator::findMatchedRowsRangeFilter(
                 auto filter = std::make_unique<common::BigintRange>(
                     static_cast<int64_t>(l_int16_value),
                     static_cast<int64_t>(r_int16_value), false);
-                evalEQPredicateSIMD<int16_t, common::BigintRange>(
+                evalPredicateSIMD<int16_t, common::BigintRange>(
                     column_vec, comp_header.data_len, filter, scan_start_offset,
                     scan_end_offset, matched_row_idxs);
                 break;
@@ -1352,7 +1341,7 @@ void ExtentIterator::findMatchedRowsRangeFilter(
                 auto filter = std::make_unique<common::BigintRange>(
                     static_cast<int64_t>(l_int32_value),
                     static_cast<int64_t>(r_int32_value), false);
-                evalEQPredicateSIMD<int32_t, common::BigintRange>(
+                evalPredicateSIMD<int32_t, common::BigintRange>(
                     column_vec, comp_header.data_len, filter, scan_start_offset,
                     scan_end_offset, matched_row_idxs);
                 break;
@@ -1367,7 +1356,7 @@ void ExtentIterator::findMatchedRowsRangeFilter(
                 auto filter = std::make_unique<common::BigintRange>(
                     static_cast<int64_t>(l_int64_value),
                     static_cast<int64_t>(r_int64_value), false);
-                evalEQPredicateSIMD<int64_t, common::BigintRange>(
+                evalPredicateSIMD<int64_t, common::BigintRange>(
                     column_vec, comp_header.data_len, filter, scan_start_offset,
                     scan_end_offset, matched_row_idxs);
                 break;
@@ -1387,7 +1376,7 @@ void ExtentIterator::findMatchedRowsRangeFilter(
             r_days = r_days - 1;
         auto filter =
             std::make_unique<common::BigintRange>(l_days, r_days, false);
-        evalEQPredicateSIMD<int32_t, common::BigintRange>(
+        evalPredicateSIMD<int32_t, common::BigintRange>(
             column_vec, comp_header.data_len, filter, scan_start_offset,
             scan_end_offset, matched_row_idxs);
     }
@@ -2751,15 +2740,30 @@ void ExtentIterator::IncreaseCacheSize()
     io_cache->num_tuples_cache.resize(original_size * 2);
 }
 
+namespace facebook::velox::dwio::common {
+
+template <typename T>
+struct NoHook {
+  void addValues(
+      const int32_t* /*rows*/,
+      const T* /*values*/,
+      int32_t /*size*/) {}
+  void addValueTyped(
+    const int32_t /*row*/, 
+    const T /*value*/) {}
+};
+
+} 
+
 template <typename T, typename TFilter>
-void ExtentIterator::evalEQPredicateSIMD(Vector &column_vec, size_t data_len,
+void ExtentIterator::evalPredicateSIMD(Vector &column_vec, size_t data_len,
                                          std::unique_ptr<TFilter> &filter,
                                          idx_t scan_start_offset,
                                          idx_t scan_end_offset,
                                          vector<idx_t> &matched_row_idxs)
 {
     int32_t num_values_output = 0;
-    facebook::velox::dwio::common::NoHook noHook;
+    facebook::velox::dwio::common::NoHook<T> noHook;
     auto scan_length = scan_end_offset - scan_start_offset;
     raw_vector<int32_t> hits(STANDARD_VECTOR_SIZE);
     raw_vector<int32_t> rows(scan_length);
@@ -2806,13 +2810,14 @@ void ExtentIterator::evalEQPredicateSIMD(Vector &column_vec, size_t data_len,
     }
 }
 
-template void ExtentIterator::evalEQPredicateSIMD<int16_t, common::BigintRange>(
+template void ExtentIterator::evalPredicateSIMD<int16_t, common::BigintRange>(
     Vector &, size_t, std::unique_ptr<common::BigintRange> &, idx_t, idx_t,
     vector<idx_t> &);
-template void ExtentIterator::evalEQPredicateSIMD<int32_t, common::BigintRange>(
+template void ExtentIterator::evalPredicateSIMD<int32_t, common::BigintRange>(
     Vector &, size_t, std::unique_ptr<common::BigintRange> &, idx_t, idx_t,
     vector<idx_t> &);
-template void ExtentIterator::evalEQPredicateSIMD<int64_t, common::BigintRange>(
+template void ExtentIterator::evalPredicateSIMD<int64_t, common::BigintRange>(
     Vector &, size_t, std::unique_ptr<common::BigintRange> &, idx_t, idx_t,
     vector<idx_t> &);
-}  // namespace duckdb
+    
+}  // namespace duckdb1

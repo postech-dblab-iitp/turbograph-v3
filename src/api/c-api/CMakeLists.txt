@@ -41,7 +41,6 @@ target_include_directories(tbgpp-c-api-shared PUBLIC
 file (GLOB_RECURSE SYSTEM_SOURCES "${PROJECT_SOURCE_DIR}/src/*.c*")
 target_sources(tbgpp-c-api PUBLIC ${SYSTEM_SOURCES})
 target_sources(tbgpp-c-api-shared PUBLIC ${SYSTEM_SOURCES})
-#target_link_libraries(tbgpp-c-api tbgpp-main)
 target_link_libraries(tbgpp-c-api common-lib)
 target_link_libraries(tbgpp-c-api storage-lib)
 target_link_libraries(tbgpp-c-api execution-lib)

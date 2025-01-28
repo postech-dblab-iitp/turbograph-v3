@@ -42,7 +42,6 @@ using json = nlohmann::json;
 #include "storage/extent/extent_manager.hpp"
 #include "storage/extent/extent_iterator.hpp"
 #include "storage/index/index.hpp"
-#include "storage/index/art/art.hpp"
 #include "storage/cache/chunk_cache_manager.h"
 #include "storage/catalog/catalog.hpp"
 #include "parser/parsed_data/create_schema_info.hpp"
@@ -592,16 +591,10 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 
 		// Initialize LID_TO_PID_MAP
 		unordered_map<LidPair, idx_t, boost::hash<LidPair>> *lid_to_pid_map_instance;
-		ART *index;
 		if (load_edge) {
 			lid_to_pid_map.emplace_back(vertex_labelset, unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
 			lid_to_pid_map_instance = &lid_to_pid_map.back().second;
 			lid_to_pid_map_instance->reserve(approximated_num_rows);
-			// vector<column_t> column_ids;
-			// for (size_t i = 0; i < key_column_idxs.size(); i++) column_ids.push_back((column_t)key_column_idxs[i]);
-			// index = new ART(column_ids, IndexConstraintType::NONE);
-			// std::pair<string, ART*> pair_to_insert = {vertex_file.first, index};
-			// lid_to_pid_index.push_back(pair_to_insert);
 		}
 
 		// Read CSV File into DataChunk & CreateVertexExtent
@@ -651,9 +644,6 @@ void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManage
 				auto map_build_end = std::chrono::high_resolution_clock::now();
 				std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
 				// fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
-
-				// Build Index
-				// BuildIndex();
 			}
 			read_chunk_start = std::chrono::high_resolution_clock::now();
 		}
@@ -1386,7 +1376,6 @@ int main(int argc, char** argv) {
 	ExtentManager ext_mng; // TODO put this into database
 	vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_to_pid_map; // For Forward & Backward AdjList
 	vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_pair_to_epid_map; // For Backward AdjList
-	vector<std::pair<string, ART*>> lid_to_pid_index; // For Forward & Backward AdjList
 
 	// Initialize Graph Catalog Informations
 	CreateGraphInfo graph_info(DEFAULT_SCHEMA, DEFAULT_GRAPH);

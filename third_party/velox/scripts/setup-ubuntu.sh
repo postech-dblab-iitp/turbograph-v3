@@ -295,10 +295,10 @@ function install_cuda {
 }
 
 function install_velox_deps {
-  # run_and_time install_velox_deps_from_apt
-  # run_and_time install_fmt
+  run_and_time install_velox_deps_from_apt
+  run_and_time install_fmt
   run_and_time install_protobuf
-  # run_and_time install_boost
+  run_and_time install_boost
   run_and_time install_folly
   # run_and_time install_fizz
   # run_and_time install_wangle
@@ -307,7 +307,7 @@ function install_velox_deps {
   # run_and_time install_conda
   # run_and_time install_duckdb
   run_and_time install_stemmer
-  # run_and_time install_thrift
+  run_and_time install_thrift
   # run_and_time install_arrow
 }
 

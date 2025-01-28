@@ -20,7 +20,17 @@ link_libraries(pthread aio numa rt hwloc tbb)
 ####################################################
 # PER-TARGET DEFINITION - storage-lib
 ####################################################
-file (GLOB_RECURSE SYSTEM_SOURCES "${PROJECT_SOURCE_DIR}/*.c*")
+file(GLOB_RECURSE SYSTEM_SOURCES
+    "${PROJECT_SOURCE_DIR}/*.c*"
+)
+
+# Exclude files in the 'test' folder
+foreach(TEST_FILE ${SYSTEM_SOURCES})
+    if(TEST_FILE MATCHES "/test/")
+        list(REMOVE_ITEM SYSTEM_SOURCES ${TEST_FILE})
+    endif()
+endforeach()
+
 SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES})
 target_sources(storage-lib PUBLIC ${TBGPP_SYSTEM_SOURCES})
 target_include_directories( storage-lib PUBLIC 
@@ -32,6 +42,7 @@ target_include_directories( storage-lib PUBLIC
 )
 target_link_libraries(storage-lib common-lib)
 target_link_libraries(storage-lib tbgpp-main)
+target_link_libraries(storage-lib velox_dwio_common)
 
 
 ####################################################
@@ -56,7 +67,6 @@ target_include_directories(store PUBLIC
 	"${PROJECT_SOURCE_DIR}/../common/include/common" "${PROJECT_SOURCE_DIR}/../common/include/common/enums"
 	"${PROJECT_SOURCE_DIR}/../common/include/common/types" "${PROJECT_SOURCE_DIR}/../common/include/common/operator"
 	"${PROJECT_SOURCE_DIR}/../common/include/common/value_operations"
-  #"${PROJECT_SOURCE_DIR}/../common/include/common/vector_operations"
   # parser
 	"${PROJECT_SOURCE_DIR}/../include/parser"
 	"${PROJECT_SOURCE_DIR}/../include/parser/parsed_data"
