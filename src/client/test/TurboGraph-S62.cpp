@@ -100,6 +100,8 @@
 
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <readline/rlstdc.h>
+#include <readline/rltypedefs.h>
 
 using namespace antlr4;
 using namespace gpopt;
@@ -178,29 +180,6 @@ void helper_deallocate_objects_in_shared_memory () {
 
   fprintf(stdout, "Re-initialize shared memory\n");
 }
-
-// int
-// bind_cr(int count, int key) {
-// 	if (eoq == 1) {
-// 		rl_done = 1;
-// 		eoq = 0;
-// 	}
-// 	printf("\n");
-// }
-
-// int
-// bind_eoq(int count, int key) {
-// 	eoq = 1;
-
-// 	printf(";");
-// }
-
-// int initialize_readline() {
-//   eoq = 0;
-// //   rl_bind_key('\n', bind_cr);
-// //   rl_bind_key('\r', bind_cr);
-// //   rl_bind_key(';', bind_eoq);
-// }
 
 void exportQueryPlanVisualizer(std::vector<CypherPipelineExecutor*>& executors, std::string start_time, int exec_time=0, bool is_debug=false);
 
@@ -310,6 +289,49 @@ class InputParser{
   private:
     std::vector <std::string> tokens;
 };
+
+int load_full_query_from_history(int count, int key) {
+    if (history_length == 0) return 0;
+
+    const char* last_query = history_get(history_length)->line;
+    if (!last_query) return 0;
+
+    rl_replace_line("", 0);
+    rl_insert_text(last_query);
+    rl_point = rl_end;
+
+    return 0;
+}
+
+std::string getQueryString(std::string &prompt) {
+	std::string full_input;
+    std::string current_input;
+
+	std::string shell_prompt = prompt + " >> ";
+	std::string prev_prompt = prompt + " -> ";
+
+    while (true) {
+        char* line = readline(full_input.empty() ? shell_prompt.c_str() : prev_prompt.c_str());
+        if (!line) {
+            break;
+        }
+
+        current_input = line;
+        free(line);
+
+        if (current_input.empty()) continue;
+
+        size_t semi_pos = current_input.find(';');
+        if (semi_pos != std::string::npos) {
+            full_input += current_input.substr(0, semi_pos + 1);
+            break;
+        }
+
+        full_input += current_input + " ";
+    }
+
+	return full_input;
+}
 
 void printOutput(s62::Planner& planner, std::vector<unique_ptr<duckdb::DataChunk>> &resultChunks, duckdb::Schema &schema) {
 	PropertyKeys col_names;
@@ -505,13 +527,10 @@ int main(int argc, char** argv) {
 	// Initialize System
 	InputParser input(argc, argv);
 	input.getCmdOption();
+
+	// initlize readline
 	using_history();
 	read_history((workspace + "/.history").c_str());
-	// if (isatty(STDIN_FILENO)) {
-    // 	rl_startup_hook = initialize_readline;
-	// }
-	// set_signal_handler();
-	// setbuf(stdout, NULL);
 
 	// Initialize System Parameters
 	DiskAioParameters::NUM_THREADS = 32;
@@ -549,7 +568,7 @@ int main(int argc, char** argv) {
 	
 	// run queries by query name
 	cstring_uptr input_cmd;
-	string shell_prompt = "TurboGraph-S62 >> ";
+	string shell_prompt = "S62";
 	string prev_query_str;
 	string query_str;
 
@@ -564,8 +583,8 @@ int main(int argc, char** argv) {
 		}
 	} else {
 		while(true) {
-			std::cout << "TurboGraph-S62 >> "; std::getline(std::cin, query_str, ';');
-			std::cin.ignore();
+			query_str = getQueryString(shell_prompt);
+
 			if (query_str.compare(":exit") == 0) {
 				break;
 			} else if (query_str.compare("analyze") == 0) {
@@ -582,6 +601,7 @@ int main(int argc, char** argv) {
 
 				try {
 					// protected code
+					query_str = query_str.substr(0, query_str.size() - 1);
 					CompileAndRun(query_str, client, planner, binder);
 				} catch (duckdb::Exception e) {
 					std::cerr << e.what() << std::endl;
