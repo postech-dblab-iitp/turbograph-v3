@@ -8,8 +8,8 @@
 
 #pragma once
 
-//#include "storage/catalog/catalog_entry/schema_catalog_entry.hpp"s
-//#include "storage/catalog/catalog_set.hpp"
+//#include "catalog/catalog_entry/schema_catalog_entry.hpp"s
+//#include "catalog/catalog_set.hpp"
 //#include "common/enums/pending_execution_result.hpp"
 //#include "common/deque.hpp"
 #include "common/pair.hpp"

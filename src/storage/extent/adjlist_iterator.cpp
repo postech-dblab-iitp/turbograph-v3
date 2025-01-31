@@ -1,9 +1,9 @@
 #include "storage/extent/adjlist_iterator.hpp"
-#include "storage/catalog/catalog_entry/list.hpp"
+#include "catalog/catalog_entry/list.hpp"
 #include "storage/cache/disk_aio/TypeDef.hpp"
 #include "storage/cache/chunk_cache_manager.h"
 #include "storage/extent/compression/compression_function.hpp"
-#include "storage/catalog/catalog.hpp"
+#include "catalog/catalog.hpp"
 
 #include "main/database.hpp"
 #include "main/client_context.hpp"

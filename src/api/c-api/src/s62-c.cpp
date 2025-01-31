@@ -4,7 +4,7 @@
 #include "api/c-api/capi_internal.hpp"
 #include "main/database.hpp"
 #include "storage/cache/chunk_cache_manager.h"
-#include "storage/catalog/catalog_wrapper.hpp"
+#include "catalog/catalog_wrapper.hpp"
 #include "optimizer/planner/planner.hpp"
 #include "main/client_context.hpp"
 #include "main/database.hpp"
@@ -13,10 +13,10 @@
 #include "kuzu/parser/transformer.h"
 #include "kuzu/binder/binder.h"
 #include "gpopt/mdcache/CMDCache.h"
-#include "types/decimal.hpp"
+#include "common/types/decimal.hpp"
 #include "parser/parsed_data/create_schema_info.hpp"
 #include "parser/parsed_data/create_graph_info.hpp"
-#include "storage/catalog/catalog_entry/list.hpp"
+#include "catalog/catalog_entry/list.hpp"
 #include "common/types/decimal.hpp"
 
 using namespace duckdb;

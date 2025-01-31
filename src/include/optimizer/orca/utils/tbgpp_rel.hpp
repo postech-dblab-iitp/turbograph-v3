@@ -18,10 +18,10 @@
 
 extern "C" {
 // #include "access/tupdesc.h"
-// #include "storage/catalog/pg_am.h"
-// #include "storage/catalog/pg_appendonly.h"
-// #include "storage/catalog/pg_class.h"
-// #include "storage/catalog/pg_index.h"
+// #include "catalog/pg_am.h"
+// #include "catalog/pg_appendonly.h"
+// #include "catalog/pg_class.h"
+// #include "catalog/pg_index.h"
 // #include "fmgr.h"
 // #include "nodes/bitmapset.h"
 // #include "rewrite/prs2lock.h"
@@ -31,7 +31,7 @@ extern "C" {
 // #include "utils/reltrigger.h"
 }
 
-#include "storage/catalog/catalog_entry/list.hpp"
+#include "catalog/catalog_entry/list.hpp"
 
 /*
  * LockRelId and LockInfo really belong to lmgr.h, but it's more convenient

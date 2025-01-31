@@ -1,8 +1,8 @@
 #include "storage/extent/extent_iterator.hpp"
 #include "storage/cache/chunk_cache_manager.h"
 #include "storage/cache/disk_aio/TypeDef.hpp"
-#include "storage/catalog/catalog.hpp"
-#include "storage/catalog/catalog_entry/list.hpp"
+#include "catalog/catalog.hpp"
+#include "catalog/catalog_entry/list.hpp"
 
 #include "common/types/rowcol_type.hpp"
 #include "icecream.hpp"

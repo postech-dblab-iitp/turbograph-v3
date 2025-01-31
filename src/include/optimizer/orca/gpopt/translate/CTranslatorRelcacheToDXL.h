@@ -22,7 +22,7 @@
 // #include "optimizer/orca/postgres.h"
 
 // #include "access/tupdesc.h"
-// #include "storage/catalog/gp_policy.h"
+// #include "catalog/gp_policy.h"
 // }
 
 // #include "gpos/base.h"
