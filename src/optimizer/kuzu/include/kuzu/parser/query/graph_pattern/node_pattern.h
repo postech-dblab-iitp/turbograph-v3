@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "parser/expression/parsed_expression.h"
+#include "kuzu/parser/expression/parsed_expression.h"
 
 using namespace std;
 

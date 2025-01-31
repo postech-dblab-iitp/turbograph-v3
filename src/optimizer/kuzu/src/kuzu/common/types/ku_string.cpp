@@ -1,4 +1,4 @@
-#include "common/types/ku_string.h"
+#include "kuzu/common/types/ku_string.h"
 
 #include <cstring>
 

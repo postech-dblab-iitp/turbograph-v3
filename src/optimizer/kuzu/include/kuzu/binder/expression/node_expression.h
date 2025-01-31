@@ -1,8 +1,8 @@
 #pragma once
 
-#include "node_rel_expression.h"
-#include "property_expression.h"
-#include "binder/parse_tree_node.h"
+#include "kuzu/binder/expression/node_rel_expression.h"
+#include "kuzu/binder/expression/property_expression.h"
+#include "kuzu/binder/parse_tree_node.h"
 
 #include <string>
 

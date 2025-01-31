@@ -1,4 +1,4 @@
-#include "parser/query/single_query.h"
+#include "kuzu/parser/query/single_query.h"
 
 namespace kuzu {
 namespace parser {

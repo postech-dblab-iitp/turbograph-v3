@@ -249,6 +249,8 @@ include_directories(src/include/optimizer/orca/gporca/libgpos)
 include_directories(src/include/optimizer/orca/gporca/libnaucrates)
 include_directories(${Python3_INCLUDE_DIRS})
 
+include_directories(src/optimizer/kuzu/include) # Temporal
+
 # Third party includes
 include_directories(SYSTEM third_party/velox)
 include_directories(third_party/antlr4_cypher/antlr4)

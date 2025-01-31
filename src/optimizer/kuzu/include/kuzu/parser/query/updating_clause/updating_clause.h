@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/clause_type.h"
+#include "kuzu/common/clause_type.h"
 
 using namespace kuzu::common;
 

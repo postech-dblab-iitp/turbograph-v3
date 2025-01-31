@@ -63,7 +63,7 @@
 #include "kuzu/binder/expression/expression.h"
 
 #include "common/assert.hpp"	
-#include "optimizer/planner/logical_schema.hpp"
+#include "planner/logical_schema.hpp"
 
 // TODO need to cleanup imports
 

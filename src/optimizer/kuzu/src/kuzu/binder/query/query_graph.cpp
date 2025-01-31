@@ -1,4 +1,4 @@
-#include "binder/query/reading_clause/query_graph.h"
+#include "kuzu/binder/query/reading_clause/query_graph.h"
 
 namespace kuzu {
 namespace binder {

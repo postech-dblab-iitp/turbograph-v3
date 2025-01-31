@@ -3,9 +3,9 @@
 #include <cstdint>
 #include <list>
 
-#include "bound_statement_result.h"
-#include "parse_tree_node.h"
-#include "common/statement_type.h"
+#include "kuzu/binder/bound_statement_result.h"
+#include "kuzu/binder/parse_tree_node.h"
+#include "kuzu/common/statement_type.h"
 
 using namespace kuzu::common;
 

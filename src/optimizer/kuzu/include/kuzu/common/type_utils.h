@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/types/literal.h"
-#include "common/types/types_include.h"
+#include "kuzu/common/types/literal.h"
+#include "kuzu/common/types/types_include.h"
 
 namespace kuzu {
 namespace common {

@@ -2,9 +2,9 @@
 
 #include <memory>
 
-#include "binder/expression/expression.h"
-#include "common/clause_type.h"
-#include "binder/parse_tree_node.h"
+#include "kuzu/binder/expression/expression.h"
+#include "kuzu/common/clause_type.h"
+#include "kuzu/binder/parse_tree_node.h"
 
 using namespace std;
 using namespace kuzu::common;

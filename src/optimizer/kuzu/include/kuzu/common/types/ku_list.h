@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.h"
+#include "kuzu/common/types/types.h"
 
 namespace kuzu {
 namespace common {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bound_return_clause.h"
+#include "kuzu/binder/query/return_with_clause/bound_return_clause.h"
 
 namespace kuzu {
 namespace binder {

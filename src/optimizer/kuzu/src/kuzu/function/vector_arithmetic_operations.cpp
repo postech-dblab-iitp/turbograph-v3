@@ -1,6 +1,6 @@
-#include "function/arithmetic/vector_arithmetic_operations.h"
+#include "kuzu/function//arithmetic/vector_arithmetic_operations.h"
 
-#include "function/arithmetic/arithmetic_operations.h"
+#include "kuzu/function//arithmetic/arithmetic_operations.h"
 
 using namespace kuzu::common;
 

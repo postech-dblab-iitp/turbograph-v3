@@ -1,9 +1,9 @@
 #pragma once
 
-#include "expression.h"
-#include "node_expression.h"
-#include "rel_expression.h"
-#include "binder/parse_tree_node.h"
+#include "kuzu/binder/expression/expression.h"
+#include "kuzu/binder/expression/node_expression.h"
+#include "kuzu/binder/expression/rel_expression.h"
+#include "kuzu/binder/parse_tree_node.h"
 
 #include <string>
 

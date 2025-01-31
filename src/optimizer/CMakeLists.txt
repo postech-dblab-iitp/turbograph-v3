@@ -31,7 +31,6 @@ add_library(compiler STATIC)
 ####################################################
 target_include_directories(compiler PUBLIC "${PROJECT_SOURCE_DIR}/kuzu/include")
 file(GLOB_RECURSE SOURCES_MD "${PROJECT_SOURCE_DIR}/mdprovider/*.c*")
-file(GLOB_RECURSE SOURCES_PLANNER "${PROJECT_SOURCE_DIR}/planner/*.c*")
 list(APPEND SOURCES ${SOURCES_MD} ${SOURCES_PLANNER})
 target_sources(compiler PUBLIC ${SOURCES})
 target_link_libraries(compiler common-lib tbgpp-main execution-lib)

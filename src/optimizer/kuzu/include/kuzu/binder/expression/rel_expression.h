@@ -1,8 +1,8 @@
 #pragma once
 
-#include "common/exception.h"
-#include "node_expression.h"
-#include "binder/parse_tree_node.h"
+#include "kuzu/common/exception.h"
+#include "kuzu/binder/expression/node_expression.h"
+#include "kuzu/binder/parse_tree_node.h"
 
 
 namespace kuzu {

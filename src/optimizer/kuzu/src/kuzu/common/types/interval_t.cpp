@@ -1,9 +1,9 @@
-#include "common/types/interval_t.h"
+#include "kuzu/common/types/interval_t.h"
 
-#include "common/exception.h"
-#include "common/types/cast_helpers.h"
-#include "common/types/timestamp_t.h"
-#include "common/utils.h"
+#include "kuzu/common/exception.h"
+#include "kuzu/common/types/cast_helpers.h"
+#include "kuzu/common/types/timestamp_t.h"
+#include "kuzu/common/utils.h"
 
 namespace kuzu {
 namespace common {

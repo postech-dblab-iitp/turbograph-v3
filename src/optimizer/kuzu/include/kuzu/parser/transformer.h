@@ -1,8 +1,8 @@
 #pragma once
 
 #include "CypherParser.h"
-#include "parser/query/graph_pattern/pattern_element.h"
-#include "parser/query/regular_query.h"
+#include "kuzu/parser/query/graph_pattern/pattern_element.h"
+#include "kuzu/parser/query/regular_query.h"
 
 using namespace std;
 

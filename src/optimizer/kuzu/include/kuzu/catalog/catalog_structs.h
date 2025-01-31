@@ -3,9 +3,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "common/configs.h"
-#include "common/exception.h"
-#include "common/types/types_include.h"
+#include "kuzu/common/configs.h"
+#include "kuzu/common/exception.h"
+#include "kuzu/common/types/types_include.h"
 
 using namespace kuzu::common;
 

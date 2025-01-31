@@ -1,10 +1,10 @@
-#include "parser/parser.h"
+#include "kuzu/parser/parser.h"
 
 #include "CypherLexer.h"
-#include "parser/antlr_parser/kuzu_cypher_parser.h"
-#include "parser/antlr_parser/parser_error_listener.h"
-#include "parser/antlr_parser/parser_error_strategy.h"
-#include "parser/transformer.h"
+#include "kuzu/parser/antlr_parser/kuzu_cypher_parser.h"
+#include "kuzu/parser/antlr_parser/parser_error_listener.h"
+#include "kuzu/parser/antlr_parser/parser_error_strategy.h"
+#include "kuzu/parser/transformer.h"
 
 using namespace antlr4;
 

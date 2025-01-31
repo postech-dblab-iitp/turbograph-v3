@@ -1,6 +1,6 @@
 #pragma once
 
-#include "binder/bound_statement.h"
+#include "kuzu/binder/bound_statement.h"
 
 namespace kuzu {
 namespace binder {

@@ -4,8 +4,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "parser/expression/parsed_expression.h"
-#include "parser/statement.h"
+#include "kuzu/parser/expression/parsed_expression.h"
+#include "kuzu/parser/statement.h"
 
 namespace kuzu {
 namespace parser {

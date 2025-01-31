@@ -1,12 +1,12 @@
 #pragma once
 
-// #include "function/string/operations/lower_operation.h"
-// #include "function/string/operations/ltrim_operation.h"
-// #include "function/string/operations/reverse_operation.h"
-// #include "function/string/operations/rtrim_operation.h"
-// #include "function/string/operations/trim_operation.h"
-// #include "function/string/operations/upper_operation.h"
-#include "function/vector_operations.h"
+// #include "kuzu/function//string/operations/lower_operation.h"
+// #include "kuzu/function//string/operations/ltrim_operation.h"
+// #include "kuzu/function//string/operations/reverse_operation.h"
+// #include "kuzu/function//string/operations/rtrim_operation.h"
+// #include "kuzu/function//string/operations/trim_operation.h"
+// #include "kuzu/function//string/operations/upper_operation.h"
+#include "kuzu/function//vector_operations.h"
 
 namespace kuzu {
 namespace function {

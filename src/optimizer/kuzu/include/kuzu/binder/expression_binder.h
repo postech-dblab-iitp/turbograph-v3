@@ -1,9 +1,9 @@
 #pragma once
 
-#include "binder/expression/expression.h"
-#include "catalog/catalog_structs.h"
-#include "common/types/literal.h"
-#include "parser/expression/parsed_expression.h"
+#include "kuzu/binder/expression/expression.h"
+#include "kuzu/catalog/catalog_structs.h"
+#include "kuzu/common/types/literal.h"
+#include "kuzu/parser/expression/parsed_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

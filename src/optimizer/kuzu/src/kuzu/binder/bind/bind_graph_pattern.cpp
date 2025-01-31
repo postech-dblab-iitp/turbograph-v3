@@ -1,9 +1,9 @@
 #include <set>
 
-#include "binder/binder.h"
+#include "kuzu/binder/binder.h"
 #include "catalog/catalog_wrapper.hpp"
 #include "common/tuple.hpp"
-#include "common/type_utils.h"
+#include "kuzu/common/type_utils.h"
 #include "common/boost_typedefs.hpp"
 
 namespace kuzu {

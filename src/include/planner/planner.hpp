@@ -158,8 +158,8 @@
 #include "common/enums/join_type.hpp"
 #include "planner/joinside.hpp"
 
-#include "optimizer/planner/logical_plan.hpp"
-#include "optimizer/planner/value_ser_des.hpp"
+#include "planner/logical_plan.hpp"
+#include "planner/value_ser_des.hpp"
 #include "optimizer/mdprovider/MDProviderTBGPP.h"
 
 using namespace kuzu::binder;

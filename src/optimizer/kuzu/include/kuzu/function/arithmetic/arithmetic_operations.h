@@ -3,7 +3,7 @@
 #include <cmath>
 #include <cstdlib>
 
-#include "common/type_utils.h"
+#include "kuzu/common/type_utils.h"
 
 namespace kuzu {
 namespace function {

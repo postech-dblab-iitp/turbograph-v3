@@ -1,5 +1,5 @@
 #include "kuzu/common/expression_type.h"
-#include "optimizer/planner/planner.hpp"
+#include "planner/planner.hpp"
 
 #include "planner/expression/bound_aggregate_expression.hpp"
 #include "planner/expression/bound_case_expression.hpp"

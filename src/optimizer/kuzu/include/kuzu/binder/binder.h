@@ -1,18 +1,19 @@
 #pragma once
 
-#include "binder/query/bound_regular_query.h"
-#include "common/csv_reader/csv_reader.h"
-#include "expression_binder.h"
-#include "parser/query/regular_query.h"
-#include "query_normalizer.h"
+#include "kuzu/binder/query/bound_regular_query.h"
+#include "kuzu/common/csv_reader/csv_reader.h"
+#include "kuzu/binder/expression_binder.h"
+#include "kuzu/parser/query/regular_query.h"
+#include "kuzu/binder/query_normalizer.h"
 
 #include "main/database.hpp"
 #include "main/client_context.hpp"
+
+#include "kuzu/function/built_in_vector_operations.h"
+#include "kuzu/function/aggregate/built_in_aggregate_functions.h"
+
 #include "catalog/catalog.hpp"
 #include "catalog/catalog_entry/graph_catalog_entry.hpp"
-
-#include "function/built_in_vector_operations.h"
-#include "function/aggregate/built_in_aggregate_functions.h"
 
 using namespace kuzu::parser;
 using namespace kuzu::catalog;

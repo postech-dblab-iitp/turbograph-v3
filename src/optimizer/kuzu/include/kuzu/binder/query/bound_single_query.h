@@ -1,7 +1,7 @@
 #pragma once
 
-#include "binder/query/return_with_clause/bound_return_clause.h"
-#include "bound_query_part.h"
+#include "kuzu/binder/query/return_with_clause/bound_return_clause.h"
+#include "kuzu/binder/query/bound_query_part.h"
 
 namespace kuzu {
 namespace binder {
