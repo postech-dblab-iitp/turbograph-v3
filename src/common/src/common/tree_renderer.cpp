@@ -9,7 +9,7 @@
 // #include "parallel/pipeline.hpp"
 #include "execution/cypher_pipeline.hpp"
 
-#include "third_party/utf8proc/utf8proc_wrapper.hpp"
+#include "utf8proc_wrapper.hpp"
 
 #include <sstream>
 

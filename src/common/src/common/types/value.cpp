@@ -7,7 +7,7 @@
 #include "common/operator/cast_operators.hpp"
 #include "common/operator/comparison_operators.hpp"
 
-#include "third_party/utf8proc/utf8proc_wrapper.hpp"
+#include "utf8proc_wrapper.hpp"
 //#include "common/operator/numeric_binary_operators.hpp"
 //#include "common/printer.hpp"
 //#include "common/field_writer.hpp"
