@@ -1,4 +1,4 @@
-#include "s62.h"
+#include "api/c-api/s62.h"
 #include <stdio.h>
 
 int main() {

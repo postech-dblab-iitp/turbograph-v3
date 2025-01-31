@@ -19,7 +19,6 @@
 //#include "parser/statement/explain_statement.hpp"
 //#include "parser/statement/select_statement.hpp"
 //#include "planner/operator/logical_execute.hpp"
-//#include "planner/planner.hpp"
 //#include "transaction/transaction_manager.hpp"
 //#include "transaction/transaction.hpp"
 //#include "storage/data_table.hpp"

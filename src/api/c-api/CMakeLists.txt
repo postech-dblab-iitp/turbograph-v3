@@ -31,11 +31,9 @@ add_library(tbgpp-c-api STATIC)
 # PER-TARGET DEFINITION - tbgpp-server
 ####################################################
 target_include_directories(tbgpp-c-api PUBLIC
-	"${PROJECT_SOURCE_DIR}/include"
 	"${PROJECT_SOURCE_DIR}/../common/include"
 )
 target_include_directories(tbgpp-c-api-shared PUBLIC
-	"${PROJECT_SOURCE_DIR}/include"
 	"${PROJECT_SOURCE_DIR}/../common/include"
 )
 file (GLOB_RECURSE SYSTEM_SOURCES "${PROJECT_SOURCE_DIR}/src/*.c*")

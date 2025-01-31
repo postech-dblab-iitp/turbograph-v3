@@ -6,7 +6,7 @@
 #include "main/database.hpp"
 #include "parser/parsed_data/create_partition_info.hpp"
 #include "parser/parsed_data/create_property_schema_info.hpp"
-#include "mdprovider/MDProviderTBGPP.h"
+#include "optimizer/mdprovider/MDProviderTBGPP.h"
 
 namespace duckdb {
 
