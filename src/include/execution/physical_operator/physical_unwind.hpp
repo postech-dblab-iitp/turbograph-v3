@@ -1,6 +1,6 @@
 #pragma once
 
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "main/client_context.hpp"
 

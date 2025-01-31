@@ -29,7 +29,7 @@
 #include "common/types/value.hpp"
 #include "common/boost_typedefs.hpp"
 
-#include "storage/graph_store.hpp"
+#include "storage/graph_storage_wrapper.hpp"
 #include "parallel/executor.hpp"
 
 
@@ -67,7 +67,7 @@ public:
 	shared_ptr<DatabaseInstance> db;
 
 	//! A graph store API that execution engine connects to
-	unique_ptr<iTbgppGraphStore> graph_store;
+	unique_ptr<iTbgppGraphStorageWrapper> graph_storage_wrapper;
 
 	//! The set of client-specific data
 	unique_ptr<ClientData> client_data;

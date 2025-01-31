@@ -1,9 +1,6 @@
 #pragma once
 
-//#include "livegraph.hpp"
-#include "storage/livegraph_catalog.hpp"
-
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 
 #include "common/common.hpp"
 #include "common/vector.hpp"
@@ -26,7 +23,7 @@ class AdjacencyListIterator;
 class ClientContext;
 class IOCache;
 
-class GraphStore { 
+class GraphStorageWrapper { 
 
 public:
 	// define APIs here
@@ -46,9 +43,9 @@ public:
 
 };
 
-class iTbgppGraphStore: GraphStore {
+class iTbgppGraphStorageWrapper: GraphStorageWrapper {
 public:
-	iTbgppGraphStore(ClientContext &client);
+	iTbgppGraphStorageWrapper(ClientContext &client);
 
 public:
  //! Initialize Scan Operation

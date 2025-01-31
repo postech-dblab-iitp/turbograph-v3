@@ -1,7 +1,7 @@
 #ifndef PHYSICAL_VARLEN_ADJIDXJOIN_H
 #define PHYSICAL_VARLEN_ADJIDXJOIN_H
 
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "common/enums/join_type.hpp"

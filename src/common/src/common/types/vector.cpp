@@ -12,7 +12,7 @@
 #include "common/types/vector_cache.hpp"
 #include "common/types/rowcol_type.hpp"
 #include "common/vector_operations/vector_operations.hpp"
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 //#include "storage/buffer/buffer_handle.hpp"
 
 #include <cstring> // strlen() on Solaris

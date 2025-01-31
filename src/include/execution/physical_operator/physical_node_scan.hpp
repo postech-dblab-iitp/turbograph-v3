@@ -1,7 +1,7 @@
 #pragma once
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 
-#include "storage/graph_store.hpp"
+#include "storage/graph_storage_wrapper.hpp"
 #include "main/client_context.hpp"
 #include "planner/expression.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"

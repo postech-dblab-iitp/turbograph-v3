@@ -1,5 +1,5 @@
 
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 
 #include "common/types/rowcol_type.hpp"
 #include "common/types/selection_vector.hpp"
@@ -66,7 +66,7 @@ OperatorResultType PhysicalAdjIdxJoin::ProcessSemiAntiJoin(
     for (; state.lhs_idx < input.size(); state.lhs_idx++) {
         uint64_t &src_vid =
             getIdRefFromVector(src_vid_column_vector, state.lhs_idx);
-        context.client->graph_store->getAdjListFromVid(
+        context.client->graph_storage_wrapper->getAdjListFromVid(
             *state.adj_it, state.adj_col_idxs[state.adj_idx], state.prev_eid,
             src_vid, adj_start, adj_end,
             adjListLogicalTypeToExpandDir(state.adj_col_types[state.adj_idx]));
@@ -131,7 +131,7 @@ void PhysicalAdjIdxJoin::GetJoinMatches(ExecutionContext &context,
 
     // fill in adjacency col info
     if (state.adj_col_idxs.size() == 0) {
-        context.client->graph_store->getAdjColIdxs(
+        context.client->graph_storage_wrapper->getAdjColIdxs(
             (idx_t)adjidx_obj_id, state.adj_col_idxs, state.adj_col_types);
         for (auto i = 0; i < state.adj_col_idxs.size(); i++) {
             D_ASSERT(state.adj_col_idxs[i] >= 0);
@@ -468,7 +468,7 @@ inline void PhysicalAdjIdxJoin::GetAdjListAndFillRHSOutput(
     ValidityMask *eid_validity_mask, ExpandDirection &cur_direction) const
 {
     uint64_t *adj_start, *adj_end;
-    context.client->graph_store->getAdjListFromVid(
+    context.client->graph_storage_wrapper->getAdjListFromVid(
         *state.adj_it, state.adj_col_idxs[state.adj_idx], state.prev_eid,
         src_vid, adj_start, adj_end, cur_direction);
 
@@ -514,7 +514,7 @@ inline void PhysicalAdjIdxJoin::GetAdjListAndFillRHSOutputInto(
     ValidityMask *eid_validity_mask, ExpandDirection &cur_direction) const
 {
     uint64_t *adj_start, *adj_end;
-    context.client->graph_store->getAdjListFromVid(
+    context.client->graph_storage_wrapper->getAdjListFromVid(
         *state.adj_it, state.adj_col_idxs[state.adj_idx], state.prev_eid,
         src_vid, adj_start, adj_end, cur_direction);
 

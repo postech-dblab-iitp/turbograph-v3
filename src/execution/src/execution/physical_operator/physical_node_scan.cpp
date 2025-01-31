@@ -6,7 +6,7 @@
 #include "planner/expression/bound_comparison_expression.hpp"
 #include "planner/expression/bound_conjunction_expression.hpp"
 #include "planner/expression/bound_reference_expression.hpp"
-#include "storage/graph_store.hpp"
+#include "storage/graph_storage_wrapper.hpp"
 
 #include <cassert>
 #include <queue>
@@ -191,14 +191,14 @@ void PhysicalNodeScan::GetData(ExecutionContext &context, DataChunk &chunk,
                                LocalSourceState &lstate) const
 {
     auto &state = (NodeScanState &)lstate;
-    // If first time here, call doScan and get iterator from iTbgppGraphStore
+    // If first time here, call doScan and get iterator from iTbgppGraphStorageWrapper
     if (!state.iter_inited) {
         state.iter_inited = true;
         bool enable_filter_buffer =
             projection_mapping.size() ==
             1;  // enable buffering only in non-schemaless
 
-        auto initializeAPIResult = context.client->graph_store->InitializeScan(
+        auto initializeAPIResult = context.client->graph_storage_wrapper->InitializeScan(
             state.ext_its, oids, scan_projection_mapping, scan_types,
             enable_filter_buffer);
         D_ASSERT(initializeAPIResult == StoreAPIResult::OK);
@@ -209,11 +209,11 @@ void PhysicalNodeScan::GetData(ExecutionContext &context, DataChunk &chunk,
     if (!is_filter_pushdowned) {
         // no filter pushdown
         if (projection_mapping.size() == 1) {
-            res = context.client->graph_store->doScan(state.ext_its, chunk,
+            res = context.client->graph_storage_wrapper->doScan(state.ext_its, chunk,
                                                       types);
         }
         else {
-            res = context.client->graph_store->doScan(state.ext_its, chunk,
+            res = context.client->graph_storage_wrapper->doScan(state.ext_its, chunk,
                                                       projection_mapping, types,
                                                       current_schema_idx);
         }
@@ -226,21 +226,21 @@ void PhysicalNodeScan::GetData(ExecutionContext &context, DataChunk &chunk,
         // filter pushdown applied
         filtered_chunk_buffer.Reset(scan_types[current_schema_idx]);
         if (filter_pushdown_type == FilterPushdownType::FP_RANGE) {
-            res = context.client->graph_store->doScan(
+            res = context.client->graph_storage_wrapper->doScan(
                 state.ext_its, chunk, filtered_chunk_buffer, projection_mapping,
                 types, current_schema_idx,
                 filter_pushdown_key_idxs[current_schema_idx],
                 range_filter_pushdown_values[current_schema_idx]);
         }
         else if (filter_pushdown_type == FilterPushdownType::FP_EQ) {
-            res = context.client->graph_store->doScan(
+            res = context.client->graph_storage_wrapper->doScan(
                 state.ext_its, chunk, filtered_chunk_buffer, projection_mapping,
                 types, current_schema_idx,
                 filter_pushdown_key_idxs[current_schema_idx],
                 eq_filter_pushdown_values[current_schema_idx]);
         }
         else {
-            res = context.client->graph_store->doScan(
+            res = context.client->graph_storage_wrapper->doScan(
                 state.ext_its, chunk, filtered_chunk_buffer, projection_mapping,
                 types, current_schema_idx, executor);
         }

@@ -1,4 +1,4 @@
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 #include <algorithm>
 #include <iostream>
 #include <map>

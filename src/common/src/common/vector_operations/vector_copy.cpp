@@ -7,7 +7,7 @@
 #include "common/exception.hpp"
 #include "common/types/null_value.hpp"
 #include "common/types/rowcol_type.hpp"
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 //#include "common/types/chunk_collection.hpp"
 
 #include "common/vector_operations/vector_operations.hpp"

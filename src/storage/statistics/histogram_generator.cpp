@@ -99,7 +99,7 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
 
         // Initialize ExtentIterators // TODO read only necessary columns // TODO using sampling technique?
         auto initializeAPIResult =
-		    client->graph_store->InitializeScan(ext_its, oids, scan_projection_mapping, scan_types);
+		    client->graph_storage_wrapper->InitializeScan(ext_its, oids, scan_projection_mapping, scan_types);
 
         // Initialize DataChunk where data will be read
         DataChunk chunk;
@@ -110,7 +110,7 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
         size_t num_total_tuples = 0;
 
         while(true) {
-            res = client->graph_store->doScan(ext_its, chunk, scan_types[0]);
+            res = client->graph_storage_wrapper->doScan(ext_its, chunk, scan_types[0]);
             if (res == StoreAPIResult::DONE) { break; }
 
             _accumulate_data_for_hist(chunk, universal_schema, target_cols_in_univ_schema);
@@ -202,7 +202,7 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
 
         // Initialize ExtentIterators // TODO read only necessary columns // TODO using sampling technique?
         auto initializeAPIResult =
-		    client->graph_store->InitializeScan(ext_its, oids, scan_projection_mapping, scan_types);
+		    client->graph_storage_wrapper->InitializeScan(ext_its, oids, scan_projection_mapping, scan_types);
 
         // Initialize DataChunk where data will be read
         DataChunk chunk;
@@ -211,7 +211,7 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
         StoreAPIResult res;
 
         while(true) {
-            res = client->graph_store->doScan(ext_its, chunk, scan_types[0]);
+            res = client->graph_storage_wrapper->doScan(ext_its, chunk, scan_types[0]);
             if (res == StoreAPIResult::DONE) { break; }
 
             _create_bucket(chunk, universal_schema, target_cols_in_univ_schema, histograms);

@@ -8,7 +8,7 @@
 #include "common/types/data_chunk.hpp"
 #include "execution/execution_context.hpp"
 #include "execution/physical_operator/physical_operator.hpp"
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 
 #include <boost/timer/timer.hpp>
 

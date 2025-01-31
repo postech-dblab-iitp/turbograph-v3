@@ -1,5 +1,5 @@
 #include "execution/physical_operator/physical_all_shortestpathjoin.hpp"
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 #include "common/output_util.hpp"
 #include "storage/extent/adjlist_iterator.hpp"
 
@@ -71,8 +71,8 @@ OperatorResultType PhysicalAllShortestPathJoin::Execute(ExecutionContext &contex
                                                         OperatorState &state) const {
     auto &all_srtp_state = (AllShortestPathState &)state;
     if (!all_srtp_state.is_initialized) {
-        context.client->graph_store->getAdjColIdxs((idx_t)adjidx_obj_id_fwd, all_srtp_state.adj_col_idxs, all_srtp_state.adj_col_types);
-        context.client->graph_store->getAdjColIdxs((idx_t)adjidx_obj_id_bwd, all_srtp_state.adj_col_idxs, all_srtp_state.adj_col_types);
+        context.client->graph_storage_wrapper->getAdjColIdxs((idx_t)adjidx_obj_id_fwd, all_srtp_state.adj_col_idxs, all_srtp_state.adj_col_types);
+        context.client->graph_storage_wrapper->getAdjColIdxs((idx_t)adjidx_obj_id_bwd, all_srtp_state.adj_col_idxs, all_srtp_state.adj_col_types);
         all_srtp_state.is_initialized = true;
 
         D_ASSERT(all_srtp_state.adj_col_idxs.size() == 2);

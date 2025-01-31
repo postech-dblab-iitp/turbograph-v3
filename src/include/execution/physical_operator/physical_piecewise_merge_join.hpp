@@ -14,7 +14,7 @@
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "execution/physical_operator/physical_comparison_join.hpp"
 #include "planner/bound_result_modifier.hpp"
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 
 namespace duckdb {
 

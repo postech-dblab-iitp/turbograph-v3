@@ -6,14 +6,6 @@ cmake_minimum_required(VERSION 3.16)
 project(execution)
 
 ####################################################
-# ADD SUBDIRECTORIES
-####################################################
-# TODO replace with boost::json and eliminate
-# dependencies - json
-set(JSON_BuildTests OFF CACHE INTERNAL "")
-add_subdirectory(json)
-
-####################################################
 # FIND PACKAGES
 ####################################################
 
@@ -38,7 +30,6 @@ file (GLOB_RECURSE SOURCES "${SRC_DIR}/*.c*"
 	#"${PROJECT_SOURCE_DIR}/test/plans/ldbc_snb_interactive/*.c*"
 	#"${PROJECT_SOURCE_DIR}/test/plans/*.c*"
 )
-target_include_directories( execution-lib PUBLIC "${PROJECT_SOURCE_DIR}/include" )
 target_include_directories( execution-lib PUBLIC
 	# common
   "${PROJECT_SOURCE_DIR}/../common/include"
@@ -47,7 +38,6 @@ target_include_directories( execution-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/../common/include/common/types"
   "${PROJECT_SOURCE_DIR}/../common/include/common/operator"
 	"${PROJECT_SOURCE_DIR}/../common/include/common/value_operations" 
-  #"${PROJECT_SOURCE_DIR}/../common/include/common/vector_operations"
   # parser
 	"${PROJECT_SOURCE_DIR}/../include/parser"
 	"${PROJECT_SOURCE_DIR}/../include/parser/parsed_data"

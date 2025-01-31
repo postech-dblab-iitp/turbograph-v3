@@ -12,15 +12,15 @@
 #include "storage/extent/extent_iterator.hpp"
 #include "main/client_context.hpp"
 #include "main/database.hpp"
-#include "storage/graph_store.hpp"
-#include "typedef.hpp"
+#include "storage/graph_storage_wrapper.hpp"
+#include "common/typedef.hpp"
 
 #include "icecream.hpp"
 #include "range/v3/all.hpp"
 
 namespace duckdb {
 
-iTbgppGraphStore::iTbgppGraphStore(ClientContext &client)
+iTbgppGraphStorageWrapper::iTbgppGraphStorageWrapper(ClientContext &client)
     : client(client),
       boundary_position(STANDARD_VECTOR_SIZE),
       tmp_vec(STANDARD_VECTOR_SIZE),
@@ -32,7 +32,7 @@ iTbgppGraphStore::iTbgppGraphStore(ClientContext &client)
       target_seqnos_per_extent_map_cursors(INITIAL_EXTENT_ID_SPACE, 0)
 {}
 
-StoreAPIResult iTbgppGraphStore::InitializeScan(
+StoreAPIResult iTbgppGraphStorageWrapper::InitializeScan(
     std::queue<ExtentIterator *> &ext_its, vector<idx_t> &oids,
     vector<vector<uint64_t>> &projection_mapping,
     vector<vector<duckdb::LogicalType>> &scanSchemas,
@@ -61,7 +61,7 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(
     return StoreAPIResult::OK;
 }
 
-StoreAPIResult iTbgppGraphStore::InitializeScan(
+StoreAPIResult iTbgppGraphStorageWrapper::InitializeScan(
     std::queue<ExtentIterator *> &ext_its, PropertySchemaID_vector *oids,
     vector<vector<uint64_t>> &projection_mapping,
     vector<vector<duckdb::LogicalType>> &scanSchemas,
@@ -93,7 +93,7 @@ StoreAPIResult iTbgppGraphStore::InitializeScan(
 /**
  * Scan without filter pushdown
 */
-StoreAPIResult iTbgppGraphStore::doScan(
+StoreAPIResult iTbgppGraphStorageWrapper::doScan(
     std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output,
     std::vector<duckdb::LogicalType> &scanSchema)
 {
@@ -110,7 +110,7 @@ StoreAPIResult iTbgppGraphStore::doScan(
     }
 }
 
-StoreAPIResult iTbgppGraphStore::doScan(
+StoreAPIResult iTbgppGraphStorageWrapper::doScan(
     std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output,
     vector<vector<uint64_t>> &projection_mapping,
     std::vector<duckdb::LogicalType> &scanSchema, int64_t current_schema_idx,
@@ -136,7 +136,7 @@ StoreAPIResult iTbgppGraphStore::doScan(
 */
 
 // equality filter
-StoreAPIResult iTbgppGraphStore::doScan(
+StoreAPIResult iTbgppGraphStorageWrapper::doScan(
     std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output,
     FilteredChunkBuffer &output_buffer,
     vector<vector<uint64_t>> &projection_mapping,
@@ -160,7 +160,7 @@ StoreAPIResult iTbgppGraphStore::doScan(
 }
 
 // range filter
-StoreAPIResult iTbgppGraphStore::doScan(
+StoreAPIResult iTbgppGraphStorageWrapper::doScan(
     std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output,
     FilteredChunkBuffer &output_buffer,
     vector<vector<uint64_t>> &projection_mapping,
@@ -187,7 +187,7 @@ StoreAPIResult iTbgppGraphStore::doScan(
 }
 
 // complex filter
-StoreAPIResult iTbgppGraphStore::doScan(
+StoreAPIResult iTbgppGraphStorageWrapper::doScan(
     std::queue<ExtentIterator *> &ext_its, duckdb::DataChunk &output,
     FilteredChunkBuffer &output_buffer,
     vector<vector<uint64_t>> &projection_mapping,
@@ -211,7 +211,7 @@ StoreAPIResult iTbgppGraphStore::doScan(
     }
 }
 
-inline void iTbgppGraphStore::_fillTargetSeqnosVecAndBoundaryPosition(
+inline void iTbgppGraphStorageWrapper::_fillTargetSeqnosVecAndBoundaryPosition(
     idx_t i, ExtentID prev_eid)
 {
     auto prev_eid_seqno = GET_EXTENT_SEQNO_FROM_EID(prev_eid);
@@ -231,7 +231,7 @@ inline void iTbgppGraphStore::_fillTargetSeqnosVecAndBoundaryPosition(
     tmp_vec_cursor = 0;
 }
 
-StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
+StoreAPIResult iTbgppGraphStorageWrapper::InitializeVertexIndexSeek(
     ExtentIterator *&ext_it, vector<vector<uint64_t>> &projection_mapping,
     DataChunk &input, idx_t nodeColIdx,
     vector<vector<LogicalType>> &scanSchemas, vector<ExtentID> &target_eids,
@@ -435,7 +435,7 @@ StoreAPIResult iTbgppGraphStore::InitializeVertexIndexSeek(
     return StoreAPIResult::OK;
 }
 
-StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(
+StoreAPIResult iTbgppGraphStorageWrapper::doVertexIndexSeek(
     ExtentIterator *&ext_it, DataChunk &output, DataChunk &input,
     idx_t nodeColIdx, vector<ExtentID> &target_eids,
     vector<vector<uint32_t>> &target_seqnos_per_extent,
@@ -454,7 +454,7 @@ StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(
     return StoreAPIResult::OK;
 }
 
-StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(
+StoreAPIResult iTbgppGraphStorageWrapper::doVertexIndexSeek(
     ExtentIterator *&ext_it, DataChunk &output, DataChunk &input,
     idx_t nodeColIdx, vector<ExtentID> &target_eids,
     vector<vector<uint32_t>> &target_seqnos_per_extent, idx_t current_pos,
@@ -473,7 +473,7 @@ StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(
     return StoreAPIResult::OK;
 }
 
-StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(
+StoreAPIResult iTbgppGraphStorageWrapper::doVertexIndexSeek(
     ExtentIterator *&ext_it, DataChunk &output, DataChunk &input,
     idx_t nodeColIdx, vector<ExtentID> &target_eids,
     vector<vector<uint32_t>> &target_seqnos_per_extent,
@@ -491,7 +491,7 @@ StoreAPIResult iTbgppGraphStore::doVertexIndexSeek(
     return StoreAPIResult::OK;
 }
 
-StoreAPIResult iTbgppGraphStore::InitializeEdgeIndexSeek(
+StoreAPIResult iTbgppGraphStorageWrapper::InitializeEdgeIndexSeek(
     ExtentIterator *&ext_it, DataChunk &output, uint64_t vid, LabelSet labels,
     std::vector<LabelSet> &edgeLabels, LoadAdjListOption loadAdj,
     PropertyKeys properties, std::vector<duckdb::LogicalType> &scanSchema)
@@ -528,7 +528,7 @@ StoreAPIResult iTbgppGraphStore::InitializeEdgeIndexSeek(
     return StoreAPIResult::OK;
 }
 
-StoreAPIResult iTbgppGraphStore::InitializeEdgeIndexSeek(
+StoreAPIResult iTbgppGraphStorageWrapper::InitializeEdgeIndexSeek(
     ExtentIterator *&ext_it, DataChunk &output, DataChunk &input,
     idx_t nodeColIdx, LabelSet labels, std::vector<LabelSet> &edgeLabels,
     LoadAdjListOption loadAdj, PropertyKeys properties,
@@ -587,12 +587,12 @@ StoreAPIResult iTbgppGraphStore::InitializeEdgeIndexSeek(
     return StoreAPIResult::OK;
 }
 
-bool iTbgppGraphStore::isNodeInLabelset(u_int64_t id, LabelSet labels)
+bool iTbgppGraphStorageWrapper::isNodeInLabelset(u_int64_t id, LabelSet labels)
 {
     return true;
 }
 
-void iTbgppGraphStore::getAdjColIdxs(idx_t index_cat_oid,
+void iTbgppGraphStorageWrapper::getAdjColIdxs(idx_t index_cat_oid,
                                      vector<int> &adjColIdxs,
                                      vector<LogicalType> &adjColTypes)
 {
@@ -615,7 +615,7 @@ void iTbgppGraphStore::getAdjColIdxs(idx_t index_cat_oid,
 }
 
 StoreAPIResult
-iTbgppGraphStore::getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColIdx, ExtentID &prev_eid, uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr, ExpandDirection expand_dir) {
+iTbgppGraphStorageWrapper::getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColIdx, ExtentID &prev_eid, uint64_t vid, uint64_t *&start_ptr, uint64_t *&end_ptr, ExpandDirection expand_dir) {
 	D_ASSERT( expand_dir == ExpandDirection::OUTGOING || expand_dir == ExpandDirection::INCOMING );
 	bool is_initialized = true;
 	ExtentID target_eid = vid >> 32;
@@ -635,7 +635,7 @@ iTbgppGraphStore::getAdjListFromVid(AdjacencyListIterator &adj_iter, int adjColI
 	return StoreAPIResult::OK;
 }
 
-void iTbgppGraphStore::fillEidToMappingIdx(vector<uint64_t> &oids,
+void iTbgppGraphStorageWrapper::fillEidToMappingIdx(vector<uint64_t> &oids,
                                            vector<idx_t> &eid_to_mapping_idx,
                                            bool union_schema)
 {
