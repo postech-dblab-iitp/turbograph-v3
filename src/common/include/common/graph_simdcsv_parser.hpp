@@ -7,7 +7,7 @@
 #include "common/enums/graph_component_type.hpp"
 #include "common/types/date.hpp"
 #include "common/output_util.hpp"
-#include "third_party/csv-parser/csv.hpp"
+#include "csv.hpp"
 #include <unistd.h> // for getopt
 
 #include <iostream>

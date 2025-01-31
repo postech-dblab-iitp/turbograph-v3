@@ -6,7 +6,7 @@
 #include "common/unordered_map.hpp"
 #include "common/types/data_chunk.hpp"
 #include "common/enums/graph_component_type.hpp"
-#include "third_party/csv-parser/csv.hpp"
+#include "csv.hpp"
 
 namespace duckdb {
 
