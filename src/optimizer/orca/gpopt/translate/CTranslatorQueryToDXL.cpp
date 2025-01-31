@@ -18,7 +18,7 @@
 // #include "optimizer/orca/postgres.h"
 
 // #include "access/sysattr.h"
-// #include "storage/catalog/pg_class.h"
+// #include "catalog/pg_class.h"
 // #include "nodes/makefuncs.h"
 // #include "nodes/parsenodes.h"
 // #include "nodes/plannodes.h"

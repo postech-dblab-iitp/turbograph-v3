@@ -7,7 +7,7 @@
 
 #include "common/assert.hpp"
 #include "common/types.hpp"
-#include "types/value.hpp"
+#include "common/types/value.hpp"
 #include "common/types/string_type.hpp"
 
 #include <cstdlib>

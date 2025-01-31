@@ -1,7 +1,7 @@
 #include "api/server/s62_socket_apis.hpp"
 #include "main/database.hpp"
 #include "storage/cache/chunk_cache_manager.h"
-#include "storage/catalog/catalog_wrapper.hpp"
+#include "catalog/catalog_wrapper.hpp"
 #include "optimizer/planner/planner.hpp"
 #include "main/client_context.hpp"
 #include "main/database.hpp"

@@ -2,8 +2,8 @@
 
 #include "common/common.hpp"
 #include "common/vector.hpp"
-#include "storage/catalog/catalog.hpp"
-#include "storage/catalog/catalog_entry/list.hpp"
+#include "catalog/catalog.hpp"
+#include "catalog/catalog_entry/list.hpp"
 #include "common/boost_typedefs.hpp"
 #include "boost/histogram.hpp"
 #include "boost/accumulators/accumulators.hpp"

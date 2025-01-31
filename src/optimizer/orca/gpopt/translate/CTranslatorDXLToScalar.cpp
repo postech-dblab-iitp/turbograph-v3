@@ -15,7 +15,7 @@
 // extern "C" {
 // #include "optimizer/orca/postgres.h"
 
-// #include "storage/catalog/pg_collation.h"
+// #include "catalog/pg_collation.h"
 // #include "nodes/makefuncs.h"
 // #include "nodes/parsenodes.h"
 // #include "nodes/plannodes.h"

@@ -62,7 +62,7 @@
 #include "kuzu/binder/query/reading_clause/bound_match_clause.h"
 #include "kuzu/binder/expression/expression.h"
 
-#include "assert.hpp"	
+#include "common/assert.hpp"	
 #include "optimizer/planner/logical_schema.hpp"
 
 // TODO need to cleanup imports

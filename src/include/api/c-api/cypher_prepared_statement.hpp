@@ -7,8 +7,8 @@
 #include <sstream>
 #include <regex>
 #include <stdexcept>
-#include "types/value.hpp"
-#include "types/data_chunk.hpp"
+#include "common/types/value.hpp"
+#include "common/types/data_chunk.hpp"
 
 namespace duckdb {
 

@@ -1,8 +1,8 @@
 #include "function/function.hpp"
 
-#include "storage/catalog/catalog.hpp"
-#include "storage/catalog/catalog_entry/scalar_function_catalog_entry.hpp"
-#include "storage/catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
+#include "catalog/catalog.hpp"
+#include "catalog/catalog_entry/scalar_function_catalog_entry.hpp"
+#include "catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
 #include "common/types/hash.hpp"
 #include "common/limits.hpp"
 #include "common/string_util.hpp"

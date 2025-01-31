@@ -10,7 +10,7 @@
 #include "gpopt/base/CColRefSet.h"
 #include "gpos/base.h"
 
-#include "assert.hpp"
+#include "common/assert.hpp"
 
 using namespace std;
 using namespace gpopt;

@@ -1,6 +1,6 @@
 #include "execution/aggregate_hashtable.hpp"
 
-#include "storage/catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
+#include "catalog/catalog_entry/aggregate_function_catalog_entry.hpp"
 #include "common/algorithm.hpp"
 #include "common/exception.hpp"
 #include "common/row_operations/row_operations.hpp"

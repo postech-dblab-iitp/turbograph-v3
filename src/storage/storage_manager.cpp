@@ -3,7 +3,7 @@
 // #include "storage/single_file_block_manager.hpp"
 #include "storage/object_cache.hpp"
 
-#include "storage/catalog/catalog.hpp"
+#include "catalog/catalog.hpp"
 #include "common/file_system.hpp"
 #include "main/database.hpp"
 // #include "main/connection.hpp"

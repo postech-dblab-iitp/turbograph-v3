@@ -1,7 +1,7 @@
 #pragma once
 
 // #include "common/common.hpp"
-// #include "storage/catalog/catalog.hpp"
+// #include "catalog/catalog.hpp"
 #include "common/common.hpp"
 #include "common/enums/operator_result_type.hpp"
 #include "common/enums/physical_operator_type.hpp"

@@ -6,7 +6,7 @@
 #include "storage/cache/disk_aio/TypeDef.hpp"
 #include "common/types.hpp"
 #include "common/boost_typedefs.hpp"
-#include "types/data_chunk.hpp"
+#include "common/types/data_chunk.hpp"
 
 namespace s62 {
     class Planner;

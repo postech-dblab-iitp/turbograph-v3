@@ -28,43 +28,7 @@ add_library(tbgpp-server STATIC)
 
 ####################################################
 # PER-TARGET DEFINITION - tbgpp-server
-####################################################
-target_include_directories(tbgpp-server PUBLIC
-	# storage
-	"${PROJECT_SOURCE_DIR}/../../storage/include"
-)
-target_include_directories(tbgpp-server PUBLIC
-	# execution
-	"${PROJECT_SOURCE_DIR}/../../execution/include"
-	"${PROJECT_SOURCE_DIR}/../../execution/test"
-)
-target_include_directories(tbgpp-server PUBLIC
-	# compiler
-	"${PROJECT_SOURCE_DIR}/../../compiler/include"
-	"${PROJECT_SOURCE_DIR}/../../compiler/include/planner"
-	# kuzu
-	"${PROJECT_SOURCE_DIR}/../../compiler/kuzu/include"
-	# gpdb
-	"${PROJECT_SOURCE_DIR}/../../compiler/gpdb/src/include"
-	# gporca
-	"${PROJECT_SOURCE_DIR}/../../compiler/gpdb/src/backend/gporca/libgpos/include"
-	"${PROJECT_SOURCE_DIR}/../../compiler/gpdb/src/backend/gporca/libnaucrates/include"
-	"${PROJECT_SOURCE_DIR}/../../compiler/gpdb/src/backend/gporca/libgpdbcost/include"
-	"${PROJECT_SOURCE_DIR}/../../compiler/gpdb/src/backend/gporca/libgpopt/include"
-	"${PROJECT_SOURCE_DIR}/../../compiler/gpdb/src/backend/gporca/server/include"
-	# third_party
-	"${PROJECT_SOURCE_DIR}/../../compiler/third_party/antlr4_cypher/antlr4"
-	"${PROJECT_SOURCE_DIR}/../../compiler/third_party/antlr4_runtime/src"
-)
-target_include_directories(tbgpp-server PUBLIC
-	# common
-	"${PROJECT_SOURCE_DIR}/../../common/include"
-	# common
-	"${PROJECT_SOURCE_DIR}/../../common/include/common" "${PROJECT_SOURCE_DIR}/../common/include/common/enums"
-	"${PROJECT_SOURCE_DIR}/../../common/include/common/types" "${PROJECT_SOURCE_DIR}/../common/include/common/operator"
-	"${PROJECT_SOURCE_DIR}/../../common/include/common/value_operations"
-	#"${PROJECT_SOURCE_DIR}/../../common/include/common/vector_operations"
-)
+####################################################R}/../../common/include/common/vector_operations"
 file (GLOB_RECURSE SYSTEM_SOURCES "${PROJECT_SOURCE_DIR}/src/*.c*")
 target_sources(tbgpp-server PUBLIC ${SYSTEM_SOURCES})
 target_link_libraries(tbgpp-server "-lrt -lpthread -ltbb -fopenmp -laio -lnuma -lhwloc")
@@ -91,14 +55,6 @@ foreach(test_file ${CLIENT_TEST_SRC})
   target_sources( ${prog_name} PUBLIC ${TEST_SOURCES}  ) 
   target_compile_options(${prog_name} PRIVATE ${CXX_FLAGS})
   target_compile_definitions(${prog_name} PRIVATE ${CXX_DEFINITION})
-  target_include_directories( ${prog_name} PUBLIC
-    # common
-    "${PROJECT_SOURCE_DIR}/../common/include/common" "${PROJECT_SOURCE_DIR}/../common/include/common/enums"
-    "${PROJECT_SOURCE_DIR}/../common/include/common/types" "${PROJECT_SOURCE_DIR}/../common/include/common/operator"
-    "${PROJECT_SOURCE_DIR}/../common/include/common/value_operations" "${PROJECT_SOURCE_DIR}/../common/include/common/vector_operations"
-    # test
-    "${PROJECT_SOURCE_DIR}/test/"
-  )
   target_link_libraries(${prog_name} PRIVATE
     tbgpp-server
     common-lib

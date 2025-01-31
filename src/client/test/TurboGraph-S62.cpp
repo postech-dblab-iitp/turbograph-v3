@@ -41,14 +41,14 @@
 #include "storage/index/index.hpp"
 #include "storage/statistics/histogram_generator.hpp"
 #include "storage/cache/chunk_cache_manager.h"
-#include "storage/catalog/catalog.hpp"
+#include "catalog/catalog.hpp"
 #include "parser/parsed_data/create_schema_info.hpp"
 #include "parser/parsed_data/create_graph_info.hpp"
 #include "parser/parsed_data/create_partition_info.hpp"
 #include "parser/parsed_data/create_property_schema_info.hpp"
 #include "parser/parsed_data/create_extent_info.hpp"
 #include "parser/parsed_data/create_chunkdefinition_info.hpp"
-#include "storage/catalog/catalog_entry/list.hpp"
+#include "catalog/catalog_entry/list.hpp"
 
 // compiler-related
 #include "gpos/_api.h"
@@ -95,7 +95,7 @@
 
 #include "optimizer/mdprovider/MDProviderTBGPP.h"
 
-#include "storage/catalog/catalog_wrapper.hpp"
+#include "catalog/catalog_wrapper.hpp"
 #include "optimizer/orca/gpopt/tbgppdbwrappers.hpp"
 
 #include <readline/readline.h>
