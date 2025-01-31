@@ -3,7 +3,7 @@
 #include <cmath>
 #include <numeric>
 #include <queue>
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 
 // catalog related
 #include "storage/catalog/catalog.hpp"
@@ -162,7 +162,7 @@ unique_ptr<OperatorState> PhysicalIdSeek::GetOperatorState(
     ExecutionContext &context) const
 {
     auto state = make_unique<IdSeekState>(*(context.client), oids);
-    context.client->graph_store->fillEidToMappingIdx(oids,
+    context.client->graph_storage_wrapper->fillEidToMappingIdx(oids,
                                                      state->eid_to_schema_idx);
     return state;
 }
@@ -254,7 +254,7 @@ OperatorResultType PhysicalIdSeek::ExecuteLeft(ExecutionContext &context,
     vector<vector<uint32_t>> target_seqnos_per_extent;
     vector<idx_t> mapping_idxs;
 
-    context.client->graph_store->InitializeVertexIndexSeek(
+    context.client->graph_storage_wrapper->InitializeVertexIndexSeek(
         state.ext_it, scan_projection_mapping, input, nodeColIdx, scan_types,
         target_eids, target_seqnos_per_extent, mapping_idxs,
         state.null_tuples_idx, state.eid_to_schema_idx, &state.io_cache);
@@ -419,7 +419,7 @@ void PhysicalIdSeek::initializeSeek(
     vector<idx_t> &mapping_idxs, vector<idx_t> &num_tuples_per_chunk) const
 {
     state.null_tuples_idx.clear();
-    context.client->graph_store->InitializeVertexIndexSeek(
+    context.client->graph_storage_wrapper->InitializeVertexIndexSeek(
         state.ext_it, scan_projection_mapping, input, nodeColIdx, scan_types,
         target_eids, target_seqnos_per_extent, mapping_idxs,
         state.null_tuples_idx, state.eid_to_schema_idx, &state.io_cache);
@@ -443,7 +443,7 @@ void PhysicalIdSeek::initializeSeek(
     vector<idx_t> &mapping_idxs) const
 {
     state.null_tuples_idx.clear();
-    context.client->graph_store->InitializeVertexIndexSeek(
+    context.client->graph_storage_wrapper->InitializeVertexIndexSeek(
         state.ext_it, scan_projection_mapping, input, nodeColIdx, scan_types,
         target_eids, target_seqnos_per_extent, mapping_idxs,
         state.null_tuples_idx, state.eid_to_schema_idx, &state.io_cache);
@@ -499,7 +499,7 @@ void PhysicalIdSeek::doSeekUnionAll(
                 inner_output_col_idxs[mapping_idxs[extentIdx]];
             auto &non_pred_col_idxs =
                 non_pred_col_idxs_per_schema[mapping_idxs[extentIdx]];
-            context.client->graph_store->doVertexIndexSeek(
+            context.client->graph_storage_wrapper->doVertexIndexSeek(
                 state.ext_it, chunk, input, nodeColIdx, target_eids,
                 target_seqnos_per_extent, non_pred_col_idxs, extentIdx,
                 output_col_idx);
@@ -536,7 +536,7 @@ void PhysicalIdSeek::doSeekUnionAll(
             auto &pred_col_idxs =
                 pred_col_idxs_per_schema[mapping_idxs[extentIdx]];
             // do VertexIdSeek (but only scan cols used in filter)
-            context.client->graph_store->doVertexIndexSeek(
+            context.client->graph_storage_wrapper->doVertexIndexSeek(
                 state.ext_it, tmp_chunk, input, nodeColIdx, target_eids,
                 target_seqnos_per_extent, pred_col_idxs, extentIdx,
                 output_col_idx);
@@ -568,7 +568,7 @@ void PhysicalIdSeek::doSeekUnionAll(
 
                 auto &tmp_chunk = *(tmp_chunks[chunk_idx].get());
                 auto &output_col_idx = chunk_idx_to_output_cols_idx[0];
-                context.client->graph_store->doVertexIndexSeek(
+                context.client->graph_storage_wrapper->doVertexIndexSeek(
                     state.ext_it, tmp_chunk, input, nodeColIdx, target_eids,
                     target_seqnos_per_extent_after_filter, non_pred_col_idxs,
                     extentIdx, output_col_idx);
@@ -645,7 +645,7 @@ void PhysicalIdSeek::doSeekSchemaless(
                 // Note: Row store is shared accross all column
                 const vector<uint32_t> &output_col_idx =
                     inner_output_col_idxs[mapping_idxs[extentIdx]];
-                context.client->graph_store->doVertexIndexSeek(
+                context.client->graph_storage_wrapper->doVertexIndexSeek(
                     state.ext_it, chunk, input, nodeColIdx, target_eids,
                     target_seqnos_per_extent, extentIdx, out_id_col_idx, rowcol,
                     chunk.GetRowMajorStore(union_inner_col_map_wo_id[0]),
@@ -683,7 +683,7 @@ void PhysicalIdSeek::doSeekGrouping(
     //         idx_t chunk_idx = base_chunk_idx + mapping_idxs[extentIdx];
     //         auto &non_pred_col_idxs =
     //             non_pred_col_idxs_per_schema[mapping_idxs[extentIdx]];
-    //         context.client->graph_store->doVertexIndexSeek(
+    //         context.client->graph_storage_wrapper->doVertexIndexSeek(
     //             state.ext_it, *(chunks[chunk_idx].get()), input, nodeColIdx,
     //             target_eids, target_seqnos_per_extent, non_pred_col_idxs,
     //             extentIdx, output_col_idx, num_tuples_per_chunk[chunk_idx]);
@@ -744,7 +744,7 @@ void PhysicalIdSeek::doSeekGrouping(
     //         // do VertexIdSeek
     //         // TODO in schemaless case, we need to change this API carefully. it should cover both cases
     //         if (chunks.size() == 1) {
-    //             context.client->graph_store->doVertexIndexSeek(
+    //             context.client->graph_storage_wrapper->doVertexIndexSeek(
     //                 state.ext_it, tmp_chunk, input, nodeColIdx, target_eids,
     //                 target_seqnos_per_extent, pred_col_idxs, extentIdx,
     //                 output_col_idx);
@@ -752,7 +752,7 @@ void PhysicalIdSeek::doSeekGrouping(
     //                 target_seqnos_per_extent[extentIdx].size();
     //         }
     //         else {
-    //             context.client->graph_store->doVertexIndexSeek(
+    //             context.client->graph_storage_wrapper->doVertexIndexSeek(
     //                 state.ext_it, tmp_chunk, input, nodeColIdx, target_eids,
     //                 target_seqnos_per_extent, pred_col_idxs, extentIdx,
     //                 output_col_idx, num_tuples_per_chunk[chunk_idx]);
@@ -831,7 +831,7 @@ void PhysicalIdSeek::doSeekGrouping(
     //                 vector. We ustmp_chunk because its left part is a sliced portion
     //                 of the input, allowing us to simply pass it along.
     //                 */
-    //                 context.client->graph_store->doVertexIndexSeek(
+    //                 context.client->graph_storage_wrapper->doVertexIndexSeek(
     //                     state.ext_it, tmp_chunk, tmp_chunk /* input */,
     //                     nodeColIdx, target_eids,
     //                     target_seqnos_per_extent_after_filter,

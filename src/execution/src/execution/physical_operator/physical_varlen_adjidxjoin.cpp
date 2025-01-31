@@ -1,5 +1,5 @@
 
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 
 #include "execution/physical_operator/physical_varlen_adjidxjoin.hpp"
 #include "storage/extent/extent_iterator.hpp"
@@ -183,9 +183,9 @@ void PhysicalVarlenAdjIdxJoin::GetJoinMatches(ExecutionContext& context, DataChu
 	// fill in adjacency col info
 // DEBUG 
 	if( state.adj_col_idxs.size() == 0 ) {
-		context.client->graph_store->getAdjColIdxs((idx_t)adjidx_obj_id, state.adj_col_idxs, state.adj_col_types);
+		context.client->graph_storage_wrapper->getAdjColIdxs((idx_t)adjidx_obj_id, state.adj_col_idxs, state.adj_col_types);
 		// 230303 changed api
-		//context.client->graph_store->getAdjColIdxs(srcLabelSet, edgeLabelSet, expandDir, state.adj_col_idxs, state.adj_col_types);	
+		//context.client->graph_storage_wrapper->getAdjColIdxs(srcLabelSet, edgeLabelSet, expandDir, state.adj_col_idxs, state.adj_col_types);	
 	}
 	
 	// resize join sizes using adj_col_idxs

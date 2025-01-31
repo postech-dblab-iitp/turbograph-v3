@@ -17,7 +17,7 @@
 // #include "planner/operator/logical_join.hpp"
 #include "common/enums/join_type.hpp"
 
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 
 namespace duckdb {
 

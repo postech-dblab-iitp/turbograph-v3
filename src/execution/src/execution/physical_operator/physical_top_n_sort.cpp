@@ -1,4 +1,4 @@
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 
 #include "execution/physical_operator/physical_top_n_sort.hpp"
 #include "execution/top_n_sort.hpp"

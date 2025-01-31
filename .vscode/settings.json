@@ -20,6 +20,15 @@
         "functional": "cpp",
         "type_traits": "cpp",
         "variant": "cpp",
-        "istream": "cpp"
+        "istream": "cpp",
+        "*.tcc": "cpp",
+        "future": "cpp",
+        "memory_resource": "cpp",
+        "mutex": "cpp",
+        "shared_mutex": "cpp",
+        "stop_token": "cpp",
+        "thread": "cpp",
+        "condition_variable": "cpp",
+        "*.ipp": "cpp"
     }
 }

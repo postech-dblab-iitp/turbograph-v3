@@ -21,10 +21,7 @@
 #include <boost/timer/timer.hpp>
 #include <boost/date_time.hpp>
 #include <boost/filesystem.hpp>
-
-
 #include <nlohmann/json.hpp>	// TODO remove json and use that of boost
-using json = nlohmann::json;
 
 #include <icecream.hpp>
 
@@ -32,8 +29,7 @@ using json = nlohmann::json;
 #include "common/graph_simdcsv_parser.hpp"
 #include "common/error_handler.hpp"
 
-#include "storage/graph_store.hpp"
-#include "storage/ldbc_insert.hpp"
+#include "storage/graph_storage_wrapper.hpp"
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
@@ -110,6 +106,7 @@ using json = nlohmann::json;
 using namespace antlr4;
 using namespace gpopt;
 using namespace duckdb;
+using json = nlohmann::json;
 
 CUnittest* m_rgut = NULL;
 ULONG m_ulTests = 0;

@@ -1,5 +1,5 @@
 #pragma once
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 
 #include "common/enums/join_type.hpp"
 #include "common/types/value.hpp"

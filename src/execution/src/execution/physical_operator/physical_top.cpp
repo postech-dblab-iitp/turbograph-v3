@@ -1,6 +1,6 @@
 #include "execution/physical_operator/physical_top.hpp"
 
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 #include "icecream.hpp"
 
 #include <string>

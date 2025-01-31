@@ -30,9 +30,7 @@ using json = nlohmann::json;
 
 #include <icecream.hpp>
 
-#include "storage/graph_store.hpp"
-#include "storage/ldbc_insert.hpp"
-#include "storage/livegraph_catalog.hpp"
+#include "storage/graph_storage_wrapper.hpp"
 
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"

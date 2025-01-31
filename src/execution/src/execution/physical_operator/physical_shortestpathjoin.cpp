@@ -1,6 +1,6 @@
 
 #include "execution/physical_operator/physical_shortestpathjoin.hpp"
-#include "typedef.hpp"
+#include "common/typedef.hpp"
 #include "common/output_util.hpp"
 
 namespace duckdb {
@@ -78,8 +78,8 @@ OperatorResultType PhysicalShortestPathJoin::Execute(ExecutionContext &context,
 {
 	auto &srtp_state = (ShortestPathState &)state;
 	if(!srtp_state.is_initialized) {
-		context.client->graph_store->getAdjColIdxs((idx_t)adjidx_obj_id_fwd, srtp_state.adj_col_idxs, srtp_state.adj_col_types);
-		context.client->graph_store->getAdjColIdxs((idx_t)adjidx_obj_id_bwd, srtp_state.adj_col_idxs, srtp_state.adj_col_types);
+		context.client->graph_storage_wrapper->getAdjColIdxs((idx_t)adjidx_obj_id_fwd, srtp_state.adj_col_idxs, srtp_state.adj_col_types);
+		context.client->graph_storage_wrapper->getAdjColIdxs((idx_t)adjidx_obj_id_bwd, srtp_state.adj_col_idxs, srtp_state.adj_col_types);
 		srtp_state.is_initialized = true;
 		D_ASSERT(srtp_state.adj_col_idxs.size() == 2);
 		D_ASSERT(srtp_state.adj_col_types.size() == 2);
