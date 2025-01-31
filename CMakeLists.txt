@@ -250,6 +250,7 @@ include_directories(third_party/icecream-cpp/include)
 include_directories(third_party/tblr)
 include_directories(third_party/cuckoofilter/src)
 include_directories(third_party/fplus)
+include_directories(third_party/range-v3)
 
 add_subdirectory(third_party)
 add_subdirectory(src)

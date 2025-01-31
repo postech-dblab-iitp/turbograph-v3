@@ -158,7 +158,6 @@
 #include "common/enums/order_type.hpp"
 #include "common/enums/join_type.hpp"
 #include "planner/joinside.hpp"
-#include "BTNode.h"
 #include "planner/logical_plan.hpp"
 #include "planner/value_ser_des.hpp"
 #include "mdprovider/MDProviderTBGPP.h"
