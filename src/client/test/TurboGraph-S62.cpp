@@ -99,8 +99,6 @@ using json = nlohmann::json;
 #include "kuzu/parser/transformer.h"
 #include "kuzu/binder/binder.h"
 
-#include "BTNode.h"
-
 #include "mdprovider/MDProviderTBGPP.h"
 
 #include "storage/catalog/catalog_wrapper.hpp"
@@ -404,13 +402,6 @@ void CompileAndRun(string& query_str, std::shared_ptr<ClientContext> client, s62
 		auto boundStatement = binder.bind(*statement);
 		kuzu::binder::BoundStatement *bst = boundStatement.get();
 		// bind_timer.stop();
-
-		if (planner_config.DEBUG_PRINT) {
-			BTTree<kuzu::binder::ParseTreeNode> printer(bst, &kuzu::binder::ParseTreeNode::getChildNodes, &kuzu::binder::BoundStatement::getName);
-			std::cout << "Tree => " << std::endl;
-			printer.print();
-			std::cout << std::endl;
-		}
 
 		boost::timer::cpu_timer orca_compile_timer;
 		orca_compile_timer.start();
