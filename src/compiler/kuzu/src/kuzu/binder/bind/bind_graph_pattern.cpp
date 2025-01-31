@@ -5,7 +5,6 @@
 #include "common/tuple.hpp"
 #include "common/type_utils.h"
 #include "common/boost_typedefs.hpp"
-#include "database.hpp"
 
 namespace kuzu {
 namespace binder {
