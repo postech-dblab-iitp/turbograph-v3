@@ -6,11 +6,6 @@ cmake_minimum_required(VERSION 3.16)
 project(common)
 
 ####################################################
-# ADD SUBDIRECTORIES
-####################################################
-add_subdirectory(third_party)
-
-####################################################
 # FIND PACKAGES
 ####################################################
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
@@ -62,13 +57,6 @@ target_include_directories(common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/include/third_party/duckdb_re2/"
 	"${PROJECT_SOURCE_DIR}/include/third_party/fast_float"
 	"${PROJECT_SOURCE_DIR}/include/third_party/utf8proc/include"
-	"${PROJECT_SOURCE_DIR}/third_party/fastpforlib"
-	"${PROJECT_SOURCE_DIR}/third_party/simdcsv"
-	"${PROJECT_SOURCE_DIR}/third_party/icecream-cpp/include/"
-	"${PROJECT_SOURCE_DIR}/third_party/tblr"
-	"${PROJECT_SOURCE_DIR}/third_party/cuckoofilter/src/"
-	"${PROJECT_SOURCE_DIR}/third_party/range-v3"
-	"${PROJECT_SOURCE_DIR}/third_party/fplus"
 	"${PROJECT_SOURCE_DIR}/include/third_party/simdjson"
 	"${PROJECT_SOURCE_DIR}/include/third_party/fpgrowth/FP-growth"
 	# external - client
@@ -78,15 +66,14 @@ target_include_directories(common-lib PUBLIC
 	${Python3_INCLUDE_DIRS}
 )
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
-file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*"
-	# third_party
-	"${PROJECT_SOURCE_DIR}/third_party/cuckoofilter/src/*.c*")
+file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*")
 
 SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES})
 target_sources(common-lib PUBLIC ${TBGPP_SYSTEM_SOURCES})
 target_link_libraries(common-lib pthread aio numa rt hwloc tbb ssl crypto readline)
 target_link_libraries(common-lib duckdb_fastpforlib)
 target_link_libraries(common-lib turbograph_simdcsv)
+target_link_libraries(common-lib cuckoofilter)
 target_link_libraries(common-lib ${Python3_LIBRARIES})
 target_compile_options(common-lib PUBLIC ${CXX_FLAGS})
 target_compile_definitions(common-lib PUBLIC ${CXX_DEFINITION})

@@ -46,9 +46,6 @@ target_include_directories(compiler PUBLIC
 	"${PROJECT_SOURCE_DIR}/gpdb/src/backend/gporca/libgpdbcost/include"
 	"${PROJECT_SOURCE_DIR}/gpdb/src/backend/gporca/libgpopt/include"
 	"${PROJECT_SOURCE_DIR}/gpdb/src/backend/gporca/server/include"
-	# third_party
-	"${PROJECT_SOURCE_DIR}/third_party/antlr4_cypher/antlr4"
-	"${PROJECT_SOURCE_DIR}/third_party/antlr4_runtime/src"
 	# client
 	"${PROJECT_SOURCE_DIR}/../client/include/main"
 	# common
