@@ -1,4 +1,4 @@
-#include "common/types/literal.h"
+#include "kuzu/common/types/literal.h"
 
 #include <cassert>
 

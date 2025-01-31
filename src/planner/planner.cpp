@@ -1,4 +1,4 @@
-#include "optimizer/planner/planner.hpp"
+#include "planner/planner.hpp"
 #include "optimizer/mdprovider/MDProviderTBGPP.h"
 
 #include <limits>

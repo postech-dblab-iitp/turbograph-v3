@@ -1,10 +1,10 @@
 #pragma once
 
-#include "date_t.h"
-#include "dtime_t.h"
-#include "interval_t.h"
-#include "ku_list.h"
-#include "ku_string.h"
-#include "node_id_t.h"
-#include "timestamp_t.h"
-#include "types.h"
+#include "kuzu/common/types/date_t.h"
+#include "kuzu/common/types/dtime_t.h"
+#include "kuzu/common/types/interval_t.h"
+#include "kuzu/common/types/ku_list.h"
+#include "kuzu/common/types/ku_string.h"
+#include "kuzu/common/types/node_id_t.h"
+#include "kuzu/common/types/timestamp_t.h"
+#include "kuzu/common/types/types.h"

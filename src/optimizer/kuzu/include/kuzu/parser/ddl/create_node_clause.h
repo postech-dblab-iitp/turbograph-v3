@@ -1,6 +1,6 @@
 #pragma once
 
-#include "parser/ddl/create_table.h"
+#include "kuzu/parser/ddl/create_table.h"
 
 namespace kuzu {
 namespace parser {

@@ -1,4 +1,4 @@
-#include "common/utils.h"
+#include "kuzu/common/utils.h"
 
 // #include "spdlog/sinks/stdout_sinks.h"
 // #include "spdlog/spdlog.h"

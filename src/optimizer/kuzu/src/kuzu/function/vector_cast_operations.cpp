@@ -1,7 +1,7 @@
-#include "function/cast/vector_cast_operations.h"
+#include "kuzu/function//cast/vector_cast_operations.h"
 
-// #include "common/vector/value_vector_utils.h"
-#include "function/cast/cast_operations.h"
+// #include "kuzu/common/vector/value_vector_utils.h"
+#include "kuzu/function//cast/cast_operations.h"
 
 using namespace kuzu::common;
 

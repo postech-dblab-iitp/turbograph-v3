@@ -2,7 +2,7 @@
 #include "main/database.hpp"
 #include "storage/cache/chunk_cache_manager.h"
 #include "catalog/catalog_wrapper.hpp"
-#include "optimizer/planner/planner.hpp"
+#include "planner/planner.hpp"
 #include "main/client_context.hpp"
 #include "main/database.hpp"
 #include "optimizer/orca/gpopt/tbgppdbwrappers.hpp"

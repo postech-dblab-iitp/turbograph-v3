@@ -5,11 +5,11 @@
 #include <memory>
 #include <unordered_set>
 
-#include "common/exception.h"
-#include "common/expression_type.h"
-#include "common/types/types_include.h"
+#include "kuzu/common/exception.h"
+#include "kuzu/common/expression_type.h"
+#include "kuzu/common/types/types_include.h"
 
-#include "binder/parse_tree_node.h"
+#include "kuzu/binder/parse_tree_node.h"
 
 
 using namespace kuzu::common;

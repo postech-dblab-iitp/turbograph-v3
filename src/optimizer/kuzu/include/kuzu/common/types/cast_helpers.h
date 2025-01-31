@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-#include "interval_t.h"
+#include "kuzu/common/types/interval_t.h"
 
 namespace kuzu {
 namespace common {

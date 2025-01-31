@@ -1,5 +1,5 @@
 #include "optimizer/mdprovider/MDProviderTBGPP.h"
-#include "optimizer/planner/planner.hpp"
+#include "planner/planner.hpp"
 
 #include <limits>
 #include <string>

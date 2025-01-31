@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "pattern_element_chain.h"
+#include "kuzu/parser/query/graph_pattern/pattern_element_chain.h"
 
 namespace kuzu {
 namespace parser {

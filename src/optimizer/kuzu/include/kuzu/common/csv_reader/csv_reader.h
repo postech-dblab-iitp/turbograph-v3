@@ -2,9 +2,9 @@
 
 #include <fstream>
 
-#include "common/configs.h"
-#include "common/types/literal.h"
-#include "common/types/types_include.h"
+#include "kuzu/common/configs.h"
+#include "kuzu/common/types/literal.h"
+#include "kuzu/common/types/types_include.h"
 
 namespace spdlog {
 class logger;

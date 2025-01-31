@@ -1,7 +1,7 @@
 #pragma once
 
-#include "parser/statement.h"
-#include "single_query.h"
+#include "kuzu/parser/statement.h"
+#include "kuzu/parser/query/single_query.h"
 
 namespace kuzu {
 namespace parser {

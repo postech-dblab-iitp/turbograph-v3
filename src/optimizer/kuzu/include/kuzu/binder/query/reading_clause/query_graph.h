@@ -3,9 +3,9 @@
 #include <bitset>
 #include <unordered_map>
 
-#include "binder/expression/rel_expression.h"
-#include "binder/expression/path_expression.h"
-#include "binder/parse_tree_node.h"
+#include "kuzu/binder/expression/rel_expression.h"
+#include "kuzu/binder/expression/path_expression.h"
+#include "kuzu/binder/parse_tree_node.h"
 
 namespace kuzu {
 namespace binder {

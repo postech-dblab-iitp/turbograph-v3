@@ -1,8 +1,8 @@
 #pragma once
 
-#include "binder/bound_statement_result.h"
-#include "normalized_query_part.h"
-#include "binder/parse_tree_node.h"
+#include "kuzu/binder/bound_statement_result.h"
+#include "kuzu/binder/query/normalized_query_part.h"
+#include "kuzu/binder/parse_tree_node.h"
 
 namespace kuzu {
 namespace binder {

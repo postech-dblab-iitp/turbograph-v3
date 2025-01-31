@@ -1,6 +1,6 @@
-// #include "common/vector/value_vector_utils.h"
+// #include "kuzu/common/vector/value_vector_utils.h"
 
-// #include "common/in_mem_overflow_buffer_utils.h"
+// #include "kuzu/common/in_mem_overflow_buffer_utils.h"
 
 // using namespace kuzu;
 // using namespace common;

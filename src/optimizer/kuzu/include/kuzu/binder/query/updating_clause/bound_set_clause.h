@@ -1,7 +1,7 @@
 #pragma once
 
-#include "binder/expression/rel_expression.h"
-#include "bound_updating_clause.h"
+#include "kuzu/binder/expression/rel_expression.h"
+#include "kuzu/binder/query/updating_clause/bound_updating_clause.h"
 
 namespace kuzu {
 namespace binder {

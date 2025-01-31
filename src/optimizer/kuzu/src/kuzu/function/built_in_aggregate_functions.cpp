@@ -1,6 +1,6 @@
-#include "function/aggregate/built_in_aggregate_functions.h"
+#include "kuzu/function//aggregate/built_in_aggregate_functions.h"
 
-#include "binder/expression/expression.h"
+#include "kuzu/binder/expression/expression.h"
 
 
 namespace kuzu {

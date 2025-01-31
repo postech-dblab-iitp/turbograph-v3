@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "parser/statement.h"
+#include "kuzu/parser/statement.h"
 
 namespace kuzu {
 namespace parser {

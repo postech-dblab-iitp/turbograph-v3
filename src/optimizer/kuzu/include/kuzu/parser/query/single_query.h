@@ -1,6 +1,6 @@
 #pragma once
 
-#include "query_part.h"
+#include "kuzu/parser/query/query_part.h"
 
 namespace kuzu {
 namespace parser {

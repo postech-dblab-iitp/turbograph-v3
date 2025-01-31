@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "statement.h"
+#include "kuzu/parser/statement.h"
 
 namespace kuzu {
 namespace parser {

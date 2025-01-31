@@ -1,14 +1,14 @@
-#include "function/built_in_vector_operations.h"
+#include "kuzu/function//built_in_vector_operations.h"
 
-#include "binder/expression/expression.h"
-#include "function/arithmetic/vector_arithmetic_operations.h"
-#include "function/cast/vector_cast_operations.h"
-#include "function/comparison/vector_comparison_operations.h"
-#include "function/date/vector_date_operations.h"
-// #include "function/interval/vector_interval_operations.h"
-#include "function/list/vector_list_operations.h"
-#include "function/string/vector_string_operations.h"
-// #include "function/timestamp/vector_timestamp_operations.h"
+#include "kuzu/binder/expression/expression.h"
+#include "kuzu/function//arithmetic/vector_arithmetic_operations.h"
+#include "kuzu/function//cast/vector_cast_operations.h"
+#include "kuzu/function//comparison/vector_comparison_operations.h"
+#include "kuzu/function//date/vector_date_operations.h"
+// #include "kuzu/function//interval/vector_interval_operations.h"
+#include "kuzu/function//list/vector_list_operations.h"
+#include "kuzu/function//string/vector_string_operations.h"
+// #include "kuzu/function//timestamp/vector_timestamp_operations.h"
 
 namespace kuzu {
 namespace function {

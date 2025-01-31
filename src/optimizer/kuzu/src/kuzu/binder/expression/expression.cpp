@@ -1,6 +1,6 @@
-#include "binder/expression/expression.h"
+#include "kuzu/binder/expression/expression.h"
 
-#include "binder/expression/property_expression.h"
+#include "kuzu/binder/expression/property_expression.h"
 
 namespace kuzu {
 namespace binder {

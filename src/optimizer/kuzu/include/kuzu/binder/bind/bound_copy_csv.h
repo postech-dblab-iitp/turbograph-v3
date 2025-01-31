@@ -4,9 +4,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "binder/bound_statement.h"
-#include "catalog/catalog_structs.h"
-#include "common/csv_reader/csv_reader.h"
+#include "kuzu/binder/bound_statement.h"
+#include "kuzu/catalog/catalog_structs.h"
+#include "kuzu/common/csv_reader/csv_reader.h"
 
 using namespace kuzu::catalog;
 

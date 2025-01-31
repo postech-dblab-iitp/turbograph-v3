@@ -9,7 +9,7 @@
 #include <vector>
 #include <algorithm>
 
-#include "exception.h"
+#include "kuzu/common/exception.h"
 
 using namespace std;
 

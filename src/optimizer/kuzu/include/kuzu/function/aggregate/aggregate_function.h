@@ -4,10 +4,10 @@
 #include <utility>
 #include <memory>
 
-#include "common/vector/value_vector.h"
-#include "function/function_definition.h"
+#include "kuzu/common/vector/value_vector.h"
+#include "kuzu/function//function_definition.h"
 
-#include "common/types/types.h"
+#include "kuzu/common/types/types.h"
 
 using namespace std;
 using namespace kuzu::common;

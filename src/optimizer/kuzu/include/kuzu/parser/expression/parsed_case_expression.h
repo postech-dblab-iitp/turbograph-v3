@@ -1,6 +1,6 @@
 #pragma once
 
-#include "parsed_expression.h"
+#include "kuzu/parser/expression/parsed_expression.h"
 
 namespace kuzu {
 namespace parser {

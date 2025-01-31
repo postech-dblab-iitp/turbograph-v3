@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/configs.h"
-#include "expression.h"
+#include "kuzu/common/configs.h"
+#include "kuzu/binder/expression/expression.h"
 
 namespace kuzu {
 namespace binder {

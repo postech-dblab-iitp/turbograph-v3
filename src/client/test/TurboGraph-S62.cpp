@@ -86,7 +86,7 @@
 #include "gpopt/operators/CLogicalInnerJoin.h"
 
 #include "gpopt/metadata/CTableDescriptor.h"
-#include "optimizer/planner/planner.hpp"
+#include "planner/planner.hpp"
 
 #include "kuzu/parser/antlr_parser/kuzu_cypher_parser.h"
 #include "CypherLexer.h"

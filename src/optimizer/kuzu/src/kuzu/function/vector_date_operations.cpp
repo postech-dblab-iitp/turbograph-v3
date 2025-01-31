@@ -1,6 +1,6 @@
-#include "function/date/vector_date_operations.h"
+#include "kuzu/function//date/vector_date_operations.h"
 
-#include "function/date/date_operations.h"
+#include "kuzu/function//date/date_operations.h"
 
 using namespace kuzu::common;
 
