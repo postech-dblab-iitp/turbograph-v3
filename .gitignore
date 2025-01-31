@@ -45,11 +45,6 @@ __pycache__/
 Thumbs.db
 *.ini
 
-# CMake
-CMakeCache.txt
-CMakeFiles/
-*.cmake
-
 # Editor-specific
 *.swp              # Vim swap files
 .idea/             # IntelliJ IDEA
