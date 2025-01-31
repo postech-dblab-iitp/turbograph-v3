@@ -46,10 +46,10 @@ Thumbs.db
 *.ini
 
 # Editor-specific
-*.swp              # Vim swap files
-.idea/             # IntelliJ IDEA
-.vscode/           # VSCode directory
-*.code-workspace   # VSCode workspace files
+*.swp
+.idea/
+*.code-workspace 
+.vscode/
 
 # Images and media
 *.png
