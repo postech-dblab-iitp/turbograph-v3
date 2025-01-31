@@ -51,14 +51,6 @@ target_include_directories(common-lib PUBLIC
 	"${PROJECT_SOURCE_DIR}/include/planner/query_node"
 	"${PROJECT_SOURCE_DIR}/include/planner/subquery"
 	"${PROJECT_SOURCE_DIR}/include/planner/tableref"
-	# third_party
-	"${PROJECT_SOURCE_DIR}/include/third_party"
-	"${PROJECT_SOURCE_DIR}/include/third_party/duckdb_fmt/include"
-	"${PROJECT_SOURCE_DIR}/include/third_party/duckdb_re2/"
-	"${PROJECT_SOURCE_DIR}/include/third_party/fast_float"
-	"${PROJECT_SOURCE_DIR}/include/third_party/utf8proc/include"
-	"${PROJECT_SOURCE_DIR}/include/third_party/simdjson"
-	"${PROJECT_SOURCE_DIR}/include/third_party/fpgrowth/FP-growth"
 	# external - client
 	"${PROJECT_SOURCE_DIR}/../client/include/"
 	"${PROJECT_SOURCE_DIR}/../execution/include/"
@@ -68,12 +60,20 @@ target_include_directories(common-lib PUBLIC
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 file (GLOB_RECURSE SYSTEM_SOURCES "${SRC_DIR}/*.c*")
 
-SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES})
+set(FUNC_DIR "${PROJECT_SOURCE_DIR}/../function") 
+file(GLOB_RECURSE FUNCTION_SOURCES "${FUNC_DIR}/*.cpp") 
+
+SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES} ${FUNCTION_SOURCES})
 target_sources(common-lib PUBLIC ${TBGPP_SYSTEM_SOURCES})
 target_link_libraries(common-lib pthread aio numa rt hwloc tbb ssl crypto readline)
 target_link_libraries(common-lib duckdb_fastpforlib)
 target_link_libraries(common-lib turbograph_simdcsv)
 target_link_libraries(common-lib cuckoofilter)
+target_link_libraries(common-lib duckdb_fmt)
+target_link_libraries(common-lib duckdb_re2)
+target_link_libraries(common-lib s62_simdjson)
+target_link_libraries(common-lib duckdb_utf8proc)
+target_link_libraries(common-lib duckdb_yyjson)
 target_link_libraries(common-lib ${Python3_LIBRARIES})
 target_compile_options(common-lib PUBLIC ${CXX_FLAGS})
 target_compile_definitions(common-lib PUBLIC ${CXX_DEFINITION})

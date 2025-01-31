@@ -3,7 +3,7 @@
 #include "common/types/string_type.hpp"
 #include "common/algorithm.hpp"
 #include "common/exception.hpp"
-#include "third_party/utf8proc/utf8proc_wrapper.hpp"
+#include "utf8proc_wrapper.hpp"
 
 #include "icecream.hpp"
 

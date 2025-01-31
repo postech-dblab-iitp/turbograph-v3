@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/common.hpp"
-#include "third_party/yyjson/yyjson.h"
+#include "yyjson.h"
 #include "common/enums/graph_component_type.hpp"
 #include "common/assert.hpp"
 #include "common/types/data_chunk.hpp"
