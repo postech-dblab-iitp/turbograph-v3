@@ -1,6 +1,6 @@
 add_subdirectory(common)
 add_subdirectory(storage)
 add_subdirectory(execution)
-add_subdirectory(compiler)
+add_subdirectory(optimizer)
 add_subdirectory(client)
 add_subdirectory(api)

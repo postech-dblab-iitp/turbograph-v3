@@ -55,7 +55,6 @@
 #include "naucrates/init.h"
 #include "gpopt/init.h"
 
-#include "unittest/gpopt/engine/CEngineTest.h"
 #include "gpos/test/CUnittest.h"
 #include "gpos/common/CMainArgs.h"
 
@@ -87,18 +86,17 @@
 #include "gpopt/operators/CLogicalInnerJoin.h"
 
 #include "gpopt/metadata/CTableDescriptor.h"
-
-#include "planner/planner.hpp"	// planner should go ahead of kuzu/* to avoid ambiguity
+#include "optimizer/planner/planner.hpp"
 
 #include "kuzu/parser/antlr_parser/kuzu_cypher_parser.h"
 #include "CypherLexer.h"
 #include "kuzu/parser/transformer.h"
 #include "kuzu/binder/binder.h"
 
-#include "mdprovider/MDProviderTBGPP.h"
+#include "optimizer/mdprovider/MDProviderTBGPP.h"
 
 #include "storage/catalog/catalog_wrapper.hpp"
-#include "tbgppdbwrappers.hpp"
+#include "optimizer/orca/gpopt/tbgppdbwrappers.hpp"
 
 #include <readline/readline.h>
 #include <readline/history.h>

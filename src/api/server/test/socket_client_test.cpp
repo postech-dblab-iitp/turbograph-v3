@@ -5,7 +5,7 @@
 #include <string.h>
 #include <nlohmann/json.hpp>
 #include <charconv>
-#include "s62_socket_server.hpp"
+#include "api/server/s62_socket_server.hpp"
 
 using json = nlohmann::json;
 typedef int32_t ClientId;

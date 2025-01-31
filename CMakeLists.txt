@@ -240,6 +240,13 @@ endif()
 # endfunction()
 
 include_directories(src/include)
+include_directories(src/include/optimizer/orca/gpopt)
+include_directories(src/include/optimizer/orca/gporca/libgpdbcost)
+include_directories(src/include/optimizer/orca/gporca/libgpopt)
+include_directories(src/include/optimizer/orca/gporca/libgpos)
+include_directories(src/include/optimizer/orca/gporca/libnaucrates)
+
+# Third party includes
 include_directories(SYSTEM third_party/velox)
 include_directories(third_party/antlr4_cypher/antlr4)
 include_directories(third_party/antlr4_runtime/src)

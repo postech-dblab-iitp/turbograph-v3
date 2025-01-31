@@ -7,7 +7,7 @@
 #include "storage/catalog/catalog_entry/list.hpp"
 #include "function/aggregate/distributive_functions.hpp"
 #include "function/function.hpp"
-#include "mdprovider/MDProviderTBGPP.h"
+#include "optimizer/mdprovider/MDProviderTBGPP.h"
 
 #include "icecream.hpp"
 

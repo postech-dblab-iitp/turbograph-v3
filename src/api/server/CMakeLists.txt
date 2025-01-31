@@ -30,9 +30,6 @@ add_library(tbgpp-server STATIC)
 # PER-TARGET DEFINITION - tbgpp-server
 ####################################################
 target_include_directories(tbgpp-server PUBLIC
-	"${PROJECT_SOURCE_DIR}/include"
-)
-target_include_directories(tbgpp-server PUBLIC
 	# storage
 	"${PROJECT_SOURCE_DIR}/../../storage/include"
 )

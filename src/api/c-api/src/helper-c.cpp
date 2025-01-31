@@ -1,4 +1,4 @@
-#include "capi_internal.hpp"
+#include "api/c-api/capi_internal.hpp"
 
 namespace duckdb {
 

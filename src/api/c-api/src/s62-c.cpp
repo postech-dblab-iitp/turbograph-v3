@@ -1,14 +1,14 @@
 #include <memory>
 #include <string>
 #include <ctime>
-#include "capi_internal.hpp"
+#include "api/c-api/capi_internal.hpp"
 #include "main/database.hpp"
 #include "storage/cache/chunk_cache_manager.h"
 #include "storage/catalog/catalog_wrapper.hpp"
-#include "planner/planner.hpp"
+#include "optimizer/planner/planner.hpp"
 #include "main/client_context.hpp"
 #include "main/database.hpp"
-#include "tbgppdbwrappers.hpp"
+#include "optimizer/orca/gpopt/tbgppdbwrappers.hpp"
 #include "CypherLexer.h"
 #include "kuzu/parser/transformer.h"
 #include "kuzu/binder/binder.h"
