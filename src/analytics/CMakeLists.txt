@@ -151,38 +151,18 @@ link_libraries(pthread glog jemalloc aio numa rt hwloc tbb)
 
 # 5. Set definitions
 
-execute_process(
-  COMMAND git rev-parse HEAD
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  OUTPUT_VARIABLE VERSION
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-set (CXX_DEFINITION ${CXX_DEFINITION} -DVERSION=\"${VERSION}\")
+# execute_process(
+#   COMMAND git rev-parse HEAD
+#   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+#   OUTPUT_VARIABLE VERSION
+#   OUTPUT_STRIP_TRAILING_WHITESPACE
+# )
+# set (CXX_DEFINITION ${CXX_DEFINITION} -DVERSION=\"${VERSION}\")
 
-
-#set(COMMON_DEFINITION -DUSE_DIRECT_TCP=1 -DCHECK_INVARIANTS -DUSE_HWLOC ${PLATFORM})
-#set(COMMON_DEFINITION -DUSE_DIRECT_TCP=1 -DCHECK_INVARIANTS -DREAGGREGATION_ALWAYS -DUSE_HWLOC ${PLATFORM})
-#set(COMMON_DEFINITION -DUSE_DIRECT_TCP=1 -DCHECK_INVARIANTS -DREAGGREGATION_ALWAYS -DUSE_HWLOC -DOldMessageTransfer ${PLATFORM})
 set(COMMON_DEFINITION -DUSE_DIRECT_TCP=1 -DCHECK_INVARIANTS -DUSE_HWLOC -DOldMessageTransfer ${PLATFORM})
 
 set(DEBUG_DEFINITION -DDEBUG)
-#set(DEBUG_DEFINITION -DDEBUG -DINCREMENTAL_PROFILING -DINCREMENTAL_LOGGING)
-#set(DEBUG_DEFINITION -DDEBUG -DPERFORMANCE)
-#set(DEBUG_DEFINITION -DDEBUG -DINCREMENTAL_PROFILING)
-#set(DEBUG_DEFINITION -DDEBUG -DINCREMENTAL_PROFILING -DINCREMENTAL_LOGGING)
-
-#set(RELEASE_DEFINITION -DNDEBUG)
 set(RELEASE_DEFINITION -DNDEBUG -DPERFORMANCE)
-#set(RELEASE_DEFINITION -DNDEBUG -DPERFORMANCE -DREPORT_PROFILING_TIMERS)
-#set(RELEASE_DEFINITION -DNDEBUG -DPERFORMANCE -DINCREMENTAL_PROFILING)
-#set(RELEASE_DEFINITION -DNDEBUG -DREPORT_PROFILING_TIMERS -DINCREMENTAL_PROFILING)
-#set(RELEASE_DEFINITION -DNDEBUG -DPERFORMANCE -DREPORT_PROFILING_TIMERS -DINCREMENTAL_PROFILING)
-#set(RELEASE_DEFINITION -DNDEBUG -DINCREMENTAL_PROFILING -DINCREMENTAL_LOGGING)
-#set(RELEASE_DEFINITION -DNDEBUG -DPERFORMANCE -DINCREMENTAL_PROFILING)
-#set(RELEASE_DEFINITION -DNDEBUG -DPERFORMANCE -DINCREMENTAL_PROFILING -DINCREMENTAL_LOGGING)
-#set(RELEASE_DEFINITION -DNDEBUG -DPERFORMANCE -DINCREMENTAL_PROFILING -DINCREMENTAL_LOGGING)
-#set(RELEASE_DEFINITION -DNDEBUG -DPERFORMANCE -DREPORT_PROFILING_TIMERS -DINCREMENTAL_PROFILING -DINCREMENTAL_LOGGING)
-#set(RELEASE_DEFINITION -DNDEBUG -DPERFORMANCE -DREPORT_PROFILING_TIMERS)
 
 if(CMAKE_BUILD_TYPE STREQUAL Release)
 	set(CXX_DEFINITION ${CXX_DEFINITION} ${COMMON_DEFINITION} ${RELEASE_DEFINITION})
@@ -190,7 +170,7 @@ else()
 	set(CXX_DEFINITION ${CXX_DEFINITION} ${COMMON_DEFINITION} ${DEBUG_DEFINITION})
 endif()
 
-message("CXX_DEFINITIONS: ${CXX_DEFINITION}")
+# message("CXX_DEFINITIONS: ${CXX_DEFINITION}")
 #set(CMAKE_CXX_DEFINITION ${CMAKE_CXX_DEFINITION} ${CXX_DEFINITION})
 #add_definitions(${CXX_DEFINITIONS})
 
@@ -214,18 +194,6 @@ if(PROFILE)
 	add_compile_options(-pg)
 endif()
 
-if (USE_GCOV)
-    message("It use gcov")
-    add_compile_options(-fprofile-arcs -ftest-coverage -fPIC --coverage -g -O0 -fno-inline)
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage")
-	set (CXX_DEFINITION ${CXX_DEFINITION} -DCOVERAGE)
-    set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE ON)
-    link_libraries(gcov)
-endif()
-
-message("CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
-
-
 # 7. Get source code files
 file (GLOB_RECURSE SYSTEM_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c*")
 SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES})
@@ -233,59 +201,11 @@ SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES})
 # 8. Compile the tbgpp-system and add it as a library
 add_library(tbgpp-system-lib ${TBGPP_SYSTEM_SOURCES})
 target_compile_definitions(tbgpp-system-lib PRIVATE ${CXX_DEFINITION})
-#add_library(tbgpp-system-lib INTERFACE)
-#target_sources(tbgpp-system-lib INTERFACE ${TBGPP_SYSTEM_SOURCES})
-#target_compile_definitions(tbgpp-system-lib INTERFACE ${CXX_DEFINITION})
-
-
-# 9. Compile applications
 
 #add_executable(buildDDB applications/buildDDB.cpp)
 #target_compile_options(buildDDB PRIVATE ${})
 #target_compile_definitions(buildDDB PRIVATE ${CXX_DEFINITION})
 #target_link_libraries(buildDDB PRIVATE tbgpp-system-lib)
 
-#add_executable(mssp_incremental applications/mssp_incremental.cpp)
-#target_compile_options(mssp_incremental PRIVATE ${})
-#target_compile_definitions(mssp_incremental PRIVATE ${CXX_DEFINITION})
-#target_link_libraries(mssp_incremental PRIVATE tbgpp-system-lib)
-
-
-#add_executable(wcc_incremental applications/wcc_incremental.cpp)
-#target_compile_options(wcc_incremental PRIVATE ${})
-#target_compile_definitions(wcc_incremental PRIVATE ${CXX_DEFINITION})
-#target_link_libraries(wcc_incremental PRIVATE tbgpp-system-lib)
-
-#add_executable(sssp_incremental applications/sssp_incremental.cpp)
-#target_compile_options(sssp_incremental PRIVATE ${})
-#target_compile_definitions(sssp_incremental PRIVATE ${CXX_DEFINITION})
-#target_link_libraries(sssp_incremental PRIVATE tbgpp-system-lib)
-
-#add_executable(pagerank_incremental applications/pagerank_incremental.cpp)
-#target_compile_options(pagerank_incremental PRIVATE ${})
-#target_compile_definitions(pagerank_incremental PRIVATE ${CXX_DEFINITION})
-#target_link_libraries(pagerank_incremental PRIVATE tbgpp-system-lib)
-
-#add_executable(triangle_counting-dynamic applications/triangle_counting-dynamic.cpp)
-#target_compile_options(triangle_counting-dynamic PRIVATE ${})
-#target_compile_definitions(triangle_counting-dynamic PRIVATE ${CXX_DEFINITION})
-#target_link_libraries(triangle_counting-dynamic PRIVATE tbgpp-system-lib)
-
-#add_executable(lcc applications/lcc.cpp)
-#target_compile_options(lcc PRIVATE ${})
-#target_compile_definitions(lcc PRIVATE ${CXX_DEFINITION})
-#target_link_libraries(lcc PRIVATE tbgpp-system-lib)
-
-#foreach(query lbp)
-	#foreach(query lbp lbp_ca)
-	#foreach(query pr wcc sssp lp lbp tc lp_ca pr_ca lbp_ca mssp)
-	#foreach(query u1_u2_u3 u1_u2_u3_reordered u1_u3_u2 u1_u3_u2_reordered u2_u1_u3 u2_u1_u3_reordered u2_u3_u1 u2_u3_u1_reordered u3_u2_u1 u3_u2_u1_reordered u3_u1_u2 u3_u1_u2_reordered)
-	#foreach(query pr sssp wcc lp_ca lbp_ca)
-#foreach(query u1_u2_u3_reordered) 
-#	add_executable(${query} generated_queries/${query}.cpp)
-#	target_compile_options(${query} PRIVATE ${})
-#	target_compile_definitions(${query} PRIVATE ${CXX_DEFINITION})
-#	target_link_libraries(${query} PRIVATE tbgpp-system-lib)
-#endforeach()
 add_subdirectory(generated_queries)
 add_subdirectory(test)
