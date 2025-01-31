@@ -59,18 +59,5 @@ Thumbs.db
 *.pdf
 *.svg
 
-# Tools-generated binaries and scripts
-src/common/third_party/velox/fbthrift
-src/common/third_party/velox/fizz
-src/common/third_party/velox/fmt
-src/common/third_party/velox/folly
-src/common/third_party/velox/wangle
-src/common/third_party/velox/fbthrift
-src/common/third_party/velox/scripts/fizz
-src/common/third_party/velox/scripts/fmt
-src/common/third_party/velox/scripts/folly
-src/common/third_party/velox/scripts/wangle
-src/common/third_party/velox/fbthrift/conda/Miniconda3-latest-Linux-x86_64.sh
-
 # Miscellaneous
 r*hs
