@@ -1,5 +1,5 @@
 #include "optimizer/orca/gpopt/tbgppdbwrappers.hpp"
-#include "storage/catalog/catalog_wrapper.hpp"
+#include "catalog/catalog_wrapper.hpp"
 #include "main/client_context.hpp"
 // #include <setjmp.h>
 

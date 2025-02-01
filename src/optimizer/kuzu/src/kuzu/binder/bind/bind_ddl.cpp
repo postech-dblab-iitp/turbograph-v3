@@ -1,10 +1,10 @@
-// #include "binder/bind/bound_create_node_clause.h"
-// #include "binder/bind/bound_create_rel_clause.h"
-// #include "binder/bind/bound_drop_table.h"
-// #include "binder/binder.h"
-// #include "parser/ddl/create_node_clause.h"
-// #include "parser/ddl/create_rel_clause.h"
-// #include "parser/ddl/drop_table.h"
+// #include "kuzu/binder/bind/bound_create_node_clause.h"
+// #include "kuzu/binder/bind/bound_create_rel_clause.h"
+// #include "kuzu/binder/bind/bound_drop_table.h"
+// #include "kuzu/binder/binder.h"
+// #include "kuzu/parser/ddl/create_node_clause.h"
+// #include "kuzu/parser/ddl/create_rel_clause.h"
+// #include "kuzu/parser/ddl/drop_table.h"
 
 // namespace kuzu {
 // namespace binder {

@@ -29,29 +29,8 @@ add_library(compiler STATIC)
 ####################################################
 # PER-TARGET DEFINITION - compiler
 ####################################################
-target_include_directories(compiler PUBLIC
-	# kuzu
-	"${PROJECT_SOURCE_DIR}/kuzu/include"
-	# client
-	"${PROJECT_SOURCE_DIR}/../client/include/main"
-	# common
-	"${PROJECT_SOURCE_DIR}/../common/include"
-	"${PROJECT_SOURCE_DIR}/../common/include/common"
-  	"${PROJECT_SOURCE_DIR}/../common/include/common/enums"
-	"${PROJECT_SOURCE_DIR}/../common/include/common/types"
-  	"${PROJECT_SOURCE_DIR}/../common/include/common/operator"
-	"${PROJECT_SOURCE_DIR}/../common/include/common/value_operations" 
-	"${PROJECT_SOURCE_DIR}/../common/third_party/TreePrinter/TreePrinter/src"
-	# execution
-	"${PROJECT_SOURCE_DIR}/../execution/include"
-	"${PROJECT_SOURCE_DIR}/../execution/include/execution"
-
-	# storage
-	"${PROJECT_SOURCE_DIR}/../storage/include"
-)
-
+target_include_directories(compiler PUBLIC "${PROJECT_SOURCE_DIR}/kuzu/include")
 file(GLOB_RECURSE SOURCES_MD "${PROJECT_SOURCE_DIR}/mdprovider/*.c*")
-file(GLOB_RECURSE SOURCES_PLANNER "${PROJECT_SOURCE_DIR}/planner/*.c*")
 list(APPEND SOURCES ${SOURCES_MD} ${SOURCES_PLANNER})
 target_sources(compiler PUBLIC ${SOURCES})
 target_link_libraries(compiler common-lib tbgpp-main execution-lib)

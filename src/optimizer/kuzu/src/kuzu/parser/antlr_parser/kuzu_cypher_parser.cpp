@@ -1,6 +1,6 @@
 // KUZUDB
 
-#include "parser/antlr_parser/kuzu_cypher_parser.h"
+#include "kuzu/parser/antlr_parser/kuzu_cypher_parser.h"
 
 #include <string>
 

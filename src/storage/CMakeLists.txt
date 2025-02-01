@@ -20,9 +20,8 @@ link_libraries(pthread aio numa rt hwloc tbb)
 ####################################################
 # PER-TARGET DEFINITION - storage-lib
 ####################################################
-file(GLOB_RECURSE SYSTEM_SOURCES
-    "${PROJECT_SOURCE_DIR}/*.c*"
-)
+file(GLOB_RECURSE SYSTEM_SOURCES "${PROJECT_SOURCE_DIR}/*.c*")
+file(GLOB_RECURSE CATALOG_SOURCES "${PROJECT_SOURCE_DIR}/../catalog/*.c*")
 
 # Exclude files in the 'test' folder
 foreach(TEST_FILE ${SYSTEM_SOURCES})
@@ -31,15 +30,8 @@ foreach(TEST_FILE ${SYSTEM_SOURCES})
     endif()
 endforeach()
 
-SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES})
+SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES} ${CATALOG_SOURCES})
 target_sources(storage-lib PUBLIC ${TBGPP_SYSTEM_SOURCES})
-target_include_directories( storage-lib PUBLIC 
-  # client
-  "${PROJECT_SOURCE_DIR}/../client/include/main"
-  # execution-engine
-  "${PROJECT_SOURCE_DIR}/../execution/include/execution"
-  "${PROJECT_SOURCE_DIR}/../execution/include/storage"
-)
 target_link_libraries(storage-lib common-lib)
 target_link_libraries(storage-lib tbgpp-main)
 target_link_libraries(storage-lib velox_dwio_common)
@@ -60,17 +52,6 @@ target_link_libraries(lightning common-lib)
 # PER-TARGET DEFINITION - store
 ####################################################
 target_sources(store PUBLIC "${PROJECT_SOURCE_DIR}/test/test_store.cc")
-target_include_directories(store PUBLIC
-	# common
-  "${PROJECT_SOURCE_DIR}/../common/include"
-  # common
-	"${PROJECT_SOURCE_DIR}/../common/include/common" "${PROJECT_SOURCE_DIR}/../common/include/common/enums"
-	"${PROJECT_SOURCE_DIR}/../common/include/common/types" "${PROJECT_SOURCE_DIR}/../common/include/common/operator"
-	"${PROJECT_SOURCE_DIR}/../common/include/common/value_operations"
-  # parser
-	"${PROJECT_SOURCE_DIR}/../include/parser"
-	"${PROJECT_SOURCE_DIR}/../include/parser/parsed_data"
-)
 target_link_libraries(store lightning)
 target_link_libraries(store common-lib)
 target_link_libraries(store tbgpp-main)

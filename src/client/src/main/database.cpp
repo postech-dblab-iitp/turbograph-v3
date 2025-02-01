@@ -1,7 +1,7 @@
 #include "main/database.hpp"
 
-#include "storage/catalog/catalog.hpp"
-#include "storage/catalog/catalog_wrapper.hpp"
+#include "catalog/catalog.hpp"
+#include "catalog/catalog_wrapper.hpp"
 //#include "common/virtual_file_system.hpp"
 #include "main/client_context.hpp"
 //#include "parallel/task_scheduler.hpp"
@@ -13,7 +13,7 @@
 //#include "main/extension_helper.hpp"
 #include "common/boost.hpp"
 
-// #include "storage/catalog/catalog_entry/schema_catalog_entry.hpp" 
+// #include "catalog/catalog_entry/schema_catalog_entry.hpp" 
 #include "parser/parsed_data/create_schema_info.hpp" // TODO remove this..
 
 #ifndef DUCKDB_NO_THREADS

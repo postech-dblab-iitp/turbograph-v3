@@ -2,10 +2,10 @@
 
 // #include <cassert>
 
-// #include "common/data_chunk/data_chunk_state.h"
-// #include "common/in_mem_overflow_buffer.h"
-// #include "common/null_mask.h"
-// #include "common/types/literal.h"
+// #include "kuzu/common/data_chunk/data_chunk_state.h"
+// #include "kuzu/common/in_mem_overflow_buffer.h"
+// #include "kuzu/common/null_mask.h"
+// #include "kuzu/common/types/literal.h"
 
 // namespace kuzu {
 // namespace common {

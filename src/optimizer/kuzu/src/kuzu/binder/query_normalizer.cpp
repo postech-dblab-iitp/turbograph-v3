@@ -1,6 +1,6 @@
-#include "binder/query_normalizer.h"
+#include "kuzu/binder/query_normalizer.h"
 
-#include "binder/expression/existential_subquery_expression.h"
+#include "kuzu/binder/expression/existential_subquery_expression.h"
 
 namespace kuzu {
 namespace binder {

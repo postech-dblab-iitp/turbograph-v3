@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "parser/ddl/ddl.h"
+#include "kuzu/parser/ddl/ddl.h"
 
 namespace kuzu {
 namespace parser {

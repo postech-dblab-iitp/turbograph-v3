@@ -1,6 +1,6 @@
-#include "common/types/timestamp_t.h"
+#include "kuzu/common/types/timestamp_t.h"
 
-#include "common/exception.h"
+#include "kuzu/common/exception.h"
 
 namespace kuzu {
 namespace common {

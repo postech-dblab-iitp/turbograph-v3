@@ -1,4 +1,4 @@
-#include "parser/antlr_parser/parser_error_strategy.h"
+#include "kuzu/parser/antlr_parser/parser_error_strategy.h"
 
 namespace kuzu {
 namespace parser {

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "expression.h"
-#include "function/aggregate/aggregate_function.h"
-#include "function/vector_operations.h"
+#include "kuzu/binder/expression/expression.h"
+#include "kuzu/function//aggregate/aggregate_function.h"
+#include "kuzu/function//vector_operations.h"
 
 using namespace kuzu::function;
 

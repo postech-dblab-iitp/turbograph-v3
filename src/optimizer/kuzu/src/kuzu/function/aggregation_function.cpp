@@ -1,15 +1,15 @@
-#include "function/aggregate/aggregate_function.h"
+#include "kuzu/function//aggregate/aggregate_function.h"
 
-#include "binder/expression/expression.h"
+#include "kuzu/binder/expression/expression.h"
 
-#include "common/types/interval_t.h"
-#include "function/comparison/comparison_operations.h"
+#include "kuzu/common/types/interval_t.h"
+#include "kuzu/function//comparison/comparison_operations.h"
 
-// #include "function/aggregate/avg.h"
-// #include "function/aggregate/count.h"
-// #include "function/aggregate/count_star.h"
-// #include "function/aggregate/min_max.h"
-// #include "function/aggregate/sum.h"
+// #include "kuzu/function//aggregate/avg.h"
+// #include "kuzu/function//aggregate/count.h"
+// #include "kuzu/function//aggregate/count_star.h"
+// #include "kuzu/function//aggregate/min_max.h"
+// #include "kuzu/function//aggregate/sum.h"
 
 namespace kuzu {
 namespace function {

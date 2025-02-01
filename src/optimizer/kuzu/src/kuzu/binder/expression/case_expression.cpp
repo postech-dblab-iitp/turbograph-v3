@@ -1,4 +1,4 @@
-#include "binder/expression/case_expression.h"
+#include "kuzu/binder/expression/case_expression.h"
 
 namespace kuzu {
 namespace binder {

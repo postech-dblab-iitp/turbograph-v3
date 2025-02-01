@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cast_operations.h"
-#include "function/vector_operations.h"
+#include "kuzu/function/cast/cast_operations.h"
+#include "kuzu/function/vector_operations.h"
 
 namespace kuzu {
 namespace function {

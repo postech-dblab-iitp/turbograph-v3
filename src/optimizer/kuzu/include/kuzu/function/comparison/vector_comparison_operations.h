@@ -1,8 +1,8 @@
 #pragma once
 
-#include "binder/expression/expression.h"
-#include "comparison_operations.h"
-#include "function/vector_operations.h"
+#include "kuzu/binder/expression/expression.h"
+#include "kuzu/function/comparison/comparison_operations.h"
+#include "kuzu/function/vector_operations.h"
 
 namespace kuzu {
 namespace function {

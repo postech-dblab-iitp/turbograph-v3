@@ -3,7 +3,7 @@
 #include <cassert>
 #include <functional>
 
-#include "common/type_utils.h"
+#include "kuzu/common/type_utils.h"
 
 using namespace kuzu::common;
 

@@ -6,7 +6,7 @@
 #include "common/typedef.hpp"
 
 // catalog related
-#include "storage/catalog/catalog.hpp"
+#include "catalog/catalog.hpp"
 #include "main/client_context.hpp"
 #include "main/database.hpp"
 

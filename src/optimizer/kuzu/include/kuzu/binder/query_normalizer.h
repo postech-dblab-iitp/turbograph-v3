@@ -1,7 +1,7 @@
 #pragma once
 
-#include "binder/query/bound_single_query.h"
-#include "binder/query/normalized_single_query.h"
+#include "kuzu/binder/query/bound_single_query.h"
+#include "kuzu/binder/query/normalized_single_query.h"
 
 namespace kuzu {
 namespace binder {

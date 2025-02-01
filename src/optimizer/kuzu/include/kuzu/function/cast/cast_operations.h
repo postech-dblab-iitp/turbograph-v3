@@ -2,9 +2,9 @@
 
 #include <cassert>
 
-// #include "common/in_mem_overflow_buffer_utils.h"
-#include "common/type_utils.h"
-#include "common/vector/value_vector.h"
+// #include "kuzu/common/in_mem_overflow_buffer_utils.h"
+#include "kuzu/common/type_utils.h"
+#include "kuzu/common/vector/value_vector.h"
 
 namespace kuzu {
 namespace function {

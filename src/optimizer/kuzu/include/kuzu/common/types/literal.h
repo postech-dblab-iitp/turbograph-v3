@@ -2,8 +2,8 @@
 
 #include <utility>
 
-#include "common/exception.h"
-#include "types_include.h"
+#include "kuzu/common/exception.h"
+#include "kuzu/common/types/types_include.h"
 
 using namespace std;
 

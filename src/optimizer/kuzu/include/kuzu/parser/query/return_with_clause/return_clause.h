@@ -1,6 +1,6 @@
 #pragma once
 
-#include "projection_body.h"
+#include "kuzu/parser/query/return_with_clause/projection_body.h"
 
 namespace kuzu {
 namespace parser {

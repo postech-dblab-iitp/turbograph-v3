@@ -1,6 +1,6 @@
 #pragma once
 
-#include "node_pattern.h"
+#include "kuzu/parser/query/graph_pattern/node_pattern.h"
 
 namespace kuzu {
 namespace parser {

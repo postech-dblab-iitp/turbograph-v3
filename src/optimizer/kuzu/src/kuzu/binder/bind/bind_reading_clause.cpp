@@ -1,6 +1,6 @@
-#include "binder/binder.h"
-#include "binder/query/reading_clause/bound_unwind_clause.h"
-#include "parser/query/reading_clause/unwind_clause.h"
+#include "kuzu/binder/binder.h"
+#include "kuzu/binder/query/reading_clause/bound_unwind_clause.h"
+#include "kuzu/parser/query/reading_clause/unwind_clause.h"
 
 namespace kuzu {
 namespace binder {

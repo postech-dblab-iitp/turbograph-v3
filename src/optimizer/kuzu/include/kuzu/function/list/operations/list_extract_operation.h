@@ -3,9 +3,9 @@
 #include <cassert>
 #include <cstring>
 
-#include "common/types/ku_list.h"
-#include "common/types/ku_string.h"
-#include "function/string/operations/array_extract_operation.h"
+#include "kuzu/common/types/ku_list.h"
+#include "kuzu/common/types/ku_string.h"
+#include "kuzu/function//string/operations/array_extract_operation.h"
 
 namespace kuzu {
 namespace function {

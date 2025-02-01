@@ -1,7 +1,7 @@
 #pragma once
 
-#include "binder/expression/expression.h"
-#include "common/clause_type.h"
+#include "kuzu/binder/expression/expression.h"
+#include "kuzu/common/clause_type.h"
 
 using namespace kuzu::common;
 

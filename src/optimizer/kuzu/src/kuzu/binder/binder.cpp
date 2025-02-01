@@ -1,4 +1,4 @@
-#include "binder/binder.h"
+#include "kuzu/binder/binder.h"
 
 namespace kuzu {
 namespace binder {

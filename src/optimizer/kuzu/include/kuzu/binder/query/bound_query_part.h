@@ -1,8 +1,8 @@
 #pragma once
 
-#include "binder/query/reading_clause/bound_match_clause.h"
-#include "binder/query/return_with_clause/bound_with_clause.h"
-#include "binder/query/updating_clause/bound_updating_clause.h"
+#include "kuzu/binder/query/reading_clause/bound_match_clause.h"
+#include "kuzu/binder/query/return_with_clause/bound_with_clause.h"
+#include "kuzu/binder/query/updating_clause/bound_updating_clause.h"
 
 namespace kuzu {
 namespace binder {

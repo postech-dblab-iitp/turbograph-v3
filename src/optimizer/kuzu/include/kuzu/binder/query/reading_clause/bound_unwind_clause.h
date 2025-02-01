@@ -1,7 +1,7 @@
 #pragma once
 
-#include "binder/expression/expression.h"
-#include "bound_reading_clause.h"
+#include "kuzu/binder/expression/expression.h"
+#include "kuzu/binder/query/reading_clause/bound_reading_clause.h"
 
 namespace kuzu {
 namespace binder {

@@ -3,8 +3,8 @@
 #include <cassert>
 #include <cstring>
 
-#include "common/types/ku_list.h"
-#include "list_position_operation.h"
+#include "kuzu/common/types/ku_list.h"
+#include "kuzu/function/list/operations/list_position_operation.h"
 
 namespace kuzu {
 namespace function {

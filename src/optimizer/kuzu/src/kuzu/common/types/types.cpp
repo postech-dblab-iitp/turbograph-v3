@@ -1,9 +1,9 @@
-#include "common/types/types.h"
+#include "kuzu/common/types/types.h"
 
 #include <stdexcept>
 
-#include "common/exception.h"
-#include "common/types/types_include.h"
+#include "kuzu/common/exception.h"
+#include "kuzu/common/types/types_include.h"
 
 namespace kuzu {
 namespace common {

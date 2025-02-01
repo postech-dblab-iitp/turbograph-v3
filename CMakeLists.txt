@@ -21,6 +21,8 @@ project(S62GDB)
 find_package(Threads REQUIRED)
 link_libraries(Threads::Threads)
 
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -245,6 +247,9 @@ include_directories(src/include/optimizer/orca/gporca/libgpdbcost)
 include_directories(src/include/optimizer/orca/gporca/libgpopt)
 include_directories(src/include/optimizer/orca/gporca/libgpos)
 include_directories(src/include/optimizer/orca/gporca/libnaucrates)
+include_directories(${Python3_INCLUDE_DIRS})
+
+include_directories(src/optimizer/kuzu/include) # Temporal
 
 # Third party includes
 include_directories(SYSTEM third_party/velox)
@@ -258,6 +263,13 @@ include_directories(third_party/tblr)
 include_directories(third_party/cuckoofilter/src)
 include_directories(third_party/fplus)
 include_directories(third_party/range-v3)
+include_directories(third_party/duckdb_fmt/include)
+include_directories(third_party/duckdb_re2)
+include_directories(third_party/fast_float)
+include_directories(third_party/utf8proc/include)
+include_directories(third_party/s62_simdjson)
+include_directories(third_party/yyjson/include)
+include_directories(third_party/csv-parser)
 
 add_subdirectory(third_party)
 add_subdirectory(src)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/statement_type.h"
+#include "kuzu/common/statement_type.h"
 
 using namespace kuzu::common;
 

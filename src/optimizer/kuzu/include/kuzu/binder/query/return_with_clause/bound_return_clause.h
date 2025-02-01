@@ -1,7 +1,7 @@
 #pragma once
 
-#include "binder/bound_statement_result.h"
-#include "bound_projection_body.h"
+#include "kuzu/binder/bound_statement_result.h"
+#include "kuzu/binder/query/return_with_clause/bound_projection_body.h"
 
 namespace kuzu {
 namespace binder {

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "common/expression_type.h"
+#include "kuzu/common/expression_type.h"
 
-#include "common/types/types.h"
+#include "kuzu/common/types/types.h"
 
 using namespace kuzu::common;
 

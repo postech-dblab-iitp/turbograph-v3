@@ -17,10 +17,10 @@ extern "C" {
 // #include "optimizer/orca/postgres.h"
 
 // #include "access/heapam.h"
-// #include "storage/catalog/namespace.h"
-// #include "storage/catalog/pg_exttable.h"
-// #include "storage/catalog/pg_proc.h"
-// #include "storage/catalog/pg_statistic.h"
+// #include "catalog/namespace.h"
+// #include "catalog/pg_exttable.h"
+// #include "catalog/pg_proc.h"
+// #include "catalog/pg_statistic.h"
 // #include "cdb/cdbhash.h"
 // #include "optimizer/orca/cdb/cdbpartition.h"
 // #include "utils/array.h"
@@ -71,7 +71,7 @@ extern "C" {
 
 // TBGPP related classes
 #include "optimizer/orca/gpopt/tbgppdbwrappers.hpp"
-#include "storage/catalog/catalog.hpp"
+#include "catalog/catalog.hpp"
 #include "translate/CTranslatorTBGPPToDXL.hpp"
 
 using namespace gpdxl;

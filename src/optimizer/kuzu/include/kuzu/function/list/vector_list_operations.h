@@ -1,6 +1,6 @@
 #pragma once
 
-#include "function/vector_operations.h"
+#include "kuzu/function/vector_operations.h"
 
 namespace kuzu {
 namespace function {

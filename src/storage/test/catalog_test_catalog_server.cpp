@@ -1,6 +1,6 @@
 #include <signal.h>
 #include <iostream>
-#include "storage/catalog/catalog_server.hpp"
+#include "catalog/catalog_server.hpp"
 
 using namespace duckdb;
 

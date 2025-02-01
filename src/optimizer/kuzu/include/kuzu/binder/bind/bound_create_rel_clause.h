@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bound_create_table.h"
+#include "kuzu/binder/bind/bound_create_table.h"
 
 namespace kuzu {
 namespace binder {

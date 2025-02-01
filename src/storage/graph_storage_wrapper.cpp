@@ -4,8 +4,8 @@
 #include <set>
 #include <vector>
 
-#include "storage/catalog/catalog.hpp"
-#include "storage/catalog/catalog_entry/list.hpp"
+#include "catalog/catalog.hpp"
+#include "catalog/catalog_entry/list.hpp"
 #include "common/boost_typedefs.hpp"
 #include "common/vector_size.hpp"
 #include "storage/extent/adjlist_iterator.hpp"

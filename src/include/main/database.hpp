@@ -13,22 +13,14 @@
 #include "common/winapi.hpp"
 #include "common/boost.hpp"
 #include "common/boost_typedefs.hpp"
-//#include "main/config.hpp"
-//#include "main/extension.hpp"
 
 #include "common/file_system.hpp"
 #include "common/local_file_system.hpp"
 #include "storage/storage_manager.hpp"
 
 namespace duckdb {
-//class StorageManager;
 class Catalog;
 class CatalogWrapper;
-//class TransactionManager;
-//class ConnectionManager;
-//class FileSystem;
-//class TaskScheduler;
-//class ObjectCache;
 class ClientContext; // added
 
 class DatabaseInstance : public std::enable_shared_from_this<DatabaseInstance> {
@@ -38,17 +30,11 @@ public:
 	DUCKDB_API DatabaseInstance();
 	DUCKDB_API ~DatabaseInstance();
 
-	//DBConfig config;
-
 public:
 	DUCKDB_API StorageManager &GetStorageManager();
 	DUCKDB_API Catalog &GetCatalog();
 	DUCKDB_API CatalogWrapper &GetCatalogWrapper();
 	DUCKDB_API FileSystem &GetFileSystem();
-	//DUCKDB_API TransactionManager &GetTransactionManager();
-	//DUCKDB_API TaskScheduler &GetScheduler();
-	//DUCKDB_API ObjectCache &GetObjectCache();
-	//DUCKDB_API ConnectionManager &GetConnectionManager();
 	fixed_managed_mapped_file *GetCatalogSHM(); 
 
 	idx_t NumberOfThreads();
@@ -56,22 +42,13 @@ public:
 	DUCKDB_API static DatabaseInstance &GetDatabase(ClientContext &context);
 
 private:
-	void Initialize(const char *path);//, DBConfig *config);
-
-	//void Configure(DBConfig &config);
+	void Initialize(const char *path);
 
 private:
 	unique_ptr<StorageManager> storage;
 	unique_ptr<Catalog> catalog;
-	unique_ptr<CatalogWrapper> catalog_wrapper; // for compiler
-	//unique_ptr<TransactionManager> transaction_manager;
-	//unique_ptr<TaskScheduler> scheduler;
-	//unique_ptr<ObjectCache> object_cache;
-	//unique_ptr<ConnectionManager> connection_manager;
-	//unordered_set<std::string> loaded_extensions;
+	unique_ptr<CatalogWrapper> catalog_wrapper;
 	fixed_managed_mapped_file *catalog_shm;
-
-	// unique_ptr<FileSystem> file_system;
 };
 
 //! The database object. This object holds the catalog and all the

@@ -41,14 +41,14 @@ using json = nlohmann::json;
 #include "storage/extent/extent_iterator.hpp"
 #include "storage/index/index.hpp"
 #include "storage/cache/chunk_cache_manager.h"
-#include "storage/catalog/catalog.hpp"
+#include "catalog/catalog.hpp"
 #include "parser/parsed_data/create_schema_info.hpp"
 #include "parser/parsed_data/create_graph_info.hpp"
 #include "parser/parsed_data/create_partition_info.hpp"
 #include "parser/parsed_data/create_property_schema_info.hpp"
 #include "parser/parsed_data/create_extent_info.hpp"
 #include "parser/parsed_data/create_chunkdefinition_info.hpp"
-#include "storage/catalog/catalog_entry/list.hpp"
+#include "catalog/catalog_entry/list.hpp"
 #include "common/range.hpp"
 #include "common/graph_csv_reader.hpp"
 #include "common/graph_simdcsv_parser.hpp"
@@ -672,22 +672,6 @@ void ReadVertexJSONFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManag
 		// CreateExtent For Each Vertex
 		if (json_file_types[idx] == JsonFileType::JSON) {
 			D_ASSERT(false); // deactivate temporarily
-			reader.InitJsonFile(json_files[idx].second.c_str(), JsonFileType::JSON);
-			for (int vertex_idx = 0; vertex_idx < json_file_vertices[idx].size(); vertex_idx++) {
-				fprintf(stdout, "\nLoad %s, %s\n", json_file_vertices[idx][vertex_idx].first.c_str(), json_file_vertices[idx][vertex_idx].second.c_str());
-				// fflush(stdout);
-				
-				// Create Partition for each vertex (partitioned by label)
-				vector<string> vertex_labels = {json_file_vertices[idx][vertex_idx].first};
-				string partition_name = DEFAULT_VERTEX_PARTITION_PREFIX + json_file_vertices[idx][vertex_idx].first;
-				PartitionID new_pid = graph_cat->GetNewPartitionID();
-				CreatePartitionInfo partition_info(DEFAULT_SCHEMA, partition_name.c_str(), new_pid);
-				PartitionCatalogEntry* partition_cat = (PartitionCatalogEntry*) cat_instance.CreatePartition(*client.get(), &partition_info);
-				graph_cat->AddVertexPartition(*client.get(), new_pid, partition_cat->GetOid(), vertex_labels);
-
-				DataChunk data;
-				reader.IterateJson(json_file_vertices[idx][vertex_idx].first.c_str(), json_file_vertices[idx][vertex_idx].second.c_str(), data, JsonFileType::JSON, graph_cat, partition_cat);
-			}
 		} else if (json_file_types[idx] == JsonFileType::JSONL) { // assume Neo4J format
 			reader.InitJsonFile(json_files[idx].second.c_str(), JsonFileType::JSONL);
 			DataChunk data;

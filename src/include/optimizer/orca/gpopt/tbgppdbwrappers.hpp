@@ -3,16 +3,11 @@
 
 extern "C" {
 #include "optimizer/orca/postgres.h"
-
-// #include "access/attnum.h"
-// #include "nodes/plannodes.h"
-// #include "parser/parse_coerce.h"
-// #include "utils/faultinjector.h"
 #include "optimizer/orca/utils/lsyscache.h"
 }
 
-#include "enums/index_type.hpp"
-#include "storage/catalog/catalog_entry/list.hpp"
+#include "common/enums/index_type.hpp"
+#include "catalog/catalog_entry/list.hpp"
 
 namespace duckdb {
 

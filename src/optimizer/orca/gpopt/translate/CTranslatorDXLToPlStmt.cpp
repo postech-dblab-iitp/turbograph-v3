@@ -17,9 +17,9 @@
 // extern "C" {
 // #include "optimizer/orca/postgres.h"
 
-// #include "storage/catalog/gp_policy.h"
-// #include "storage/catalog/pg_collation.h"
-// #include "storage/catalog/pg_exttable.h"
+// #include "catalog/gp_policy.h"
+// #include "catalog/pg_collation.h"
+// #include "catalog/pg_exttable.h"
 // #include "cdb/cdbutil.h"
 // #include "cdb/cdbvars.h"
 // #include "cdb/partitionselection.h"

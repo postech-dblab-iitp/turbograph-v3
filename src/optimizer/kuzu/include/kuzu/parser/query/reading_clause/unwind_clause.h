@@ -1,7 +1,7 @@
 #pragma once
 
-#include "parser/expression/parsed_expression.h"
-#include "reading_clause.h"
+#include "kuzu/parser/expression/parsed_expression.h"
+#include "kuzu/parser/query/reading_clause/reading_clause.h"
 
 namespace kuzu {
 namespace parser {

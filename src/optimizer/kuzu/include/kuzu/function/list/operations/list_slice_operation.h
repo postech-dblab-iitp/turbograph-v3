@@ -3,7 +3,7 @@
 #include <cassert>
 #include <cstring>
 
-#include "common/types/ku_list.h"
+#include "kuzu/common/types/ku_list.h"
 
 namespace kuzu {
 namespace function {

@@ -3,8 +3,8 @@
 #include <cassert>
 #include <cstring>
 
-#include "common/types/ku_list.h"
-#include "common/type_utils.h"
+#include "kuzu/common/types/ku_list.h"
+#include "kuzu/common/type_utils.h"
 
 namespace kuzu {
 namespace function {

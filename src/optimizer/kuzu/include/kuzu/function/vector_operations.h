@@ -1,11 +1,11 @@
 #pragma once
 
-#include "binary_operation_executor.h"
-#include "binder/expression/expression.h"
-#include "const_operation_executor.h"
-#include "function_definition.h"
-#include "ternary_operation_executor.h"
-#include "unary_operation_executor.h"
+#include "kuzu/function/binary_operation_executor.h"
+#include "kuzu/binder/expression/expression.h"
+#include "kuzu/function/const_operation_executor.h"
+#include "kuzu/function/function_definition.h"
+#include "kuzu/function/ternary_operation_executor.h"
+#include "kuzu/function/unary_operation_executor.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;

@@ -2,8 +2,8 @@
 
 // #include <functional>
 
-// #include "common/type_utils.h"
-// #include "common/vector/value_vector.h"
+// #include "kuzu/common/type_utils.h"
+// #include "kuzu/common/vector/value_vector.h"
 
 // namespace kuzu {
 // namespace function {

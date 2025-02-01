@@ -1,7 +1,7 @@
 #pragma once
 
-#include "parser/query/graph_pattern/pattern_element.h"
-#include "updating_clause.h"
+#include "kuzu/parser/query/graph_pattern/pattern_element.h"
+#include "kuzu/parser/query/updating_clause/updating_clause.h"
 
 namespace kuzu {
 namespace parser {

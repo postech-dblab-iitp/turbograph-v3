@@ -2,9 +2,9 @@
 
 //#include "main/client_context_file_opener.hpp"
 //#include "main/query_profiler.hpp"
-//#include "storage/catalog/catalog_entry/table_catalog_entry.hpp"
-//#include "storage/catalog/catalog_entry/scalar_function_catalog_entry.hpp"
-//#include "storage/catalog/catalog_search_path.hpp"
+//#include "catalog/catalog_entry/table_catalog_entry.hpp"
+//#include "catalog/catalog_entry/scalar_function_catalog_entry.hpp"
+//#include "catalog/catalog_search_path.hpp"
 //#include "common/serializer/buffered_deserializer.hpp"
 //#include "common/serializer/buffered_serializer.hpp"
 //#include "execution/physical_plan_generator.hpp"

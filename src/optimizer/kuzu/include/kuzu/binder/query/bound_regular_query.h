@@ -1,7 +1,7 @@
 #pragma once
 
-#include "binder/bound_statement.h"
-#include "normalized_single_query.h"
+#include "kuzu/binder/bound_statement.h"
+#include "kuzu/binder/query/normalized_single_query.h"
 
 namespace kuzu {
 namespace binder {

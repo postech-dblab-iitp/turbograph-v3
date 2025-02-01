@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "common/expression_type.h"
+#include "kuzu/common/expression_type.h"
 
 using namespace std;
 using namespace kuzu::common;

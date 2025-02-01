@@ -1,4 +1,4 @@
-#include "binder/query/updating_clause/bound_create_clause.h"
+#include "kuzu/binder/query/updating_clause/bound_create_clause.h"
 
 namespace kuzu {
 namespace binder {

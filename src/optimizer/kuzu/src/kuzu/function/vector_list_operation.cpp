@@ -1,13 +1,13 @@
-#include "common/types/ku_list.h"
-// #include "function/list/operations/list_append_operation.h"
-// #include "function/list/operations/list_concat_operation.h"
-#include "function/list/operations/list_contains.h"
-// #include "function/list/operations/list_extract_operation.h"
-// #include "function/list/operations/list_len_operation.h"
-// #include "function/list/operations/list_position_operation.h"
-// #include "function/list/operations/list_prepend_operation.h"
-// #include "function/list/operations/list_slice_operation.h"
-#include "function/list/vector_list_operations.h"
+#include "kuzu/common/types/ku_list.h"
+// #include "kuzu/function//list/operations/list_append_operation.h"
+// #include "kuzu/function//list/operations/list_concat_operation.h"
+#include "kuzu/function//list/operations/list_contains.h"
+// #include "kuzu/function//list/operations/list_extract_operation.h"
+// #include "kuzu/function//list/operations/list_len_operation.h"
+// #include "kuzu/function//list/operations/list_position_operation.h"
+// #include "kuzu/function//list/operations/list_prepend_operation.h"
+// #include "kuzu/function//list/operations/list_slice_operation.h"
+#include "kuzu/function//list/vector_list_operations.h"
 
 using namespace kuzu::common;
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "return_clause.h"
+#include "kuzu/parser/query/return_with_clause/return_clause.h"
 
 namespace kuzu {
 namespace parser {
