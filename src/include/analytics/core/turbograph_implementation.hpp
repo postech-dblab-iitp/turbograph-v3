@@ -3,22 +3,22 @@
 
 #include <thread>
 #include <string>
-#include <glog/logging.hpp>
 #include <unistd.h>
 #include <cstdlib>
+#include "analytics/glog/logging.hpp"
 
-#include "HomogeneousPageWriter.hpp"
-#include "TurboDB.hpp"
-#include "timer.hpp"
-#include "TG_DistributedVector.hpp"
-#include "Aio_Helper.hpp"
-#include "VersionedBitMap.hpp"
-#include "GBVersionedBitMap.hpp"
+#include "analytics/core/TurboDB.hpp"
+#include "analytics/core/TG_NWSM.hpp"
+#include "analytics/core/TG_DistributedVector.hpp"
+#include "analytics/datastructure/VersionedBitMap.hpp"
+#include "analytics/datastructure/GBVersionedBitMap.hpp"
+// #include "analytics/datastructure/Aggregator.hpp"
+#include "analytics/io/HomogeneousPageWriter.hpp"
+#include "analytics/util/Aio_Helper.hpp"
+#include "analytics/util/cxxopts.hpp"
+#include "analytics/util/timer.hpp"
+
 #include "tbb/concurrent_unordered_map.h"
-#include "util/cxxopts.hpp"
-
-#include "TG_NWSM.hpp"
-#include "Aggregator.hpp"
 
 #ifdef COVERAGE
 extern "C" void __gcov_flush();
@@ -462,10 +462,6 @@ class TurbographImplementation {
 
 		void print_processor_info() {
 			NumaHelper::print_numa_info();
-		}
-
-		void print_version() {
-			fprintf(stdout, "Version: %s\n", VERSION);
 		}
 
 		virtual void run(int argc, char** argv) {
@@ -1648,28 +1644,28 @@ class TurbographImplementation {
 							//local_json_logger->InsertKeyValue("DB", db_file[5]+"/"+db_file[6]);
 							local_json_logger->InsertKeyValue("MachineID", PartitionStatistics::my_machine_id());
 
-							if(this->argc_ >= 7) {
-								glog_filename.append(binary_file[binary_file.size()-1]).append("-");
-								for (auto& str : db_file) {
-									glog_filename.append(str).append("-");
-								}
-								for(int i = 3; i <= 5; i++) {
-									glog_filename.append(argv_[i]).append("-");
-								}
-								glog_filename.append(argv_[6]);
-							}
-							char* _glog_filename = (char *) malloc( sizeof(char) * (strlen(glog_filename.c_str()) + 1));
-							strncpy(_glog_filename, glog_filename.c_str(),  (strlen(glog_filename.c_str()) + 1));
-							google::InitGoogleLogging(_glog_filename);
+							// if(this->argc_ >= 7) {
+							// 	glog_filename.append(binary_file[binary_file.size()-1]).append("-");
+							// 	for (auto& str : db_file) {
+							// 		glog_filename.append(str).append("-");
+							// 	}
+							// 	for(int i = 3; i <= 5; i++) {
+							// 		glog_filename.append(argv_[i]).append("-");
+							// 	}
+							// 	glog_filename.append(argv_[6]);
+							// }
+							// char* _glog_filename = (char *) malloc( sizeof(char) * (strlen(glog_filename.c_str()) + 1));
+							// strncpy(_glog_filename, glog_filename.c_str(),  (strlen(glog_filename.c_str()) + 1));
+							// google::InitGoogleLogging(_glog_filename);
 							//std::string glog_dir("/mnt/sdb1/glog/");
-							std::string glog_dir;
-							if(const char* env_p = std::getenv("GLOG_DIR")) {
-								glog_dir = env_p;
-							}
+							// std::string glog_dir;
+							// if(const char* env_p = std::getenv("GLOG_DIR")) {
+							// 	glog_dir = env_p;
+							// }
 							//getlogin_r(name, 5);
 							//glog_dir.append(name);
 							std::cout << std::flush;
-							FLAGS_log_dir=glog_dir.c_str();
+							// FLAGS_log_dir=glog_dir.c_str();
 							FLAGS_logtostderr = 0;
 							if (this->argc_ < 11) {
 								if (PartitionStatistics::my_machine_id() == 0) {
@@ -1729,7 +1725,6 @@ class TurbographImplementation {
 							core_id::set_core_ids(num_threads);
 
 							if (PartitionStatistics::my_machine_id() == 0) {
-								print_version();
 								print_processor_info();
 								fprintf(stdout, "(# of Execution Threads) = %lld\n", num_threads);
 							}

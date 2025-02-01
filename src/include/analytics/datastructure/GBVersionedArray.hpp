@@ -2,7 +2,7 @@
 #ifndef GB_VERSIONED_ARRAY_H
 #define GB_VERSIONED_ARRAY_H
 
-#include "GBVersionedArrayBase.hpp"
+#include "analytics/datastructure/GBVersionedArrayBase.hpp"
 
 //#define PER_THREAD_BUFFER_SIZE (32*1024)
 //#define FLOAT_PRECISION_TOLERANCE 0.02

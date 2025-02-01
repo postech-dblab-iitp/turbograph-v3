@@ -21,12 +21,11 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
-
-#include "ThreadPool.hpp"
-#include "concurrentqueue/concurrentqueue.h"
-#include "Global.hpp"
-#include "thread.h"
-#include "TypeDef.hpp"
+#include "analytics/core/Global.hpp"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/datastructure/concurrentqueue/concurrentqueue.h"
+#include "analytics/io/disk_aio/thread.h"
+#include "analytics/util/ThreadPool.hpp"
 
 class Aio_Helper {
   public:

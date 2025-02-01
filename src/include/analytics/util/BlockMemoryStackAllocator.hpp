@@ -24,9 +24,9 @@
  *         to the size of bytes being freed.
  */
 
-#include "util.hpp"
-#include "TypeDef.hpp"
-#include "MemoryAllocator.hpp"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/util/MemoryAllocator.hpp"
+#include "analytics/util/util.hpp"
 
 class BlockMemoryStackAllocator : public MemoryAllocator {
 

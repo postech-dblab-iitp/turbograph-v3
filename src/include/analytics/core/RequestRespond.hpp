@@ -39,16 +39,16 @@
 #include <cstring>
 #include <algorithm>
 
-#include "Global.hpp"
-#include "TG_DistributedVectorBase.hpp"
-#include "Aio_Helper.hpp"
-#include "turbo_callback.hpp"
-#include "TG_NWSM_Utility.hpp"
-#include "turbo_tcp.hpp"
-#include "VariableSizedMemoryAllocatorWithCircularBuffer.hpp"
-#include "disk_aio_factory.hpp"
-#include "TwoLevelBitMap.hpp"
-#include "FixedSizeVector.hpp"
+#include "analytics/core/Global.hpp"
+#include "analytics/core/TG_DistributedVectorBase.hpp"
+#include "analytics/core/turbo_callback.hpp"
+#include "analytics/core/turbo_tcp.hpp"
+#include "analytics/datastructure/disk_aio_factory.hpp"
+#include "analytics/datastructure/TwoLevelBitMap.hpp"
+#include "analytics/datastructure/FixedSizeVector.hpp"
+#include "analytics/util/Aio_Helper.hpp"
+#include "analytics/util/TG_NWSM_Utility.hpp"
+#include "analytics/util/VariableSizedMemoryAllocatorWithCircularBuffer.hpp"
 
 #define USE_DEGREE_THRESHOLD 1
 
@@ -1711,7 +1711,7 @@ template<typename Request>
 void RequestRespond::SendRequest(Request* req, int num_reqs, char* data_buffer[], int64_t data_size[], int64_t num_data_buffers) {
     turbo_timer sendrequest_timer;
 	ALWAYS_ASSERT(req != NULL && data_buffer != NULL);
-	ALWAYS_ASSERT(num_reqs > 0 && data_size > 0);
+	ALWAYS_ASSERT(num_reqs > 0);
 	int32_t reqs_buf_size = num_reqs * sizeof(Request);
 	int rc = -1;
     sendrequest_timer.start_timer(0);
@@ -1732,6 +1732,7 @@ void RequestRespond::SendRequest(Request* req, int num_reqs, char* data_buffer[]
     int64_t num_total_bytes = 0;
     sendrequest_timer.start_timer(1);
     for (int64_t idx = 0; idx < num_data_buffers; idx++) {
+		ALWAYS_ASSERT(data_size[idx] > 0);
         int64_t bytes_sent = 0;
         turbo_tcp::Send(&RequestRespond::general_client_sockets[0], (char*) data_buffer[idx], 0, data_size[idx], req->to, &bytes_sent, true);
         num_total_bytes += bytes_sent;

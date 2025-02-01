@@ -30,10 +30,10 @@
 #include <math.h>
 #include <sys/time.h>
 
-#include "turbograph_implementation.hpp"
-#include "PartitionedEdges.hpp"
-#include "timer.hpp"
-#include "turbo_tcp.hpp"
+#include "analytics/core/turbograph_implementation.hpp"
+#include "analytics/core/turbo_tcp.hpp"
+#include "analytics/io/PartitionedEdges.hpp"
+#include "analytics/util/timer.hpp"
 
 template <typename FileNodeType, typename degree_t>
 class GraphRenumberer : public TurbographImplementation {

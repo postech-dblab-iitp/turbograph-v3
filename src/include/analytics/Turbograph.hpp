@@ -10,7 +10,7 @@
  * needs to implement are listed as virtual functions in the class.
  */
 
-#include "turbograph_implementation.hpp"
+#include "analytics/core/turbograph_implementation.hpp"
 
 class Turbograph : public TurbographImplementation {
   public:

@@ -11,11 +11,11 @@
 #include <algorithm>
 #include <limits>
 
-#include "util.hpp"
-#include "GraphDataReaderWriterInterface.hpp"
-#include "Turbo_bin_mmapper.hpp"
+#include "analytics/util/util.hpp"
+#include "analytics/io/GraphDataReaderWriterInterface.hpp"
+#include "analytics/io/Turbo_bin_mmapper.hpp"
 //#include "turbo_helper_functions.h"
-#include "TextFormatSequentialReaderWriter.hpp"
+#include "analytics/io/TextFormatSequentialReaderWriter.hpp"
 
 class MetaDataReader {
   public:

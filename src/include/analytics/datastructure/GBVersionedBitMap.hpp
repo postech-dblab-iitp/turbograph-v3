@@ -2,8 +2,8 @@
 #ifndef GB_VERSIONED_BITMAP_H
 #define GB_VERSIONED_BITMAP_H
 
-#include "GBVersionedArrayBase.hpp"
-#include "MemoryMappedBitMap.hpp"
+#include "analytics/datastructure/GBVersionedArrayBase.hpp"
+#include "analytics/datastructure/MemoryMappedBitMap.hpp"
 
 //#define PER_THREAD_BUFFER_SIZE (32*1024)
 //#define FLOAT_PRECISION_TOLERANCE 0.02

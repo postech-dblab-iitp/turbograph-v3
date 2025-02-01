@@ -13,9 +13,9 @@
  *     2) the size of each adj list is greater than 0.
  */
 
-#include "GraphDataReaderWriterInterface.hpp"
-#include "Turbo_bin_io_handler.hpp"
-#include "TG_NWSM_Utility.hpp"
+#include "analytics/io/GraphDataReaderWriterInterface.hpp"
+#include "analytics/io/Turbo_bin_io_handler.hpp"
+#include "analytics/util/TG_NWSM_Utility.hpp"
 
 class HomogeneousPageWriter : public WriterInterface {
   public:

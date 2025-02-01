@@ -11,9 +11,9 @@
 #include <string.h>
 #include <poll.h>
 
-#include "TypeDef.hpp"
-#include "turbo_dist_internal.hpp"
-#include "atom.hpp"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/core/turbo_dist_internal.hpp"
+#include "analytics/util/atom.hpp"
 
 #define IP_ADDRESS_MAX_LEN 15
 //#define BASE_PORTNUM 9000

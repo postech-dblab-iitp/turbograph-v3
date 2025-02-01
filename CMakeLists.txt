@@ -89,6 +89,7 @@ option(ENABLE_OPENMP "Enable Open MP" TRUE)
 option(BUILD_MAIN_S62GDB_LIBRARY "Build the main S62GDB library and executable." TRUE)
 option(BUILD_UNITTESTS "Build the C++ Unit Tests." TRUE)
 option(BUILD_SHELL "Build the S62GDB Shell and SQLite API Wrappers" TRUE)
+option(BUILD_ANALYTICS "Build Graph Analytics Engine" FALSE)
 
 # Settings
 if(${ENABLE_SANITIZER})
@@ -130,6 +131,11 @@ if(ENABLE_OPENMP)
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
+
+if(BUILD_ANALYTICS)
+  message(STATUS "Building Analytics")
+  find_package(MPI REQUIRED)
 endif()
 
 if(NOT MSVC)

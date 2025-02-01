@@ -1,6 +1,6 @@
-#include "disk_aio_thread.hpp"
-#include "disk_aio_interface.hpp"
-#include "timer.hpp"
+#include "analytics/io/disk_aio/disk_aio_thread.hpp"
+#include "analytics/io/disk_aio/disk_aio_interface.hpp"
+#include "analytics/util/timer.hpp"
 #include <chrono>
 
 namespace diskaio

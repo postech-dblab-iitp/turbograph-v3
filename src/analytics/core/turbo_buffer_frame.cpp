@@ -1,5 +1,5 @@
-#include "turbo_buffer_frame.hpp"
-#include "turbo_buffer_manager.hpp"
+#include "analytics/core/turbo_buffer_frame.hpp"
+#include "analytics/core/turbo_buffer_manager.hpp"
 
 void Turbo_Buffer_Frame::Init(Page * pg, turbo_buffer_manager* buf_mgr_) {
     ALWAYS_ASSERT (pg != NULL);

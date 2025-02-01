@@ -5,10 +5,10 @@
 #include <fstream>
 #include <vector>
 
-#include "page.hpp"
-#include "atom.hpp"
-#include "turbo_dist_internal.hpp"
-#include "Global.hpp"
+#include "analytics/datastructure/page.hpp"
+#include "analytics/util/atom.hpp"
+#include "analytics/core/turbo_dist_internal.hpp"
+#include "analytics/core/Global.hpp"
 
 #define INVALID_FRAME -1
 

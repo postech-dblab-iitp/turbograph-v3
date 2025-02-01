@@ -20,8 +20,8 @@
 #include <vector>
 #include <fstream>
 #include <string>
-#include "Splittable_Turbo_bin_io_handler.hpp"
-#include "turbo_dist_internal.hpp"
+#include "analytics/io/Splittable_Turbo_bin_io_handler.hpp"
+#include "analytics/core/turbo_dist_internal.hpp"
 #include "tbb/atomic.h"
 #include "tbb/task_group.h"
 

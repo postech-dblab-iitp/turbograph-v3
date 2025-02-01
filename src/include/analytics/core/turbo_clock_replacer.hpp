@@ -3,10 +3,9 @@
 
 #include <atomic>
 
-#include "turbo_dist_internal.hpp"
-#include "turbo_buffer_frame.hpp"
-#include "turbo_direct_table.hpp"
-
+#include "analytics/core/turbo_dist_internal.hpp"
+#include "analytics/core/turbo_buffer_frame.hpp"
+#include "analytics/core/turbo_direct_table.hpp"
 
 #define ADD_CNT -1
 

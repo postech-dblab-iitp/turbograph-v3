@@ -7,17 +7,17 @@
 #include <string>
 #include <sys/statvfs.h>
 
-#include "TypeDef.hpp"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/core/TG_DistributedVector.hpp"
 #include "omp.h"
 #include "math.h"
-#include "timer.hpp"
-#include "Turbo_bin_mmapper.hpp"
-#include "Turbo_bin_io_handler.hpp"
-#include "Blocking_Turbo_bin_io_handler.hpp"
-#include "Splittable_Turbo_bin_io_handler.hpp"
-#include "FixedSizeBufferPool.hpp"
-#include "TG_DistributedVector.hpp"
-#include "atom.hpp"
+#include "analytics/io/Turbo_bin_mmapper.hpp"
+#include "analytics/io/Turbo_bin_io_handler.hpp"
+#include "analytics/io/Blocking_Turbo_bin_io_handler.hpp"
+#include "analytics/io/Splittable_Turbo_bin_io_handler.hpp"
+#include "analytics/datastructure/FixedSizeBufferPool.hpp"
+#include "analytics/util/atom.hpp"
+#include "analytics/util/timer.hpp"
 
 template <typename FileNodeType, typename Degree_t>
 class PartitionedEdges {

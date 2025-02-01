@@ -1,5 +1,5 @@
-#include "disk_aio_interface.hpp"
-#include "disk_aio_request.hpp"
+#include "analytics/io/disk_aio/disk_aio_interface.hpp"
+#include "analytics/io/disk_aio/disk_aio_request.hpp"
 
 using namespace diskaio;
 

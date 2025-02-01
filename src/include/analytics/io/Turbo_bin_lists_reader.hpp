@@ -1,6 +1,6 @@
 #ifndef _TURBO_BIN_LISTS_LOADER_H
 #define _TURBO_BIN_LSITS_LOADER_H
-#include "Turbo_bin_mmapper.hpp"
+#include "analytics/io/Turbo_bin_mmapper.hpp"
 class Turbo_bin_lists_reader {
   public:
 

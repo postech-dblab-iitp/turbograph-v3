@@ -27,7 +27,7 @@
 #include <algorithm>
 #include <iterator>
 
-#include "util.hpp"
+#include "analytics/util/util.hpp"
 
 #define MAX_IO_SIZE_PER_RW (64*1024*1024L)
 

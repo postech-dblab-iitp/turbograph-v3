@@ -1,4 +1,4 @@
-#include "Global.hpp"
+#include "analytics/core/Global.hpp"
 
 /*
  * Design of the FixedSizeVector

@@ -5,9 +5,8 @@
 #include <atomic>
 #include <fstream>
 
-#include "page.hpp"
-#include "turbo_dist_internal.hpp"
-
+#include "analytics/datastructure/page.hpp"
+#include "analytics/core/turbo_dist_internal.hpp"
 
 template <typename T>
 class TwoLevelBitMap;

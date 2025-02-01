@@ -1,6 +1,5 @@
-#include "TypeDef.hpp"
-
-#include "Global.hpp"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/core/Global.hpp"
 
 
 template<>
@@ -194,4 +193,4 @@ void LatentVector<T,K>::SetRandomValue(pcg64_fast* rand_gen_) {
 		k[i] = 2 * (T)(((double)((*rand_gen_)() % UserArguments::LATENT_RANDOM_NUM_DECIMAL_PLACE + 1) / UserArguments::LATENT_RANDOM_NUM_DECIMAL_PLACE) * UserArguments::LATENT_RANDOM_MAX_VALUE) - 1;
 	}
 
-}
+// }

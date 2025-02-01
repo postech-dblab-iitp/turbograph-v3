@@ -4,8 +4,8 @@
 #include <vector>
 #include <complex>
 
-#include "TypeDef.hpp"
-#include "Global.hpp"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/core/Global.hpp"
 
 template <typename task_t>
 class circular_queue {

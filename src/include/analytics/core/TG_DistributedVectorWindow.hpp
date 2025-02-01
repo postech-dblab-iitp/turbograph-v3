@@ -2,10 +2,10 @@
 #ifndef TG_DISTRIBUTED_VECTOR_WINDOW_H
 #define TG_DISTRIBUTED_VECTOR_WINDOW_H
 
-#include "TG_DistributedVectorBase.hpp"
-#include "VersionedArray.hpp"
-#include "GBVersionedArray.hpp"
-#include "TurboDB.hpp"
+#include "analytics/core/TG_DistributedVectorBase.hpp"
+#include "analytics/core/TurboDB.hpp"
+#include "analytics/datastructure/VersionedArray.hpp"
+#include "analytics/datastructure/GBVersionedArray.hpp"
 
 #ifndef likely
 #define likely(x) __builtin_expect((x),1)

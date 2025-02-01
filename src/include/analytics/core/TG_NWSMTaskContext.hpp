@@ -1,9 +1,9 @@
 #pragma once
 
-#include "TypeDef.hpp"
-#include "atom.hpp"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/util/atom.hpp"
 
-#include "concurrentqueue/concurrentqueue.h"
+#include "analytics/datastructure/concurrentqueue/concurrentqueue.h"
 
 class TG_NWSMTaskContext {
   public:

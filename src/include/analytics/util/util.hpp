@@ -18,21 +18,20 @@
 #include <sys/mman.h>
 #include <libaio.h>
 #include <tbb/concurrent_queue.h>
-#include <jemalloc/jemalloc.h>
+// #include <jemalloc/jemalloc.h>
 #include <stdio.h>
 #include <dirent.h>
 #include <sys/stat.h>
 
-#include "concurrentqueue/concurrentqueue.h"
-#include "half.hpp"
-#include "TG_NWSMTaskContext.hpp"
+// #include "analytics/util/concurrentqueue/concurrentqueue.h"
+#include "analytics/util/half.hpp"
+#include "analytics/core/TG_NWSMTaskContext.hpp"
 
-#include "TypeDef.hpp"
-#include "timer.hpp"
-#include "Global.hpp"
-#include "json11.hpp"
-#include "TG_Vector.hpp"
-
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/util/timer.hpp"
+#include "analytics/core/Global.hpp"
+#include "analytics/util/json11.hpp"
+#include "analytics/datastructure/TG_Vector.hpp"
 
 #define SUCCESS_STAT 0
 #define likely(x) __builtin_expect((x),1)
@@ -260,7 +259,7 @@ class NumaHelper {
     }
 
 	static void print_numa_info() {
-		fprintf(stdout, "(# of sockets) = %lld, (# of cores) = %lld\n", NumaHelper::sockets, NumaHelper::cores);
+		fprintf(stdout, "(# of sockets) = %ld, (# of cores) = %ld\n", NumaHelper::sockets, NumaHelper::cores);
 	}
 
 	static int64_t num_sockets() {
@@ -321,11 +320,10 @@ class NumaHelper {
 
 	static char* alloc_mmap (int64_t sz) {
 		ALWAYS_ASSERT (sz > 0);
-		//fprintf(stdout, "mmap alloc %lld\n", (int64_t) sz);
 		char * array = (char *)mmap(NULL, sz, PROT_READ | PROT_WRITE,
 		                            MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 		if (array == MAP_FAILED) {
-			fprintf(stdout, "[NumaHelper] mmap failed; sz = (%lld) ErrorNo = %lld\n", (int64_t) sz, errno);
+			fprintf(stdout, "[NumaHelper] mmap failed; sz = (%ld) ErrorNo = %d\n", (int64_t) sz, errno);
             LOG_ASSERT(false);
 		}
 		INVARIANT (array != NULL);
@@ -343,7 +341,7 @@ class NumaHelper {
         
 		ALWAYS_ASSERT (tmp != NULL);
 		if (tmp == NULL) {
-			fprintf (stderr, "[Error] NumaHelper::alloc_num_interleaved_memory(%lld) failed; ErrorCode = %lld\n", (int64_t) sz, errno);
+			fprintf (stderr, "[Error] NumaHelper::alloc_num_interleaved_memory(%ld) failed; ErrorCode = %d\n", (int64_t) sz, errno);
 			throw std::runtime_error("[Exception] NumaHelper::alloc_numa_interleaved_memory failed\n");
 		}
 		return tmp;
@@ -376,7 +374,7 @@ class NumaHelper {
 			break;
 		}
 		if (tmp == NULL) {
-			fprintf (stderr, "[Error] NumaHelper::alloc_num_memory(%lld) failed; ErrorCode = %lld\n", (int64_t) sz, errno);
+			fprintf (stderr, "[Error] NumaHelper::alloc_num_memory(%ld) failed; ErrorCode = %d\n", (int64_t) sz, errno);
 			throw std::runtime_error("[Exception] NumaHelper::alloc_num_memory failed\n");
 		}
 		INVARIANT (tmp != NULL);
@@ -386,7 +384,7 @@ class NumaHelper {
 	static char* alloc_numa_local_memory(int64_t sz, int64_t socket_id) {
 		char* tmp = (char*) numa_alloc_onnode(sz, socket_id);
 		if (tmp == NULL) {
-			fprintf(stdout, "[NumaHelper::alloc_numa_local_memory] Failed; errno = %lld\n", errno);
+			fprintf(stdout, "[NumaHelper::alloc_numa_local_memory] Failed; errno = %d\n", errno);
 			abort();
 		}
 		return tmp;
@@ -704,7 +702,7 @@ inline void printProcessMemoryUsage(const char* tag, int64_t MBytes = 0, int64_t
     int cur_vm = getValueOfVirtualMemoryUsage(); 
     int cur_pm = getValueOfPhysicalMemoryUsage(); 
 
-    fprintf(stdout, "[ProcessMemoryUsage] VM = %ld, PM = %ld. %s added %ld MB among %ld MB\n", cur_vm, cur_pm, tag, MBytes, TotalMBytes);
+    fprintf(stdout, "[ProcessMemoryUsage] VM = %d, PM = %d. %s added %ld MB among %ld MB\n", cur_vm, cur_pm, tag, MBytes, TotalMBytes);
 }
 
 #endif

@@ -16,9 +16,9 @@
 #include <sched.h>
 #include <sys/syscall.h>
 
-#include "Global.hpp"
-#include "util.hpp"
-#include "turbo_dist_internal.hpp"
+#include "analytics/core/Global.hpp"
+#include "analytics/core/turbo_dist_internal.hpp"
+#include "analytics/util/util.hpp"
 
 #define PRINT_CPU_AFFINITY 0
 

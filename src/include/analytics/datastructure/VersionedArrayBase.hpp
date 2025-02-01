@@ -5,20 +5,17 @@
 #include <cmath>
 #include <future>
 
-#include "Blocking_Turbo_bin_io_handler.hpp"
-#include "Turbo_bin_aio_handler.hpp"
-#include "Turbo_bin_mmapper.hpp"
-
-#include "MemoryMappedArray.hpp"
-#include "TwoLevelBitMap.hpp"
-
-#include "TypeDef.hpp"
-#include "util.hpp"
-#include "eXDB_dist_internal.hpp"
-#include "disk_aio_request.hpp"
-#include "turbo_dist_internal.hpp"
-
-#include "RequestRespond.hpp"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/core/eXDB_dist_internal.hpp"
+#include "analytics/core/turbo_dist_internal.hpp"
+#include "analytics/core/RequestRespond.hpp"
+#include "analytics/datastructure/MemoryMappedArray.hpp"
+#include "analytics/datastructure/TwoLevelBitMap.hpp"
+#include "analytics/io/Blocking_Turbo_bin_io_handler.hpp"
+#include "analytics/io/Turbo_bin_aio_handler.hpp"
+#include "analytics/io/Turbo_bin_mmapper.hpp"
+#include "analytics/io/disk_aio/disk_aio_request.hpp"
+#include "analytics/util/util.hpp"
 
 #define USE_ENCODING
 #define PER_THREAD_BUFFER_SIZE ((PER_THREAD_BUFF_SIZE/sizeof(DeltaMessage<T>)))

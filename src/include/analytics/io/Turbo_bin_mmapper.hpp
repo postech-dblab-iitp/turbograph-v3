@@ -30,7 +30,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-#include "TypeDef.hpp"
+#include "analytics/core/TypeDef.hpp"
 
 #define END_OF_FILE	-1
 

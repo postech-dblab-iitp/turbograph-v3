@@ -11,18 +11,17 @@
 #include <iomanip>
 #include <thread>
 
-#include "turbo_dist_internal.hpp"
-#include "turbo_buffer_manager.hpp"
-#include "Turbo_bin_io_handler.hpp"
-#include "MetaDataReader.hpp"
-#include "util.hpp"
-#include "BitMap.hpp"
-#include "VidRangePerPage.hpp"
-#include "TextFormatSequentialReaderWriter.hpp"
-#include "Aio_Helper.hpp"
-#include "MemoryMappedArray.hpp"
-#include "ConfigurationProperties.hpp"
-
+#include "analytics/core/turbo_dist_internal.hpp"
+#include "analytics/core/turbo_buffer_manager.hpp"
+#include "analytics/io/Turbo_bin_io_handler.hpp"
+#include "analytics/io/MetaDataReader.hpp"
+#include "analytics/util/util.hpp"
+#include "analytics/datastructure/BitMap.hpp"
+#include "analytics/datastructure/VidRangePerPage.hpp"
+#include "analytics/io/TextFormatSequentialReaderWriter.hpp"
+#include "analytics/util/Aio_Helper.hpp"
+#include "analytics/datastructure/MemoryMappedArray.hpp"
+#include "analytics/util/ConfigurationProperties.hpp"
 
 #define PAGE_ID_MAX INT_MAX
 #define DIV 1048576

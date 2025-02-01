@@ -70,20 +70,17 @@
  *           receiving the materialized adjacency list through the network.
  */
 
-#include "util.hpp"
-
-#include "TG_NWSM_Utility.hpp"
-#include "TG_NWSMTaskContext.hpp"
-#include "MaterializedAdjacencyLists.hpp"
-
-#include "MemoryAllocator.hpp"
-#include "VariableSizedMemoryAllocatorWithCircularBuffer.hpp"
-#include "BlockMemoryStackAllocator.hpp"
-
-#include "disk_aio_factory.hpp"
-#include "Turbo_bin_aio_handler.hpp"
-#include "TwoLevelBitMap.hpp"
-#include "TurboDB.hpp"
+#include "analytics/core/TG_NWSMTaskContext.hpp"
+#include "analytics/core/TurboDB.hpp"
+#include "analytics/datastructure/MaterializedAdjacencyLists.hpp"
+#include "analytics/datastructure/disk_aio_factory.hpp"
+#include "analytics/datastructure/TwoLevelBitMap.hpp"
+#include "analytics/io/Turbo_bin_aio_handler.hpp"
+#include "analytics/util/MemoryAllocator.hpp"
+#include "analytics/util/VariableSizedMemoryAllocatorWithCircularBuffer.hpp"
+#include "analytics/util/BlockMemoryStackAllocator.hpp"
+#include "analytics/util/util.hpp"
+#include "analytics/util/TG_NWSM_Utility.hpp"
 
 #define MIN_WORKING_PAGE_SET_SIZE 64
 

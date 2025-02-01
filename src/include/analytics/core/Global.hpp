@@ -12,15 +12,15 @@
 
 #include <sys/stat.h>
 #include <omp.h>
-#include <mpi.h>
 #include <string>
 #include <algorithm>
 #include <immintrin.h>
+#include <mpi.h>
 
-#include "TypeDef.hpp"
+#include "analytics/core/TypeDef.hpp"
 
 #define GLOG_NO_ABBREVIATED_SEVERITIES
-#include "glog/logging.hpp"
+#include "analytics/glog/logging.hpp"
 
 // Optimization Flags
 // For no_reorder & no_prune, turn off OPT 2 & OPT 3 (Base & +TR)
@@ -223,7 +223,7 @@ struct UserArguments {
 	static bool RUN_PRUNING_SUBQUERIES;
 	static bool OV_FLUSH;
 	static bool GRAPH_IN_MEMORY;
-  static bool QUERY_ONGOING;
+  	static bool QUERY_ONGOING;
 
 	static int INC_STEP;
 	static int PRUNING_BFS_LV;

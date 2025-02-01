@@ -13,13 +13,12 @@
 #include <vector>
 #include <string>
 
-#include "TypeDef.hpp"
-#include "GraphDataReaderWriterInterface.hpp"
-#include "TextFormatSequentialReaderWriter.hpp"
-#include "turbo_dist_internal.hpp"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/io/GraphDataReaderWriterInterface.hpp"
+#include "analytics/io/TextFormatSequentialReaderWriter.hpp"
+#include "analytics/core/turbo_dist_internal.hpp"
 
 
-// Hard-coded BinaryEdgePairReader generated from Flink
 // {EdgePair1}, ... {EdgePairK}, {K, K,}, {null}
 template <typename Entry_t, bool endian_trfm >
 class BinaryFormatEdgePairListReader : public ReaderInterface<Entry_t> {

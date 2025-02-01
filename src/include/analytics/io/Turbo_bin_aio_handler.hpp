@@ -28,8 +28,8 @@
 #include <algorithm>
 #include <iterator>
 
-#include "util.hpp"
-#include "disk_aio_factory.hpp"
+#include "analytics/util/util.hpp"
+#include "analytics/datastructure/disk_aio_factory.hpp"
 //#include "RequestRespond.hpp"
 
 #define MAX_IO_SIZE_PER_RW (64*1024*1024L)

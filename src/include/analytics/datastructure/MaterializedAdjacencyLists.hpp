@@ -1,21 +1,18 @@
 #ifndef MATERIALIZED_ADJACENCY_LISTS_H
 #define MATERIALIZED_ADJACENCY_LISTS_H
 
-#include "TG_NWSM_Utility.hpp"
-#include "RequestRespond.hpp"
 
-#include "TypeDef.hpp"
-#include "Global.hpp"
-#include "page.hpp"
-#include "atom.hpp"
-#include "timer.hpp"
-#include "kxsort.hpp"
-#include "BlockMemoryStackAllocator.hpp"
-#include "MemoryAllocator.hpp"
-#include "disk_aio_factory.hpp"
-
-
-class MaterializedAdjacencyLists;
+#include "analytics/core/RequestRespond.hpp"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/core/Global.hpp"
+#include "analytics/datastructure/page.hpp"
+#include "analytics/datastructure/disk_aio_factory.hpp"
+#include "analytics/util/atom.hpp"
+#include "analytics/util/timer.hpp"
+#include "analytics/util/kxsort.hpp"
+#include "analytics/util/BlockMemoryStackAllocator.hpp"
+#include "analytics/util/MemoryAllocator.hpp"
+#include "analytics/util/TG_NWSM_Utility.hpp"
 
 struct AdjacencyListMemoryPointer {
 	MaterializedAdjacencyLists* ptr;

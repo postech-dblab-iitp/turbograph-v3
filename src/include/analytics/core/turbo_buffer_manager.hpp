@@ -1,12 +1,12 @@
 #ifndef TURBO_BUFFER_MANAGER_H
 #define TURBO_BUFFER_MANAGER_H
 
-#include "scopedlock.hpp"
-#include "turbo_clock_replacer.hpp"
-#include "turbo_callback.hpp"
-#include "disk_aio_factory.hpp"
-#include "TwoLevelBitMap.hpp"
-#include "timer.hpp"
+#include "analytics/core/turbo_clock_replacer.hpp"
+#include "analytics/core/turbo_callback.hpp"
+#include "analytics/datastructure/disk_aio_factory.hpp"
+#include "analytics/datastructure/TwoLevelBitMap.hpp"
+#include "analytics/util/timer.hpp"
+#include "analytics/util/scopedlock.hpp"
 
 #define ENTER_BUF_MGR_CRIT_SECTION
 

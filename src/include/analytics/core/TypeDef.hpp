@@ -16,8 +16,7 @@
 #include <string>
 #include <cmath>
 
-//#include "Global.hpp"
-#include "pcg_random.hpp"
+#include "analytics/util/pcg_random.hpp"
 
 #define __XCONCAT2(a, b) a ## b
 #define __XCONCAT(a, b) __XCONCAT2(a, b)
@@ -31,6 +30,7 @@
 #endif
 
 #define LATENT_VECTOR_WO_BIAS
+#define OldMessageTransfer
 
 enum ReturnStatus {
 	OK,
@@ -342,7 +342,7 @@ bool operator== (EdgePairEntry<node_t_> &l, EdgePairEntry<node_t_> &r) {
 template <typename node_t_>
 std::ostream& operator<<(std::ostream& out, EdgePairEntry<node_t_>& o) {
 	out << o.src_vid_ << "\t" << o.dst_vid_;
-
+	return out;
 }
 
 struct DegreeEntry {

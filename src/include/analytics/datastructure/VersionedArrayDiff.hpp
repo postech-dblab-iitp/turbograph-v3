@@ -2,7 +2,7 @@
 #ifndef VERSIONED_ARRAY_DIFF_H
 #define VERSIONED_ARRAY_DIFF_H
 
-#include "VersionedArrayBase.hpp"
+#include "analytics/datastructure/VersionedArrayBase.hpp"
 
 //#define PER_THREAD_BUFFER_SIZE (32*1024)
 //#define FLOAT_PRECISION_TOLERANCE 0.02

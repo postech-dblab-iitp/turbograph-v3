@@ -10,8 +10,8 @@
  * from being paged to the swap area. 
  */
 
-#include "Turbo_bin_mmapper.hpp"
-#include "TypeDef.hpp"
+#include "analytics/io/Turbo_bin_mmapper.hpp"
+#include "analytics/core/TypeDef.hpp"
 
 template <typename T>
 class MemoryMappedArray {

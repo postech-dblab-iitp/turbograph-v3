@@ -13,8 +13,8 @@
  * of the source vertex ids of the edges stored in the page.
  */
 
-#include "TypeDef.hpp"
-#include "Turbo_bin_io_handler.hpp"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/io/Turbo_bin_io_handler.hpp"
 
 class VidRangePerPage {
   public:

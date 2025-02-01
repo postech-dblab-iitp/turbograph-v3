@@ -2,10 +2,10 @@
 
 #include <list>
 #include <map>
-#include <atom.hpp>
 
-#include "Global.hpp"
-#include "MemoryAllocator.hpp"
+#include "analytics/core/Global.hpp"
+#include "analytics/util/MemoryAllocator.hpp"
+#include "analytics/util/atom.hpp"
 
 class VariableSizedMemoryAllocatorWithCircularBuffer: public MemoryAllocator {
   public:

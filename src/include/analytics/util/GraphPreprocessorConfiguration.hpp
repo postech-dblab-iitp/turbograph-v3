@@ -13,7 +13,7 @@
 
 #include <fstream>
 #include <string>
-#include "ConfigurationProperties.hpp"
+#include "analytics/util/ConfigurationProperties.hpp"
 
 enum class InputFileType {
 	BinaryVertexPair, PlainTextVertexPair,

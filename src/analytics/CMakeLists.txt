@@ -13,13 +13,13 @@ add_library(tbgpp-analytics STATIC)
 ####################################################
 # PER-TARGET DEFINITION - tbgpp-analytics
 ####################################################
-target_include_directories(tbgpp-analytics PUBLIC
-	"${PROJECT_SOURCE_DIR}/include"
-	"${PROJECT_SOURCE_DIR}/include/util"
-	"${PROJECT_SOURCE_DIR}/include/io"
-	"${PROJECT_SOURCE_DIR}/include/datastructure"
-	"${PROJECT_SOURCE_DIR}/include/core"
-)
+# target_include_directories(tbgpp-analytics PUBLIC
+# 	"${PROJECT_SOURCE_DIR}/include"
+# 	"${PROJECT_SOURCE_DIR}/include/util"
+# 	"${PROJECT_SOURCE_DIR}/include/io"
+# 	"${PROJECT_SOURCE_DIR}/include/datastructure"
+# 	"${PROJECT_SOURCE_DIR}/include/core"
+# )
 
 file (GLOB_RECURSE SYSTEM_SOURCES 
 	"${PROJECT_SOURCE_DIR}/src/*.c*"
@@ -99,10 +99,10 @@ target_compile_definitions(tbgpp-analytics PUBLIC ${CXX_DEFINITION})
 # add_library(tbgpp-system-lib ${TBGPP_SYSTEM_SOURCES})
 # target_compile_definitions(tbgpp-system-lib PRIVATE ${CXX_DEFINITION})
 
-#add_executable(buildDDB applications/buildDDB.cpp)
-#target_compile_options(buildDDB PRIVATE ${})
-#target_compile_definitions(buildDDB PRIVATE ${CXX_DEFINITION})
-#target_link_libraries(buildDDB PRIVATE tbgpp-system-lib)
+add_executable(pr_int generated_queries/pr_int.cpp)
+target_compile_options(pr_int PRIVATE ${})
+target_compile_definitions(pr_int PRIVATE ${CXX_DEFINITION})
+target_link_libraries(pr_int PRIVATE tbgpp-analytics)
 
 # add_subdirectory(generated_queries)
 # add_subdirectory(test)

@@ -25,9 +25,9 @@
 #include <unistd.h>
 #include <glob.h>
 
-#include "page.hpp"
-#include "util.hpp"
-#include "Turbo_bin_io_handler.hpp"
+#include "analytics/datastructure/page.hpp"
+#include "analytics/util/util.hpp"
+#include "analytics/io/Turbo_bin_io_handler.hpp"
 
 #define END_OF_file	-1
 #define FILE_CHUNK_SIZE (128 * 1024 * 1024)

@@ -10,10 +10,10 @@
 #include <fcntl.h>
 #include <string>
 
-#include "TypeDef.hpp"
-#include "disk_aio.hpp"
-#include "disk_aio_request.hpp"
-#include "eXDB_dist_internal.hpp"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/core/eXDB_dist_internal.hpp"
+#include "analytics/io/disk_aio/disk_aio.hpp"
+#include "analytics/io/disk_aio/disk_aio_request.hpp"
 
 struct AioRequest {
 	int64_t start_pos;

@@ -1,5 +1,5 @@
-#include "MaterializedAdjacencyLists.hpp"
-#include "TurboDB.hpp"
+#include "analytics/datastructure/MaterializedAdjacencyLists.hpp"
+#include "analytics/core/TurboDB.hpp"
 
 VidToAdjacencyListMappingTable VidToAdjacencyListMappingTable::VidToAdjTable;
 VidToAdjacencyListMappingTable& MaterializedAdjacencyLists::VidToAdjTable = VidToAdjacencyListMappingTable::VidToAdjTable;

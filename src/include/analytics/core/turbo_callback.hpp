@@ -1,9 +1,9 @@
 #ifndef TURBO_CALLBACK_H
 #define TURBO_CALLBACK_H
 
-#include "page.hpp"
-#include "TG_NWSMTaskContext.hpp"
-#include "disk_aio_request.hpp"
+#include "analytics/core/TG_NWSMTaskContext.hpp"
+#include "analytics/datastructure/page.hpp"
+#include "analytics/io/disk_aio/disk_aio_request.hpp"
 
 class TG_NWSMCallback;
 

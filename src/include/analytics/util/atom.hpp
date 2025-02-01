@@ -18,8 +18,8 @@
 #include <thread>
 #include <sstream>
 
-#include "Global.hpp"
-#include "TypeDef.hpp"
+#include "analytics/core/Global.hpp"
+#include "analytics/core/TypeDef.hpp"
 
 //#define OWNER_CHECK 0
 

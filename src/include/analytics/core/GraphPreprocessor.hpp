@@ -65,21 +65,21 @@
 #include <chrono>
 #include <sys/statvfs.h>
 
-#include "Aio_Helper.hpp"
-#include "eXDB_dist_internal.hpp"
-#include "TypeDef.hpp"
-#include "GraphPreprocessorConfiguration.hpp"
-#include "EdgePairListReader.hpp"
-#include "PartitionedEdges.hpp"
-#include "Blocking_Turbo_bin_io_handler.hpp"
-#include "DummyDataReader.hpp"
-#include "ExternalSort.hpp"
-#include "GraphRedistributor.hpp"
-#include "FixedSizeBufferPool.hpp"
-#include "Splittable_Turbo_bin_io_handler.hpp"
-#include "turbo_dist_internal.hpp"
-#include "RequestRespond.hpp"
-#include "GraphRenumberer.hpp"
+#include "analytics/core/eXDB_dist_internal.hpp"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/core/turbo_dist_internal.hpp"
+#include "analytics/core/RequestRespond.hpp"
+#include "analytics/core/GraphRenumberer.hpp"
+#include "analytics/datastructure/FixedSizeBufferPool.hpp"
+#include "analytics/io/EdgePairListReader.hpp"
+#include "analytics/io/PartitionedEdges.hpp"
+#include "analytics/io/Blocking_Turbo_bin_io_handler.hpp"
+#include "analytics/io/DummyDataReader.hpp"
+#include "analytics/io/Splittable_Turbo_bin_io_handler.hpp"
+#include "analytics/util/Aio_Helper.hpp"
+#include "analytics/util/GraphPreprocessorConfiguration.hpp"
+#include "analytics/util/ExternalSort.hpp"
+#include "analytics/util/GraphRedistributor.hpp"
 
 #define ALIGN_EXPAND(x, n) ((x) = (x) / (n) * (n - 1) + (n))
 #define TIMEDIFF_MILLISEC(begin, end) ((double)std::chrono::duration_cast<std::chrono::milliseconds>((end) - (begin)).count())

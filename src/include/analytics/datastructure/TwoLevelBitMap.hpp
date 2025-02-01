@@ -22,7 +22,7 @@
  * the list data structure internally.
  */
 #include <immintrin.h>
-#include "BitMap.hpp"
+#include "analytics/datastructure/BitMap.hpp"
 
 #define TwoLevelSizeInBits(X) ((NN * 8*sizeof(X)))
 #define NN ((4*64))

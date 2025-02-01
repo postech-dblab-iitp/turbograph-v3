@@ -20,7 +20,7 @@
  * represent the size of the page.
  */
 
-#include "Global.hpp"
+#include "analytics/core/Global.hpp"
 
 #define MIN_PAGEID 0
 #define MAX_PAGEID (INT_MAX)

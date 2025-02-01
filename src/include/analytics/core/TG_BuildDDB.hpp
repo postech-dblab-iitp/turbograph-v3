@@ -14,19 +14,19 @@
 #include <vector>
 #include <unordered_map>
 #include <chrono>
-#include <glog/logging.hpp>
+#include "analytics/glog/logging.hpp"
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "Turbograph.hpp"
-#include "Global.hpp"
-#include "TurboDB.hpp"
-#include "Turbo_bin_io_handler.hpp"
-#include "HomogeneousPageWriter.hpp"
-#include "EdgePairListReader.hpp"
-#include "VidRangePerPage.hpp"
-#include "disk_aio_factory.hpp"
-#include "TG_DistributedVectorBase.hpp"
+#include "analytics/Turbograph.hpp"
+#include "analytics/core/Global.hpp"
+#include "analytics/core/TurboDB.hpp"
+#include "analytics/core/TG_DistributedVectorBase.hpp"
+#include "analytics/io/Turbo_bin_io_handler.hpp"
+#include "analytics/io/HomogeneousPageWriter.hpp"
+#include "analytics/io/EdgePairListReader.hpp"
+#include "analytics/datastructure/VidRangePerPage.hpp"
+#include "analytics/datastructure/disk_aio_factory.hpp"
 
 #define TIMEDIFF_MILLISEC(begin, end) ((double)std::chrono::duration_cast<std::chrono::milliseconds>((end) - (begin)).count())
 #ifndef MIN
@@ -63,7 +63,7 @@ class TG_BuildDDB  {
 		argv_ = argv;
 
 		setbuf(stdout, NULL);
-		std::string glog_filename;
+		// std::string glog_filename;
 
 		std::vector<std::string> binary_file;
 		std::vector<std::string> db_file;
@@ -76,25 +76,25 @@ class TG_BuildDDB  {
 			}
 		}
 
-		if(this->argc_ >= 7) {
-			glog_filename.append(binary_file[binary_file.size()-1]).append("-");
-			for (auto& str : db_file) {
-				glog_filename.append(str).append("-");
-			}
-			for(int i = 3; i <= 5; i++) {
-				glog_filename.append(argv_[i]).append("-");
-			}
-			glog_filename.append(argv_[6]);
-		}
-		char* _glog_filename = (char *) malloc( sizeof(char) * (strlen(glog_filename.c_str()) + 1));
-		strncpy(_glog_filename, glog_filename.c_str(),  (strlen(glog_filename.c_str()) + 1));
-		google::InitGoogleLogging(_glog_filename);
-		std::string glog_dir("/mnt/sdb1/glog/");
+		// if(this->argc_ >= 7) {
+		// 	glog_filename.append(binary_file[binary_file.size()-1]).append("-");
+		// 	for (auto& str : db_file) {
+		// 		glog_filename.append(str).append("-");
+		// 	}
+		// 	for(int i = 3; i <= 5; i++) {
+		// 		glog_filename.append(argv_[i]).append("-");
+		// 	}
+		// 	glog_filename.append(argv_[6]);
+		// }
+		// char* _glog_filename = (char *) malloc( sizeof(char) * (strlen(glog_filename.c_str()) + 1));
+		// strncpy(_glog_filename, glog_filename.c_str(),  (strlen(glog_filename.c_str()) + 1));
+		// google::InitGoogleLogging(_glog_filename);
+		// std::string glog_dir("/mnt/sdb1/glog/");
 		char* name = getlogin();
 		getlogin_r(name, 5);
-		glog_dir.append(name);
+		// glog_dir.append(name);
 		std::cout << std::flush;
-		FLAGS_log_dir=glog_dir.c_str();
+		// FLAGS_log_dir=glog_dir.c_str();
 		FLAGS_logtostderr = 0;
 
 		MPI::Init_thread(argc, argv, MPI_THREAD_MULTIPLE);

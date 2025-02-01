@@ -22,15 +22,14 @@
 #include <atomic>
 #include <algorithm>
 
-#include "util.hpp"
-#include "atom.hpp"
-#include "Aio_Helper.hpp"
-#include "atomic_util.hpp"
-#include "turbo_tcp.hpp"
-#include "RequestRespond.hpp"
-#include "turbo_dist_internal.hpp"
-
-#include "TwoLevelBitMap.hpp"
+#include "analytics/core/RequestRespond.hpp"
+#include "analytics/core/turbo_tcp.hpp"
+#include "analytics/core/turbo_dist_internal.hpp"
+#include "analytics/datastructure/TwoLevelBitMap.hpp"
+#include "analytics/util/util.hpp"
+#include "analytics/util/atom.hpp"
+#include "analytics/util/Aio_Helper.hpp"
+#include "analytics/util/atomic_util.hpp"
 
 // TODO not used since IndexedWritebackMessage is not used
 template <typename T>
@@ -390,7 +389,7 @@ class TG_DistributedVectorBase {
         ggb_msg_received_flags.ClearAll(); 
     }
 
-]   /**
+    /**
      * Clear ggb message received flags for given vertex id
      */
     void ClearOvMessageReceived(node_t vid) {

@@ -1,4 +1,4 @@
-#include "eXDB_dist_internal.hpp"
+#include "analytics/core/eXDB_dist_internal.hpp"
 
 __thread int64_t core_id::my_core_id_ = -1;
 int64_t core_id::core_counts_ = 0;

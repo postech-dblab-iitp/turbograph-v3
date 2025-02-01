@@ -6,8 +6,8 @@
 #include <sstream>
 #include <set>
 
-#include "page.hpp"
-#include "atom.hpp"
+#include "analytics/datastructure/page.hpp"
+#include "analytics/util/atom.hpp"
 
 class turbo_buffer_manager;
 

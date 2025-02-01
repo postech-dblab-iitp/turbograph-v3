@@ -1,4 +1,4 @@
-#include "Global.hpp"
+#include "analytics/core/Global.hpp"
 
 std::string UserArguments::WORKSPACE_PATH;
 std::string UserArguments::RAWDATA_PATH;

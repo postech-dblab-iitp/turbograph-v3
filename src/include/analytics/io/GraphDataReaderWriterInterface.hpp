@@ -16,7 +16,7 @@
  *         - HomogeneousPageWriter
  */
 
-#include "page.hpp"
+#include "analytics/datastructure/page.hpp"
 
 template <typename T>
 class ReaderInterface {

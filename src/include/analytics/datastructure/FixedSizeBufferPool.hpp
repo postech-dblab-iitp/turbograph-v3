@@ -16,8 +16,8 @@
 
 #include <cstring>
 
-#include "TypeDef.hpp"
-#include "concurrentqueue/oncurrentqueue.h"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/datastructure/concurrentqueue/concurrentqueue.h"
 
 class FixedSizeConcurrentBufferPool {
 

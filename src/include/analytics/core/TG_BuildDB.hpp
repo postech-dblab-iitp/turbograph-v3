@@ -26,15 +26,15 @@
 #include <chrono>
 #include <glog/logging.hpp>
 
-#include "Turbograph.hpp"
-#include "Global.hpp"
-#include "TurboDB.hpp"
-#include "Turbo_bin_io_handler.hpp"
-#include "HomogeneousPageWriter.hpp"
-#include "EdgePairListReader.hpp"
-#include "VidRangePerPage.hpp"
-#include "disk_aio_factory.hpp"
-#include "TG_DistributedVectorBase.hpp"
+#include "analytics/Turbograph.hpp"
+#include "analytics/core/Global.hpp"
+#include "analytics/core/TurboDB.hpp"
+#include "analytics/io/Turbo_bin_io_handler.hpp"
+#include "analytics/io/HomogeneousPageWriter.hpp"
+#include "analytics/io/EdgePairListReader.hpp"
+#include "analytics/datastructure/VidRangePerPage.hpp"
+#include "analytics/datastructure/disk_aio_factory.hpp"
+#include "analytics/core/TG_DistributedVectorBase.hpp"
 
 #define TIMEDIFF_MILLISEC(begin, end) ((double)std::chrono::duration_cast<std::chrono::milliseconds>((end) - (begin)).count())
 #ifndef MIN

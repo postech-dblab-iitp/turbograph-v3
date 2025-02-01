@@ -23,10 +23,10 @@
 #include <iostream>
 #include <vector>
 #include <atomic>
-#include <mpi.h>
 #include <omp.h>
+#include <mpi.h>
 
-#include "util.hpp"
+#include "analytics/util/util.hpp"
 
 
 //#define __thread __declspec( thread )

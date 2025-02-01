@@ -12,9 +12,9 @@
 
 #include <ctime>
 #include <random>
-#include "TypeDef.hpp"
-#include "GraphDataReaderWriterInterface.hpp"
-#include "pcg_random.hpp"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/io/GraphDataReaderWriterInterface.hpp"
+#include "analytics/util/pcg_random.hpp"
 
 template <typename Entry_t, bool endian_trfm >
 class BinaryFormatEdgePairDummyReader : public ReaderInterface<Entry_t> {

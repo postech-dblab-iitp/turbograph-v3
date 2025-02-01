@@ -1,6 +1,6 @@
-#include "RequestRespond.hpp"
-#include "MaterializedAdjacencyLists.hpp"
-#include "TurboDB.hpp"
+#include "analytics/core/RequestRespond.hpp"
+#include "analytics/core/TurboDB.hpp"
+#include "analytics/datastructure/MaterializedAdjacencyLists.hpp"
 
 RequestRespond RequestRespond::rr_;
 std::mutex RequestRespond::mutex_for_end;

@@ -33,12 +33,12 @@
 #include <thread>
 #include <queue>
 
-#include "TG_DBBuilder.hpp"
-#include "ParallelBinaryHandlers.hpp"
-#include "EdgePairListReader.hpp"
-#include "KWayMergeTree.hpp"
-#include "TypeDef.hpp"
-#include "Turbo_bin_io_handler.hpp"
+#include "analytics/core/TG_DBBuilder.hpp"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/io/ParallelBinaryHandlers.hpp"
+#include "analytics/io/EdgePairListReader.hpp"
+#include "analytics/io/Turbo_bin_io_handler.hpp"
+#include "analytics/datastructure/KWayMergeTree.hpp"
 #include "tbb/concurrent_queue.h"
 #include "tbb/parallel_sort.h"
 #include "tbb/parallel_pipeline.h"

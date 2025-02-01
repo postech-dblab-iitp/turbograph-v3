@@ -14,8 +14,8 @@
 #include <vector>
 #include <stdexcept>
 
-#include "TypeDef.hpp"
-#include "util.hpp"
+#include "analytics/core/TypeDef.hpp"
+#include "analytics/util/util.hpp"
 
 #define SizeInBits(X) ((8*sizeof(X)))
 

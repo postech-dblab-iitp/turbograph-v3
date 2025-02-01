@@ -13,7 +13,7 @@
 #include <fstream>
 #include <string>
 
-#include "Turbo_bin_mmapper.hpp"
+#include "analytics/io/Turbo_bin_mmapper.hpp"
 
 #define END_OF_FILE	-1
 

@@ -12,8 +12,8 @@
  *
  */
 
-#include "Turbo_bin_io_handler.hpp"
-#include "atom.hpp"
+#include "analytics/io/Turbo_bin_io_handler.hpp"
+#include "analytics/util/atom.hpp"
 
 class Blocking_Turbo_bin_io_handler {
   public:

@@ -7,9 +7,8 @@
  * of range error.
  */
 
-#include "Global.hpp"
+#include "analytics/core/Global.hpp"
 #include <vector>
-#include <glog/logging.hpp>
 
 template <typename T>
 class TG_Vector: public std::vector<T> {

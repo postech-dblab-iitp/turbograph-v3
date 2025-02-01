@@ -2,11 +2,10 @@
 #ifndef TG_NWSM_HPP__
 #define TG_NWSM_HPP__
 
-
-#include "TG_NWSM_Utility.hpp"
-#include "TG_NWSMTaskContext.hpp"
-#include "TG_AdjWindow.hpp"
-#include "MemoryMappedArray.hpp"
+#include "analytics/core/TG_NWSMTaskContext.hpp"
+#include "analytics/core/TG_AdjWindow.hpp"
+#include "analytics/datastructure/MemoryMappedArray.hpp"
+#include "analytics/util/TG_NWSM_Utility.hpp"
 
 #include <tbb/parallel_for.h>
 #include <tbb/concurrent_queue.h>

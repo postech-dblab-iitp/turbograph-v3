@@ -26,17 +26,14 @@
  * s+1 asynchronously (Please refer CallConstructNextSuperStepArrayAsync function).
  */
 
-#include "TG_DistributedVectorBase.hpp"
-#include "TG_DistributedVectorWindow.hpp"
-
-#include "Turbo_bin_io_handler.hpp"
-#include "MemoryMappedArray.hpp"
-#include "VersionedArray.hpp"
-#include "GBVersionedArray.hpp"
-#include "VersionedArrayDiff.hpp"
-
-#include "TG_NWSM.hpp"
-
+#include "analytics/core/TG_NWSM.hpp"
+#include "analytics/core/TG_DistributedVectorBase.hpp"
+#include "analytics/core/TG_DistributedVectorWindow.hpp"
+#include "analytics/io/Turbo_bin_io_handler.hpp"
+#include "analytics/datastructure/MemoryMappedArray.hpp"
+#include "analytics/datastructure/VersionedArray.hpp"
+#include "analytics/datastructure/GBVersionedArray.hpp"
+#include "analytics/datastructure/VersionedArrayDiff.hpp"
 
 #define NO_PER_THREAD_BUFFER 1
 #define PER_THREAD_GGB_PULL
@@ -2231,7 +2228,7 @@ class TG_DistributedVector: public TG_DistributedVectorBase {
         ALWAYS_ASSERT(win[0] != NULL);
         /* Call for output vector */
         versioned_ov_array->CallConstructNextSuperStepArrayAsync(u, s, run_static_processing);
-        /* Call for input vector */s
+        /* Call for input vector */
         win[0]->CallConstructNextSuperStepArrayAsync(u, s, run_static_processing);
     }
     

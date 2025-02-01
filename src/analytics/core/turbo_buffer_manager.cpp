@@ -1,6 +1,6 @@
-#include "turbo_buffer_manager.hpp"
-#include "disk_aio_factory.hpp"
-#include "TurboDB.hpp"
+#include "analytics/core/turbo_buffer_manager.hpp"
+#include "analytics/datastructure/disk_aio_factory.hpp"
+#include "analytics/core/TurboDB.hpp"
 
 void(*turbo_callback::AsyncCallbackUpdateDirectTableFunc)(diskaio::DiskAioRequestUserInfo &user_info) = AsyncCallbackUpdateDirectTable;
 turbo_buffer_manager turbo_buffer_manager::buf_mgr;
