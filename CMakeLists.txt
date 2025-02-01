@@ -150,7 +150,7 @@ if(NOT MSVC)
   endif()
 
   set(CXX_EXTRA_DEBUG
-      "${CXX_EXTRA_DEBUG} -Wunused -Werror=vla -Wnarrowing -pedantic"
+      "${CXX_EXTRA_DEBUG} -Wunused -Wnarrowing"
   )
 
   if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION

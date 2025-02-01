@@ -1,16 +1,29 @@
-# Turbograph v3
+# S62 Graph Databases
 
 Fast, scalable, and flexible OLAP graph database, S62.
 
 ## Abstract
 
-The absence of strict requirements to define schemas formally before use in the property graph model offers great flexibility facilitating painless graph data loading and update.
-However, such schemalessness comes at a cost during the operations. 
-It complicates the design of efficient storage and becomes a major bottleneck during the graph query processing.
-To overcome these challenges, we designed and developed a system called S62 to bridge the gap between the flexibility of schemaless data and the efficiency of schema-aware storage and query optimization.
-S62 utilizes a novel approach of internally extracting and clustering schemas based on similarity.
-This technique, termed homogeneous relation chunking, organizes data into groups stored in a columnar format, enabling efficient vectorized query execution.
-Moreover, S62 incorporates the industrial-strength Orca optimizer, minimally modified to be graph-aware, allowing for advanced query optimization techniques developed in the relational database domain.
+Graph database management systems (GDBMSes) are in wide use
+for their high performance and efficiency in graph analytics. They
+are highly optimized for traversing graph nodes and searching for
+complex relationships in the graph. Unfortunately, current GDBM-
+Ses exhibit significant weaknesses in performance when performing
+complex operations such as group by, complex filters, or aggrega-
+tions. The source of this problem lies in the lack of proper designs
+for handling the schemaless property graph model (PGM) data sup-
+ported by all major GDBMSes today. To overcome this challenge,
+we built a novel graph database system, called S62, that considered
+the schemaless property as the primary design factor in all sys-
+tem components, from the storage system to the query optimizer
+and query processor. The architecture of S62 revolves around the
+concept of a graphlet, which consists of a cost-based cluster of
+graph nodes or edges. We store graph data in columnar format
+in units of graphlets, optimize query plans, and execute queries
+in a graphlet-aware manner. Our comprehensive evaluation with
+LDBC SNB Interactive, TPC-H benchmarks, and DBpedia data
+demonstrates that S62 outperforms native GDBMS by up to 174.1×
+and RDBMS by 130.2×.
 
 ## Getting Started
 
@@ -36,9 +49,6 @@ To experiment with a typical dataset, you can download the LDBC SF1 dataset from
 We provide a docker image for the project. You can build the image using the following command.
 
 ```
-git clone https://github.com/postech-dblab-iitp/turbograph-v3.git
-cd turbograph-v3
-git checkout remotes/origin/main
 cd docker
 docker build . -t turbograph-image
 ./run-docker-example.sh <database folder> <source data folder>
