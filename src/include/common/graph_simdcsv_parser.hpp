@@ -23,7 +23,7 @@
 #include "portability.h"
 #include "icecream.hpp"
 
-using namespace turbograph_simdcsv;
+using namespace s62_simdcsv;
 
 namespace duckdb {
 

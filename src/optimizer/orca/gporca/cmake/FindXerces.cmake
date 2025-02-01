@@ -5,8 +5,8 @@ find_path(XERCES_INCLUDE_DIR xercesc/sax2/DefaultHandler.hpp)
 
 find_library(XERCES_LIBRARY NAMES xerces-c libxerces-c)
 
-set(XERCES_LIBRARIES ${XERCES_LIBRARY})
-set(XERCES_INCLUDE_DIRS ${XERCES_INCLUDE_DIR})
+set(XERCES_LIBRARIES ${XERCES_LIBRARY} CACHE INTERNAL "Xerces libraries")
+set(XERCES_INCLUDE_DIRS ${XERCES_INCLUDE_DIR} CACHE INTERNAL "Xerces include directories")
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Xerces DEFAULT_MSG
