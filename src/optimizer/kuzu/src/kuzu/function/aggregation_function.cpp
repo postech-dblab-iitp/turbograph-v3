@@ -17,7 +17,7 @@ namespace function {
 using namespace kuzu::function::operation;
 
 unique_ptr<AggregateFunction> AggregateFunctionUtil::getCountStarFunction() {
-    return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), DataType(ANY) /* dummy input data type */);
+    return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), DataType(DataTypeID::ANY) /* dummy input data type */);
 }
 
 unique_ptr<AggregateFunction> AggregateFunctionUtil::getCountFunction(
@@ -35,17 +35,17 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getEmptyFunction(
 unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunction(
     const DataType& inputType, bool isDistinct) {
     switch (inputType.typeID) {
-	case TINYINT:
-	case SMALLINT:
-	case INTEGER:
-	case FLOAT:
-	case UTINYINT:
-	case USMALLINT:
-	case UINTEGER:
-	case UBIGINT:
-    case INT64:
-    case DOUBLE:
-    case DECIMAL:
+	case DataTypeID::TINYINT:
+	case DataTypeID::SMALLINT:
+	case DataTypeID::INTEGER:
+	case DataTypeID::FLOAT:
+	case DataTypeID::UTINYINT:
+	case DataTypeID::USMALLINT:
+	case DataTypeID::UINTEGER:
+	case DataTypeID::UBIGINT:
+    case DataTypeID::INT64:
+    case DataTypeID::DOUBLE:
+    case DataTypeID::DECIMAL:
         return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType, isDistinct);
     default:
         throw RuntimeException("Unsupported input data type " + Types::dataTypeToString(inputType) +
@@ -56,17 +56,17 @@ unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunction(
 unique_ptr<AggregateFunction> AggregateFunctionUtil::getSumFunction(
     const DataType& inputType, bool isDistinct) {
     switch (inputType.typeID) {
-	case TINYINT:
-	case SMALLINT:
-	case INTEGER:
-	case FLOAT:
-	case UTINYINT:
-	case USMALLINT:
-	case UINTEGER:
-	case UBIGINT:
-	case INT64:
-    case DOUBLE:
-    case DECIMAL:
+	case DataTypeID::TINYINT:
+	case DataTypeID::SMALLINT:
+	case DataTypeID::INTEGER:
+	case DataTypeID::FLOAT:
+	case DataTypeID::UTINYINT:
+	case DataTypeID::USMALLINT:
+	case DataTypeID::UINTEGER:
+	case DataTypeID::UBIGINT:
+	case DataTypeID::INT64:
+    case DataTypeID::DOUBLE:
+    case DataTypeID::DECIMAL:
         return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType, isDistinct);
     default:
         throw RuntimeException("Unsupported input data type " + Types::dataTypeToString(inputType) +
@@ -88,31 +88,31 @@ template<typename FUNC>
 unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(
     const DataType& inputType, bool isDistinct) {
     switch (inputType.typeID) {
-    case BOOLEAN:
+    case DataTypeID::BOOLEAN:
         return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType,
             isDistinct);
-	case TINYINT:
-	case SMALLINT:
-	case INTEGER:
-	case FLOAT:
-	case UTINYINT:
-	case USMALLINT:
-	case UINTEGER:
-	case UBIGINT:
-    case DECIMAL:
-    case INT64:
+	case DataTypeID::TINYINT:
+	case DataTypeID::SMALLINT:
+	case DataTypeID::INTEGER:
+	case DataTypeID::FLOAT:
+	case DataTypeID::UTINYINT:
+	case DataTypeID::USMALLINT:
+	case DataTypeID::UINTEGER:
+	case DataTypeID::UBIGINT:
+    case DataTypeID::DECIMAL:
+    case DataTypeID::INT64:
         return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType,
             isDistinct);
-    case DOUBLE:
+    case DataTypeID::DOUBLE:
         return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType,
             isDistinct);
-    case DATE:
+    case DataTypeID::DATE:
         return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType,
             isDistinct);
-    case STRING:
+    case DataTypeID::STRING:
         return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType,
             isDistinct);
-    case NODE_ID:
+    case DataTypeID::NODE_ID:
         return make_unique<AggregateFunction>(empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), empty_agg_func(), inputType,
             isDistinct);
     default:

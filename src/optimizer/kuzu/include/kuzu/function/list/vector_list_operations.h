@@ -43,38 +43,38 @@ struct VectorListOperations : public VectorOperations {
         std::vector<std::unique_ptr<VectorOperationDefinition>> result;
         scalar_exec_func execFunc;
         for (auto& rightTypeID :
-            std::vector<common::DataTypeID>{common::BOOLEAN, common::INT64, common::UBIGINT, common::DOUBLE,
-                common::STRING, common::DATE, common::TIMESTAMP, common::INTERVAL, common::LIST, common::NODE_ID}) {
+            std::vector<common::DataTypeID>{common::DataTypeID::BOOLEAN, common::DataTypeID::INT64, common::DataTypeID::UBIGINT, common::DataTypeID::DOUBLE,
+                common::DataTypeID::STRING, common::DataTypeID::DATE, common::DataTypeID::TIMESTAMP, common::DataTypeID::INTERVAL, common::DataTypeID::LIST, common::DataTypeID::NODE_ID}) {
             // switch (rightTypeID) {
             // case common::BOOL: {
             //     execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t, uint8_t,
             //         RESULT_TYPE, OPERATION>;
             // } break;
-            // case common::INT64: {
+            // case common::DataTypeID::INT64: {
             //     execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t, int64_t,
             //         RESULT_TYPE, OPERATION>;
             // } break;
-            // case common::DOUBLE: {
+            // case common::DataTypeID::DOUBLE: {
             //     execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t, double_t,
             //         RESULT_TYPE, OPERATION>;
             // } break;
-            // case common::STRING: {
+            // case common::DataTypeID::STRING: {
             //     execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t,
             //         common::ku_string_t, RESULT_TYPE, OPERATION>;
             // } break;
-            // case common::DATE: {
+            // case common::DataTypeID::DATE: {
             //     execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t, common::date_t,
             //         RESULT_TYPE, OPERATION>;
             // } break;
-            // case common::TIMESTAMP: {
+            // case common::DataTypeID::TIMESTAMP: {
             //     execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t,
             //         common::timestamp_t, RESULT_TYPE, OPERATION>;
             // } break;
-            // case common::INTERVAL: {
+            // case common::DataTypeID::INTERVAL: {
             //     execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t,
             //         common::interval_t, RESULT_TYPE, OPERATION>;
             // } break;
-            // case common::LIST: {
+            // case common::DataTypeID::LIST: {
             //     execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t,
             //         common::ku_list_t, RESULT_TYPE, OPERATION>;
             // } break;
@@ -83,11 +83,11 @@ struct VectorListOperations : public VectorOperations {
             // }
             // }
             result.push_back(make_unique<VectorOperationDefinition>(funcName,
-                std::vector<common::DataTypeID>{common::LIST, rightTypeID}, resultTypeID, empty_scalar_exec_func(),
+                std::vector<common::DataTypeID>{common::DataTypeID::LIST, rightTypeID}, resultTypeID, empty_scalar_exec_func(),
                 nullptr, false /* isVarlength*/));
         }
         // result.push_back(make_unique<VectorOperationDefinition>(funcName,
-        //     std::vector<common::DataTypeID>{common::LIST, common::ANY}, resultTypeID, empty_scalar_exec_func(),
+        //     std::vector<common::DataTypeID>{common::DataTypeID::LIST, common::DataTypeID::ANY}, resultTypeID, empty_scalar_exec_func(),
         //     nullptr, false /* isVarlength*/));
         return result;
     }

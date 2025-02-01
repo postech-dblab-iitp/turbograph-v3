@@ -1,8 +1,11 @@
-file(GLOB_RECURSE srcs ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+file(GLOB_RECURSE LIBNAUCRATES_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 
-add_library(naucrates SHARED ${srcs})
+add_library_unity(
+    s62gdb_libnaucrates
+    OBJECT
+    ${LIBNAUCRATES_SRC_FILES}
+)
 
-target_link_libraries(naucrates
-                      ${CMAKE_DL_LIBS}
-                      gpos
-                      ${XERCES_LIBRARIES})
+set(ALL_OBJECT_FILES
+    ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:s62gdb_libnaucrates>
+    PARENT_SCOPE)

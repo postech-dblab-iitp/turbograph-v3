@@ -1,0 +1,11 @@
+file(GLOB_RECURSE MAIN_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.c*")
+
+add_library_unity(
+  s62gdb_main
+  OBJECT
+  ${MAIN_SRC_FILES}
+)
+
+set(ALL_OBJECT_FILES
+    ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:s62gdb_main>
+    PARENT_SCOPE)

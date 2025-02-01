@@ -174,6 +174,22 @@ function install_boost {
   )
 }
 
+function install_xsimd {
+  wget_and_untar https://github.com/postech-dblab-iitp/xsimd/archive/refs/tags/10.0.1.tar.gz xsimd
+  (
+    cd ${DEPENDENCY_DIR}/xsimd
+    cmake_install_dir xsimd -DBUILD_TESTS=OFF -DBUILD_SHARED_LIBS=OFF
+  )
+}
+
+function install_simdjson {
+  wget_and_untar https://github.com/simdjson/simdjson/archive/refs/tags/v3.9.3.tar.gz simdjson
+  (
+    cd ${DEPENDENCY_DIR}/simdjson
+    cmake_install_dir simdjson -DSIMDJSON_DEVELOPER_MODE=OFF
+  )
+}
+
 function install_protobuf {
   wget_and_untar https://github.com/protocolbuffers/protobuf/releases/download/v21.8/protobuf-all-21.8.tar.gz protobuf
   (
@@ -300,6 +316,8 @@ function install_velox_deps {
   run_and_time install_protobuf
   run_and_time install_boost
   run_and_time install_folly
+  run_and_time install_xsimd
+  run_and_time install_simdjson
   # run_and_time install_fizz
   # run_and_time install_wangle
   # run_and_time install_mvfst

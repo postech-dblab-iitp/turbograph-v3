@@ -6,12 +6,12 @@
 #include <cmath>
 #include <unordered_set>
 #include <Python.h>
+#include "<simdjson.h>"
 
 #include "common/vector.hpp"
 #include "common/enums/json_file_type.hpp"
 #include "common/clustering/dbscan.h"
 #include "common/clustering/optics.hpp"
-#include "s62_simdjson.h"
 #include "icecream.hpp"
 #include "storage/schemaless/schema_hash_table.hpp"
 

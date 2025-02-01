@@ -1,5 +1,4 @@
 #include "kuzu/binder/expression_binder.h"
-
 #include "kuzu/binder/binder.h"
 #include "kuzu/binder/expression/case_expression.h"
 #include "kuzu/binder/expression/existential_subquery_expression.h"
@@ -13,12 +12,7 @@
 #include "kuzu/binder/expression/idincoll_expression.h"
 #include "kuzu/common/type_utils.h"
 #include "kuzu/common/utils.h"
-
-#include "kuzu/function//vector_operations.h"
-
-
-// #include "kuzu/function//boolean/vector_boolean_operations.h"
-// #include "kuzu/function//null/vector_null_operations.h"
+#include "kuzu/function/vector_operations.h"
 #include "kuzu/parser/expression/parsed_case_expression.h"
 #include "kuzu/parser/expression/parsed_function_expression.h"
 #include "kuzu/parser/expression/parsed_literal_expression.h"
@@ -107,14 +101,14 @@ shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
     
     expression_vector childrenAfterCast;
     for (auto& child : children) {
-        childrenAfterCast.push_back(implicitCastIfNecessary(child, BOOLEAN));
+        childrenAfterCast.push_back(implicitCastIfNecessary(child, DataTypeID::BOOLEAN));
     }
     auto functionName = expressionTypeToString(expressionType);
     auto execFunc = empty_scalar_exec_func();
     auto selectFunc = empty_scalar_select_func();
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(functionName, childrenAfterCast);
-    return make_shared<ScalarFunctionExpression>(expressionType, DataType(BOOLEAN),
+    return make_shared<ScalarFunctionExpression>(expressionType, DataType(DataTypeID::BOOLEAN),
         move(childrenAfterCast), move(execFunc), move(selectFunc), uniqueExpressionName);
 }
 
@@ -140,14 +134,14 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
             // Explicit casting for double to decimal cases
             auto &other_child = children[(i + 1) % 2];
             auto &current_child = children[i];
-            if (other_child->dataType.typeID == DECIMAL &&
-                current_child->dataType.typeID == DOUBLE) {
+            if (other_child->dataType.typeID == DataTypeID::DECIMAL &&
+                current_child->dataType.typeID == DataTypeID::DOUBLE) {
                 // Assumption: DECIMAL type is always (15,2)
                 std::cout << "CAUTION: Casting DOUBLE to DECIMAL with scale 2" << std::endl;
                 auto &literal = ((LiteralExpression *)current_child.get())->literal;
                 auto double_val = literal->val.doubleVal;
                 literal->val.int64Val = static_cast<int64_t>(std::round(double_val * 100));
-                ((LiteralExpression *)current_child.get())->setDataTypeForced(DataType(DECIMAL));
+                ((LiteralExpression *)current_child.get())->setDataTypeForced(DataType(DataTypeID::DECIMAL));
             }
         }
     }
@@ -161,10 +155,10 @@ shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     if ((expressionType == ExpressionType::EQUALS ||
          expressionType == ExpressionType::NOT_EQUALS) &&
         (children.size() == 2) &&
-        ((children[0].get()->dataType.typeID == NODE &&
-          children[1].get()->dataType.typeID == NODE) ||
-         (children[0].get()->dataType.typeID == REL &&
-          children[1].get()->dataType.typeID == REL))) {
+        ((children[0].get()->dataType.typeID == DataTypeID::NODE &&
+          children[1].get()->dataType.typeID == DataTypeID::NODE) ||
+         (children[0].get()->dataType.typeID == DataTypeID::REL &&
+          children[1].get()->dataType.typeID == DataTypeID::REL))) {
         isComparsionOnTwoNodeOrEdges = true;
         // change childrenTypes
         auto child = bindInternalIDExpression(*children[0]);
@@ -230,7 +224,7 @@ shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
     auto execFunc = empty_scalar_exec_func();
     auto selectFunc = empty_scalar_select_func();
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(functionName, children);
-    return make_shared<ScalarFunctionExpression>(expressionType, DataType(BOOLEAN), move(children),
+    return make_shared<ScalarFunctionExpression>(expressionType, DataType(DataTypeID::BOOLEAN), move(children),
         move(execFunc), move(selectFunc), uniqueExpressionName);
 }
 
@@ -247,11 +241,11 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     //         propertyName + " is reserved for system usage. External access is not allowed.");
     // }
     auto child = bindExpression(*parsedExpression.getChild(0));
-    validateExpectedDataType(*child, unordered_set<DataTypeID>{NODE, REL});
-    if (NODE == child->dataType.typeID) {
+    validateExpectedDataType(*child, unordered_set<DataTypeID>{DataTypeID::NODE, DataTypeID::REL});
+    if (DataTypeID::NODE == child->dataType.typeID) {
         return bindNodePropertyExpression(*child, propertyName);
     } else {
-        assert(REL == child->dataType.typeID);
+        assert(DataTypeID::REL == child->dataType.typeID);
         return bindRelPropertyExpression(*child, propertyName);
     }
 }
@@ -378,7 +372,7 @@ shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
         auto child = bindExpression(*parsedExpression.getChild(i));
         // rewrite aggregate on node or rel as aggregate on their internal IDs.
         // e.g. COUNT(a) -> COUNT(a._id)
-        if (child->dataType.typeID == NODE || child->dataType.typeID == REL) {
+        if (child->dataType.typeID == DataTypeID::NODE || child->dataType.typeID == DataTypeID::REL) {
             child = bindInternalIDExpression(*child);
         }
         childrenTypes.push_back(child->dataType);
@@ -398,18 +392,18 @@ shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionNa
     const ParsedExpression& parsedExpression, const expression_vector& children) {
     if (functionName == CAST_TO_DATE_FUNC_NAME) {
         auto strVal = ((LiteralExpression*)children[0].get())->literal->strVal;
-        return make_shared<LiteralExpression>(DataType(DATE),
+        return make_shared<LiteralExpression>(DataType(DataTypeID::DATE),
             make_unique<Literal>(Date::FromCString(strVal.c_str(), strVal.length())));
     } else if (functionName == CAST_TO_TIMESTAMP_FUNC_NAME) {
         auto strVal = ((LiteralExpression*)children[0].get())->literal->strVal;
-        return make_shared<LiteralExpression>(DataType(TIMESTAMP),
+        return make_shared<LiteralExpression>(DataType(DataTypeID::TIMESTAMP),
             make_unique<Literal>(Timestamp::FromCString(strVal.c_str(), strVal.length())));
     } else if (functionName == CAST_TO_INTERVAL_FUNC_NAME) {
         auto strVal = ((LiteralExpression*)children[0].get())->literal->strVal;
-        return make_shared<LiteralExpression>(DataType(INTERVAL),
+        return make_shared<LiteralExpression>(DataType(DataTypeID::INTERVAL),
             make_unique<Literal>(Interval::FromCString(strVal.c_str(), strVal.length())));
     } else if (functionName == CAST_TO_YEAR_FUNC_NAME) {
-        return make_shared<LiteralExpression>(DataType(INT64),
+        return make_shared<LiteralExpression>(DataType(DataTypeID::INT64),
             make_unique<Literal>(Date::getDatePart(DatePartSpecifier::YEAR, ((LiteralExpression*)children[0].get())->literal->val.dateVal)));
     }
     else {
@@ -421,16 +415,16 @@ shared_ptr<Expression> ExpressionBinder::staticEvaluate(const string& functionNa
 shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
     const ParsedExpression& parsedExpression) {
     auto child = bindExpression(*parsedExpression.getChild(0));
-    validateExpectedDataType(*child, unordered_set<DataTypeID>{NODE, REL});
+    validateExpectedDataType(*child, unordered_set<DataTypeID>{DataTypeID::NODE, DataTypeID::REL});
     return bindInternalIDExpression(*child);
 }
 
 shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(const Expression& expression) {
-    if (expression.dataType.typeID == NODE) {
+    if (expression.dataType.typeID == DataTypeID::NODE) {
         auto& node = (NodeExpression&)expression;
         return node.getInternalIDProperty();
     } else {
-        assert(expression.dataType.typeID == REL);
+        assert(expression.dataType.typeID == DataTypeID::REL);
         return bindRelPropertyExpression(expression, INTERNAL_ID_SUFFIX);
     }
 }
@@ -443,7 +437,7 @@ unique_ptr<Expression> ExpressionBinder::createInternalNodeIDExpression(
         propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
     }
     auto result = make_unique<PropertyExpression>(
-        DataType(NODE_ID), INTERNAL_ID_SUFFIX, 0, node, std::move(propertyIDPerTable));
+        DataType(DataTypeID::NODE_ID), INTERNAL_ID_SUFFIX, 0, node, std::move(propertyIDPerTable));
     return result;
 }
 
@@ -472,7 +466,7 @@ shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
 
 shared_ptr<Expression> ExpressionBinder::bindNullLiteralExpression() {
     return make_shared<LiteralExpression>(
-        DataType(ANY), make_unique<Literal>(), binder->getUniqueExpressionName("NULL"));
+        DataType(DataTypeID::ANY), make_unique<Literal>(), binder->getUniqueExpressionName("NULL"));
 }
 
 shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
@@ -536,7 +530,7 @@ shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
         for (auto i = 0u; i < parsedCaseExpression.getNumCaseAlternative(); ++i) {
             auto caseAlternative = parsedCaseExpression.getCaseAlternative(i);
             auto boundWhen = bindExpression(*caseAlternative->whenExpression);
-            boundWhen = implicitCastIfNecessary(boundWhen, BOOLEAN);
+            boundWhen = implicitCastIfNecessary(boundWhen, DataTypeID::BOOLEAN);
             auto boundThen = bindExpression(*caseAlternative->thenExpression);
             boundThen = implicitCastIfNecessary(boundThen, outDataType);
             boundCaseExpression->addCaseAlternative(boundWhen, boundThen);
@@ -593,7 +587,7 @@ shared_ptr<Expression> ExpressionBinder::bindIdInCollExpression(const ParsedExpr
     auto &parsedIdInCollExpression =
         (ParsedIdInCollExpression &)parsedExpression;
     auto coll_expression = bindExpression(*parsedIdInCollExpression.getChild(0));
-    if (coll_expression->dataType.typeID != LIST) {
+    if (coll_expression->dataType.typeID != DataTypeID::LIST) {
         throw BinderException("Expression " + coll_expression->getRawName() +
                               " has data type " +
                               Types::dataTypeToString(coll_expression->dataType) +
@@ -615,32 +609,32 @@ shared_ptr<Expression> ExpressionBinder::bindIdInCollExpression(const ParsedExpr
 
 shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     const shared_ptr<Expression>& expression, DataType &targetType) {
-    if (targetType.typeID == ANY || expression->dataType == targetType) {
+    if (targetType.typeID == DataTypeID::ANY || expression->dataType == targetType) {
         targetType = expression->dataType;
         return expression;
     }
-    if (expression->dataType.typeID == ANY) {
+    if (expression->dataType.typeID == DataTypeID::ANY) {
         resolveAnyDataType(*expression, targetType);
         return expression;
     }
-    if (targetType.typeID == INT64 && expression->dataType.typeID == INTEGER) {
-        expression->dataType.typeID = INT64; // TODO temporary..
+    if (targetType.typeID == DataTypeID::INT64 && expression->dataType.typeID == DataTypeID::INTEGER) {
+        expression->dataType.typeID = DataTypeID::INT64; // TODO temporary..
         return expression;
     }
-    if (targetType.typeID == UBIGINT && expression->dataType.typeID == INTEGER) {
-        expression->dataType.typeID = UBIGINT; // TODO temporary..
+    if (targetType.typeID == DataTypeID::UBIGINT && expression->dataType.typeID == DataTypeID::INTEGER) {
+        expression->dataType.typeID = DataTypeID::UBIGINT; // TODO temporary..
         return expression;
     }
-    if (targetType.typeID == UBIGINT && expression->dataType.typeID == INT64) {
-        expression->dataType.typeID = UBIGINT; // TODO temporary..
+    if (targetType.typeID == DataTypeID::UBIGINT && expression->dataType.typeID == DataTypeID::INT64) {
+        expression->dataType.typeID = DataTypeID::UBIGINT; // TODO temporary..
         return expression;
     }
-    if (targetType.typeID == DECIMAL && expression->dataType.typeID == INTEGER) {
-        expression->dataType.typeID = DECIMAL; // TODO temporary..
+    if (targetType.typeID == DataTypeID::DECIMAL && expression->dataType.typeID == DataTypeID::INTEGER) {
+        expression->dataType.typeID = DataTypeID::DECIMAL; // TODO temporary..
         return expression;
     }
-    if (targetType.typeID == DECIMAL && expression->dataType.typeID == DOUBLE) {
-        expression->dataType.typeID = DECIMAL; // TODO temporary..
+    if (targetType.typeID == DataTypeID::DECIMAL && expression->dataType.typeID == DataTypeID::DOUBLE) {
+        expression->dataType.typeID = DataTypeID::DECIMAL; // TODO temporary..
         return expression;
     }
     return implicitCast(expression, targetType);
@@ -648,11 +642,11 @@ shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
 
 shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     const shared_ptr<Expression>& expression, DataTypeID targetTypeID) {
-    if (targetTypeID == ANY || expression->dataType.typeID == targetTypeID) {
+    if (targetTypeID == DataTypeID::ANY || expression->dataType.typeID == targetTypeID) {
         return expression;
     }
-    if (expression->dataType.typeID == ANY) {
-        if (targetTypeID == LIST) {
+    if (expression->dataType.typeID == DataTypeID::ANY) {
+        if (targetTypeID == DataTypeID::LIST) {
             // e.g. len($1) we cannot infer the child type for $1.
             throw BinderException("Cannot resolve recursive data type for expression " +
                                   expression->getRawName() + ".");
@@ -660,7 +654,7 @@ shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
         resolveAnyDataType(*expression, DataType(targetTypeID));
         return expression;
     }
-    assert(targetTypeID != LIST);
+    assert(targetTypeID != DataTypeID::LIST);
     return implicitCast(expression, DataType(targetTypeID));
 }
 

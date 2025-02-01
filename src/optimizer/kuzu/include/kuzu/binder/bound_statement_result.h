@@ -19,7 +19,7 @@ public:
 
     static unique_ptr<BoundStatementResult> createSingleStringColumnResult() {
         auto result = make_unique<BoundStatementResult>();
-        auto stringColumn = make_shared<Expression>(LITERAL, DataType{STRING}, "outputMsg");
+        auto stringColumn = make_shared<Expression>(LITERAL, DataType{DataTypeID::STRING}, "outputMsg");
         result->addColumn(stringColumn, expression_vector{stringColumn});
         return result;
     }

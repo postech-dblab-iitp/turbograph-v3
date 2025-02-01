@@ -1,16 +1,11 @@
-add_library(kuzu STATIC)
+file(GLOB_RECURSE KUZU_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c*")
 
-target_include_directories(kuzu PUBLIC
-	"include"
-	"${CMAKE_CURRENT_SOURCE_DIR}/include/kuzu"
+add_library_unity(
+  s62gdb_kuzu
+  OBJECT
+  ${KUZU_SRC_FILES}
 )
-target_include_directories(kuzu PRIVATE ../third_party/antlr4_runtime/src)
-target_include_directories(kuzu PRIVATE ../third_party/antlr4_cypher/antlr4)
-target_include_directories(kuzu PRIVATE ../../client/include/main)
 
-
-file (GLOB_RECURSE SOURCES "src/kuzu/*.c*")
-target_sources(kuzu PUBLIC ${SOURCES})
-
-target_link_libraries(kuzu PRIVATE antlr4_runtime antlr4_cypher)
-target_link_libraries(kuzu PRIVATE tbgpp-main)
+set(ALL_OBJECT_FILES
+    ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:s62gdb_kuzu>
+    PARENT_SCOPE)

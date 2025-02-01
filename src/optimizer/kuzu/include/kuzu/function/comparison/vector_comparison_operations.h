@@ -18,17 +18,17 @@ protected:
                 definitions.push_back(getDefinition<FUNC>(name, leftTypeID, rightTypeID));
             }
         }
-        // for (auto& typeID : vector<DataTypeID>{BOOL, STRING, NODE_ID, DATE, TIMESTAMP, INTERVAL}) {
+        // for (auto& typeID : vector<DataTypeID>{BOOL, DataTypeID::STRING, DataTypeID::NODE_ID, DataTypeID::DATE, DataTypeID::TIMESTAMP, DataTypeID::INTERVAL}) {
         //     definitions.push_back(getDefinition<FUNC>(name, typeID, typeID));
         // }
 
         // S62 extended as we 
-        for (auto& typeID : vector<DataTypeID>{BOOLEAN, STRING, NODE_ID, DATE, TIMESTAMP, INTERVAL, PATH}) {
+        for (auto& typeID : vector<DataTypeID>{DataTypeID::BOOLEAN, DataTypeID::STRING, DataTypeID::NODE_ID, DataTypeID::DATE, DataTypeID::TIMESTAMP, DataTypeID::INTERVAL, DataTypeID::PATH}) {
             definitions.push_back(getDefinition<FUNC>(name, typeID, typeID));
         }
 
-        definitions.push_back(getDefinition<FUNC>(name, DATE, TIMESTAMP));
-        definitions.push_back(getDefinition<FUNC>(name, TIMESTAMP, DATE));
+        definitions.push_back(getDefinition<FUNC>(name, DataTypeID::DATE, DataTypeID::TIMESTAMP));
+        definitions.push_back(getDefinition<FUNC>(name, DataTypeID::TIMESTAMP, DataTypeID::DATE));
         return definitions;
     }
 
@@ -39,18 +39,18 @@ private:
         auto execFunc = empty_scalar_exec_func();
         auto selectFunc = empty_scalar_select_func();
         return make_unique<VectorOperationDefinition>(
-            name, vector<DataTypeID>{leftTypeID, rightTypeID}, BOOLEAN, execFunc, selectFunc);
+            name, vector<DataTypeID>{leftTypeID, rightTypeID}, DataTypeID::BOOLEAN, execFunc, selectFunc);
     }
 
     // template<typename FUNC>
     // static scalar_exec_func getExecFunc(DataTypeID leftTypeID, DataTypeID rightTypeID) {
     //     switch (leftTypeID) {
-    //     case INT64: {
+    //     case DataTypeID::INT64: {
     //         switch (rightTypeID) {
-    //         case INT64: {
+    //         case DataTypeID::INT64: {
     //             return BinaryExecFunction<int64_t, int64_t, uint8_t, FUNC>;
     //         }
-    //         case DOUBLE: {
+    //         case DataTypeID::DOUBLE: {
     //             return BinaryExecFunction<int64_t, double_t, uint8_t, FUNC>;
     //         }
     //         default:
@@ -59,12 +59,12 @@ private:
     //                                    Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
     //         }
     //     }
-    //     case DOUBLE: {
+    //     case DataTypeID::DOUBLE: {
     //         switch (rightTypeID) {
-    //         case INT64: {
+    //         case DataTypeID::INT64: {
     //             return BinaryExecFunction<double_t, int64_t, uint8_t, FUNC>;
     //         }
-    //         case DOUBLE: {
+    //         case DataTypeID::DOUBLE: {
     //             return BinaryExecFunction<double_t, double_t, uint8_t, FUNC>;
     //         }
     //         default:
@@ -77,20 +77,20 @@ private:
     //         assert(rightTypeID == BOOL);
     //         return BinaryExecFunction<uint8_t, uint8_t, uint8_t, FUNC>;
     //     }
-    //     case STRING: {
-    //         assert(rightTypeID == STRING);
+    //     case DataTypeID::STRING: {
+    //         assert(rightTypeID == DataTypeID::STRING);
     //         return BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, FUNC>;
     //     }
-    //     case NODE_ID: {
-    //         assert(rightTypeID == NODE_ID);
+    //     case DataTypeID::NODE_ID: {
+    //         assert(rightTypeID == DataTypeID::NODE_ID);
     //         return BinaryExecFunction<nodeID_t, nodeID_t, uint8_t, FUNC>;
     //     }
-    //     case DATE: {
+    //     case DataTypeID::DATE: {
     //         switch (rightTypeID) {
-    //         case DATE: {
+    //         case DataTypeID::DATE: {
     //             return BinaryExecFunction<date_t, date_t, uint8_t, FUNC>;
     //         }
-    //         case TIMESTAMP: {
+    //         case DataTypeID::TIMESTAMP: {
     //             return BinaryExecFunction<date_t, timestamp_t, uint8_t, FUNC>;
     //         }
     //         default:
@@ -99,12 +99,12 @@ private:
     //                                    Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
     //         }
     //     }
-    //     case TIMESTAMP: {
+    //     case DataTypeID::TIMESTAMP: {
     //         switch (rightTypeID) {
-    //         case DATE: {
+    //         case DataTypeID::DATE: {
     //             return BinaryExecFunction<timestamp_t, date_t, uint8_t, FUNC>;
     //         }
-    //         case TIMESTAMP: {
+    //         case DataTypeID::TIMESTAMP: {
     //             return BinaryExecFunction<timestamp_t, timestamp_t, uint8_t, FUNC>;
     //         }
     //         default:
@@ -113,8 +113,8 @@ private:
     //                                    Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
     //         }
     //     }
-    //     case INTERVAL: {
-    //         assert(rightTypeID == INTERVAL);
+    //     case DataTypeID::INTERVAL: {
+    //         assert(rightTypeID == DataTypeID::INTERVAL);
     //         return BinaryExecFunction<interval_t, interval_t, uint8_t, FUNC>;
     //     }
     //     default:
@@ -127,12 +127,12 @@ private:
     // template<typename FUNC>
     // static scalar_select_func getSelectFunc(DataTypeID leftTypeID, DataTypeID rightTypeID) {
     //     switch (leftTypeID) {
-    //     case INT64: {
+    //     case DataTypeID::INT64: {
     //         switch (rightTypeID) {
-    //         case INT64: {
+    //         case DataTypeID::INT64: {
     //             return BinarySelectFunction<int64_t, int64_t, FUNC>;
     //         }
-    //         case DOUBLE: {
+    //         case DataTypeID::DOUBLE: {
     //             return BinarySelectFunction<int64_t, double_t, FUNC>;
     //         }
     //         default:
@@ -141,12 +141,12 @@ private:
     //                 Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
     //         }
     //     }
-    //     case DOUBLE: {
+    //     case DataTypeID::DOUBLE: {
     //         switch (rightTypeID) {
-    //         case INT64: {
+    //         case DataTypeID::INT64: {
     //             return BinarySelectFunction<double_t, int64_t, FUNC>;
     //         }
-    //         case DOUBLE: {
+    //         case DataTypeID::DOUBLE: {
     //             return BinarySelectFunction<double_t, double_t, FUNC>;
     //         }
     //         default:
@@ -159,20 +159,20 @@ private:
     //         assert(rightTypeID == BOOL);
     //         return BinarySelectFunction<uint8_t, uint8_t, FUNC>;
     //     }
-    //     case STRING: {
-    //         assert(rightTypeID == STRING);
+    //     case DataTypeID::STRING: {
+    //         assert(rightTypeID == DataTypeID::STRING);
     //         return BinarySelectFunction<ku_string_t, ku_string_t, FUNC>;
     //     }
-    //     case NODE_ID: {
-    //         assert(rightTypeID == NODE_ID);
+    //     case DataTypeID::NODE_ID: {
+    //         assert(rightTypeID == DataTypeID::NODE_ID);
     //         return BinarySelectFunction<nodeID_t, nodeID_t, FUNC>;
     //     }
-    //     case DATE: {
+    //     case DataTypeID::DATE: {
     //         switch (rightTypeID) {
-    //         case DATE: {
+    //         case DataTypeID::DATE: {
     //             return BinarySelectFunction<date_t, date_t, FUNC>;
     //         }
-    //         case TIMESTAMP: {
+    //         case DataTypeID::TIMESTAMP: {
     //             return BinarySelectFunction<date_t, timestamp_t, FUNC>;
     //         }
     //         default:
@@ -181,12 +181,12 @@ private:
     //                 Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
     //         }
     //     }
-    //     case TIMESTAMP: {
+    //     case DataTypeID::TIMESTAMP: {
     //         switch (rightTypeID) {
-    //         case DATE: {
+    //         case DataTypeID::DATE: {
     //             return BinarySelectFunction<timestamp_t, date_t, FUNC>;
     //         }
-    //         case TIMESTAMP: {
+    //         case DataTypeID::TIMESTAMP: {
     //             return BinarySelectFunction<timestamp_t, timestamp_t, FUNC>;
     //         }
     //         default:
@@ -195,8 +195,8 @@ private:
     //                 Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
     //         }
     //     }
-    //     case INTERVAL: {
-    //         assert(rightTypeID == INTERVAL);
+    //     case DataTypeID::INTERVAL: {
+    //         assert(rightTypeID == DataTypeID::INTERVAL);
     //         return BinarySelectFunction<interval_t, interval_t, FUNC>;
     //     }
     //     default:

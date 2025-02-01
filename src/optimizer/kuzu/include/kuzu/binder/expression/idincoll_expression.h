@@ -9,7 +9,7 @@ class IdInCollExpression : public Expression {
    public:
     IdInCollExpression(string variable_name,
                                 shared_ptr<Expression> expr, string name)
-        : Expression{LIST_COMPREHENSION, kuzu::common::ANY, name},
+        : Expression{LIST_COMPREHENSION, kuzu::common::DataTypeID::ANY, name},
           variable_name(variable_name),
           expr(std::move(expr))
     {}

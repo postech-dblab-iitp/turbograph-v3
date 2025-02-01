@@ -1,8 +1,8 @@
 //	Greenplum Database
 //	Copyright (C) 2016 Pivotal Software, Inc.
 
-#ifndef GPOPT_CHashedDistributions_H
-#define GPOPT_CHashedDistributions_H
+#ifndef GPOPT_CStrictHashedDistributions_H
+#define GPOPT_CStrictHashedDistributions_H
 
 #include "gpos/memory/CMemoryPool.h"
 
@@ -26,4 +26,4 @@ public:
 };
 }  // namespace gpopt
 
-#endif	//GPOPT_CHashedDistributions_H
+#endif	//GPOPT_CStrictHashedDistributions_H

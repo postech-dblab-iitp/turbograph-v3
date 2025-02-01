@@ -13,47 +13,47 @@ namespace common {
 class Literal {
 
 public:
-    Literal() : _isNull{true}, dataType{ANY} {}
+    Literal() : _isNull{true}, dataType{DataTypeID::ANY} {}
 
     // TODO(Guodong): initializing literal with only datatype doesn't make sense to me. Consider
     // remove this interface.
     explicit Literal(DataType dataType) : _isNull{false}, dataType{move(dataType)} {
-        assert(dataType.typeID == LIST);
+        assert(dataType.typeID == DataTypeID::LIST);
     }
 
-    explicit Literal(bool value) : _isNull{false}, dataType(BOOLEAN) { this->val.booleanVal = value; }
+    explicit Literal(bool value) : _isNull{false}, dataType(DataTypeID::BOOLEAN) { this->val.booleanVal = value; }
 
-    explicit Literal(uint64_t value) : _isNull{false}, dataType(UBIGINT) {
+    explicit Literal(uint64_t value) : _isNull{false}, dataType(DataTypeID::UBIGINT) {
         this->val.uint64Val = value;
     }
     
-    explicit Literal(int64_t value) : _isNull{false}, dataType(INT64) {
+    explicit Literal(int64_t value) : _isNull{false}, dataType(DataTypeID::INT64) {
         this->val.int64Val = value;
     }
 
-    explicit Literal(int32_t value) : _isNull{false}, dataType(INTEGER) {
+    explicit Literal(int32_t value) : _isNull{false}, dataType(DataTypeID::INTEGER) {
         this->val.int32Val = value;
     }
 
-    explicit Literal(uint32_t value) : _isNull{false}, dataType(UINTEGER) {
+    explicit Literal(uint32_t value) : _isNull{false}, dataType(DataTypeID::UINTEGER) {
         this->val.uint32Val = value;
     }
 
-    explicit Literal(double value) : _isNull{false}, dataType(DOUBLE) {
+    explicit Literal(double value) : _isNull{false}, dataType(DataTypeID::DOUBLE) {
         this->val.doubleVal = value;
     }
 
-    explicit Literal(date_t value) : _isNull{false}, dataType(DATE) { this->val.dateVal = value; }
+    explicit Literal(date_t value) : _isNull{false}, dataType(DataTypeID::DATE) { this->val.dateVal = value; }
 
-    explicit Literal(timestamp_t value) : _isNull{false}, dataType(TIMESTAMP) {
+    explicit Literal(timestamp_t value) : _isNull{false}, dataType(DataTypeID::TIMESTAMP) {
         this->val.timestampVal = value;
     }
 
-    explicit Literal(interval_t value) : _isNull{false}, dataType(INTERVAL) {
+    explicit Literal(interval_t value) : _isNull{false}, dataType(DataTypeID::INTERVAL) {
         this->val.intervalVal = value;
     }
 
-    explicit Literal(const string& value) : _isNull{false}, dataType(STRING) {
+    explicit Literal(const string& value) : _isNull{false}, dataType(DataTypeID::STRING) {
         this->strVal = value;
     }
 

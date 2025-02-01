@@ -22,7 +22,7 @@ struct PropertyNameDataType {
     PropertyNameDataType(){};
     PropertyNameDataType(string name, DataTypeID dataTypeID)
         : PropertyNameDataType{std::move(name), DataType(dataTypeID)} {
-        assert(dataTypeID != LIST);
+        assert(dataTypeID != DataTypeID::LIST);
     }
     PropertyNameDataType(string name, DataType dataType)
         : name{std::move(name)}, dataType{std::move(dataType)} {};

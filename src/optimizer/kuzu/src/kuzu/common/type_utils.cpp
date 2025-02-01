@@ -23,10 +23,10 @@ int64_t TypeUtils::convertToInt64(const char* data) {
     char* eptr;
     errno = 0;
     auto retVal = strtoll(data, &eptr, 10);
-    throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(data, eptr, INT64);
+    throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(data, eptr, DataTypeID::INT64);
     if ((LLONG_MAX == retVal || LLONG_MIN == retVal) && errno == ERANGE) {
         throw ConversionException(
-            prefixConversionExceptionMessage(data, INT64) + " Input out of range.");
+            prefixConversionExceptionMessage(data, DataTypeID::INT64) + " Input out of range.");
     }
     return retVal;
 }
@@ -45,10 +45,10 @@ uint64_t TypeUtils::convertToUint64(const char* data) {
     char* eptr;
     errno = 0;
     auto retVal = strtoull(data, &eptr, 10);
-    throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(data, eptr, INT64);
+    throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(data, eptr, DataTypeID::INT64);
     if ((ULLONG_MAX == retVal) && errno == ERANGE) {
         throw ConversionException(
-            prefixConversionExceptionMessage(data, UBIGINT) + " Input out of range.");
+            prefixConversionExceptionMessage(data, DataTypeID::UBIGINT) + " Input out of range.");
     }
     return retVal;
 }
@@ -57,9 +57,9 @@ double_t TypeUtils::convertToDouble(const char* data) {
     char* eptr;
     errno = 0;
     auto retVal = strtod(data, &eptr);
-    throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(data, eptr, DOUBLE);
+    throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(data, eptr, DataTypeID::DOUBLE);
     if ((HUGE_VAL == retVal || -HUGE_VAL == retVal) && errno == ERANGE) {
-        throwConversionExceptionOutOfRange(data, DOUBLE);
+        throwConversionExceptionOutOfRange(data, DataTypeID::DOUBLE);
     }
     return retVal;
 };
@@ -74,33 +74,33 @@ bool TypeUtils::convertToBoolean(const char* data) {
         return false;
     }
     throw ConversionException(
-        prefixConversionExceptionMessage(data, BOOLEAN) +
+        prefixConversionExceptionMessage(data, DataTypeID::BOOLEAN) +
         ". Input is not equal to True or False (in a case-insensitive manner)");
 }
 
 string TypeUtils::elementToString(const DataType& dataType, uint8_t* overflowPtr, uint64_t pos) {
     switch (dataType.typeID) {
-    case BOOLEAN:
+    case DataTypeID::BOOLEAN:
         return TypeUtils::toString(((bool*)overflowPtr)[pos]);
-    case INTEGER:
+    case DataTypeID::INTEGER:
         return TypeUtils::toString(((int32_t*)overflowPtr)[pos]);
-    case INT64:
+    case DataTypeID::INT64:
         return TypeUtils::toString(((int64_t*)overflowPtr)[pos]);
-    case UINTEGER:
+    case DataTypeID::UINTEGER:
         return TypeUtils::toString(((uint32_t*)overflowPtr)[pos]);
-    case UBIGINT:
+    case DataTypeID::UBIGINT:
         return TypeUtils::toString(((uint64_t*)overflowPtr)[pos]);
-    case DOUBLE:
+    case DataTypeID::DOUBLE:
         return TypeUtils::toString(((double_t*)overflowPtr)[pos]);
-    case DATE:
+    case DataTypeID::DATE:
         return TypeUtils::toString(((date_t*)overflowPtr)[pos]);
-    case TIMESTAMP:
+    case DataTypeID::TIMESTAMP:
         return TypeUtils::toString(((timestamp_t*)overflowPtr)[pos]);
-    case INTERVAL:
+    case DataTypeID::INTERVAL:
         return TypeUtils::toString(((interval_t*)overflowPtr)[pos]);
-    case STRING:
+    case DataTypeID::STRING:
         return TypeUtils::toString(((ku_string_t*)overflowPtr)[pos]);
-    case LIST:
+    case DataTypeID::LIST:
         return TypeUtils::toString(((ku_list_t*)overflowPtr)[pos], dataType);
     default:
         throw RuntimeException("Invalid data type " + Types::dataTypeToString(dataType) +
@@ -126,29 +126,29 @@ string TypeUtils::toString(const Literal& literal) {
         return "NULL";
     }
     switch (literal.dataType.typeID) {
-    case BOOLEAN:
+    case DataTypeID::BOOLEAN:
         return TypeUtils::toString(literal.val.booleanVal);
-    case INTEGER:
+    case DataTypeID::INTEGER:
         return TypeUtils::toString(literal.val.int32Val);
-    case INT64:
+    case DataTypeID::INT64:
         return TypeUtils::toString(literal.val.int64Val);
-    case UINTEGER:
+    case DataTypeID::UINTEGER:
         return TypeUtils::toString(literal.val.uint32Val);
-    case UBIGINT:
+    case DataTypeID::UBIGINT:
         return TypeUtils::toString(literal.val.uint64Val);
-    case DOUBLE:
+    case DataTypeID::DOUBLE:
         return TypeUtils::toString(literal.val.doubleVal);
-    case NODE_ID:
+    case DataTypeID::NODE_ID:
         return TypeUtils::toString(literal.val.nodeID);
-    case DATE:
+    case DataTypeID::DATE:
         return TypeUtils::toString(literal.val.dateVal);
-    case TIMESTAMP:
+    case DataTypeID::TIMESTAMP:
         return TypeUtils::toString(literal.val.timestampVal);
-    case INTERVAL:
+    case DataTypeID::INTERVAL:
         return TypeUtils::toString(literal.val.intervalVal);
-    case STRING:
+    case DataTypeID::STRING:
         return literal.strVal;
-    case LIST: {
+    case DataTypeID::LIST: {
         if (literal.listVal.empty()) {
             return "[]";
         }

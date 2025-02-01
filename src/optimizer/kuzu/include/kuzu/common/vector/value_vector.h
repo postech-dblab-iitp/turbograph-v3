@@ -18,7 +18,7 @@
 //     explicit ValueVector(DataType dataType, MemoryManager* memoryManager = nullptr);
 //     explicit ValueVector(DataTypeID dataTypeID, MemoryManager* memoryManager = nullptr)
 //         : ValueVector(DataType(dataTypeID), memoryManager) {
-//         assert(dataTypeID != LIST);
+//         assert(dataTypeID != DataTypeID::LIST);
 //     }
 
 //     ~ValueVector() = default;
@@ -52,7 +52,7 @@
 //     inline uint8_t* getData() const { return valueBuffer.get(); }
 
 //     inline node_offset_t readNodeOffset(uint32_t pos) const {
-//         assert(dataType.typeID == NODE_ID);
+//         assert(dataType.typeID == DataTypeID::NODE_ID);
 //         return getValue<nodeID_t>(pos).offset;
 //     }
 
@@ -68,7 +68,7 @@
 
 // private:
 //     inline bool needOverflowBuffer() const {
-//         return dataType.typeID == STRING || dataType.typeID == LIST;
+//         return dataType.typeID == DataTypeID::STRING || dataType.typeID == DataTypeID::LIST;
 //     }
 
 //     void addString(uint32_t pos, char* value, uint64_t len) const;

@@ -25,6 +25,7 @@
 #include "gpopt/operators/CScalarSortGroupClause.h"
 #include "gpopt/operators/CScalarWindowFunc.h"
 #include "gpopt/translate/CTranslatorDXLToExprUtils.h"
+#include "gpopt/base/CColumnFactory.h"
 #include "naucrates/dxl/operators/CDXLColDescr.h"
 #include "naucrates/dxl/operators/CDXLNode.h"
 #include "naucrates/dxl/operators/CDXLScalarArrayRefIndexList.h"
@@ -40,8 +41,6 @@ namespace gpdxl
 class CDXLTableDescr;
 class CDXLLogicalCTAS;
 }  // namespace gpdxl
-
-class CColumnFactory;
 
 namespace gpopt
 {

@@ -374,7 +374,7 @@
 //         return numSelectedValues > 0;
 //     }
 
-//     // COMPARISON (GT, GTE, LT, LTE, EQ, NEQ), BOOLEAN (AND, OR, XOR)
+//     // COMPARISON (GT, GTE, LT, LTE, EQ, NEQ), DataTypeID::BOOLEAN (AND, OR, XOR)
 //     template<class LEFT_TYPE, class RIGHT_TYPE, class FUNC>
 //     static bool select(ValueVector& left, ValueVector& right, SelectionVector& selVector) {
 //         if (left.state->isFlat() && right.state->isFlat()) {

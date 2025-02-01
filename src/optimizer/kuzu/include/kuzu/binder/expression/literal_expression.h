@@ -17,7 +17,7 @@ public:
 
     LiteralExpression(DataTypeID dataTypeID, unique_ptr<Literal> literal)
         : LiteralExpression{DataType(dataTypeID), std::move(literal)} {
-        assert(dataTypeID != LIST);
+        assert(dataTypeID != DataTypeID::LIST);
     }
 
     LiteralExpression(DataType dataType, unique_ptr<Literal> literal, string uniqueName)
@@ -27,7 +27,7 @@ public:
     inline bool isNull() const { return literal->isNull(); }
 
     inline void setDataType(const DataType& targetType) {
-        assert(dataType.typeID == ANY && isNull());
+        assert(dataType.typeID == DataTypeID::ANY && isNull());
         dataType = targetType;
         literal->dataType = targetType;
     }

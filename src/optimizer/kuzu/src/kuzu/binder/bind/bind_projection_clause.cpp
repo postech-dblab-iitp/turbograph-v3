@@ -31,13 +31,13 @@ unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& retur
     auto statementResult = make_unique<BoundStatementResult>();
     for (auto& expression : boundProjectionExpressions) {
         auto dataType = expression->getDataType();
-        if (dataType.typeID == common::NODE || dataType.typeID == common::REL) {
+        if (dataType.typeID == common::DataTypeID::NODE || dataType.typeID == common::DataTypeID::REL) {
             // statementResult->addColumn(expression, rewriteNodeOrRelExpression(*expression));
             statementResult->addColumn(expression, expression_vector{expression});
             auto &nodeOrRel = (NodeOrRelExpression &)(*expression);
             nodeOrRel.markAllColumnsAsUsed();
         }
-        else if (dataType.typeID == common::PATH ) {
+        else if (dataType.typeID == common::DataTypeID::PATH ) {
             statementResult->addColumn(expression, rewritePathExpression(*expression));
         }
         else {
@@ -93,7 +93,7 @@ expression_vector Binder::rewritePathExpression(const Expression& expression) {
         result.push_back(nodeOrRel->getPropertyExpressions()[0]->copy());
     }
     // // Length
-    // auto length_property = make_shared<PropertyExpression>(UBIGINT, "length", 0, path);
+    // auto length_property = make_shared<PropertyExpression>(DataTypeID::UBIGINT, "length", 0, path);
 
     // Edge
     for (auto& relExpr: path.getQueryRels()) {
@@ -134,7 +134,7 @@ expression_vector Binder::bindOrderByExpressions(
     expression_vector boundOrderByExpressions;
     for (auto& expression : orderByExpressions) {
         auto boundExpression = expressionBinder.bindExpression(*expression);
-        if (boundExpression->dataType.typeID == NODE || boundExpression->dataType.typeID == REL) {
+        if (boundExpression->dataType.typeID == DataTypeID::NODE || boundExpression->dataType.typeID == DataTypeID::REL) {
             throw BinderException("Cannot order by " + boundExpression->getRawName() +
                                   ". Order by node or rel is not supported.");
         }
@@ -149,14 +149,14 @@ uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
     // We currently do not support the number of rows to skip/limit written as an expression (eg.
     // SKIP 3 + 2 is not supported).
     if (expression.getExpressionType() == LITERAL &&
-        (((LiteralExpression&)(*boundExpression)).getDataType().typeID == UINTEGER
-        || ((LiteralExpression&)(*boundExpression)).getDataType().typeID == INTEGER)) {
+        (((LiteralExpression&)(*boundExpression)).getDataType().typeID == DataTypeID::UINTEGER
+        || ((LiteralExpression&)(*boundExpression)).getDataType().typeID == DataTypeID::INTEGER)) {
         return ((LiteralExpression&)(*boundExpression)).literal->val.uint32Val;
     }
 
     if (expression.getExpressionType() == LITERAL &&
-        (((LiteralExpression&)(*boundExpression)).getDataType().typeID == UBIGINT
-        || ((LiteralExpression&)(*boundExpression)).getDataType().typeID == INT64)) {
+        (((LiteralExpression&)(*boundExpression)).getDataType().typeID == DataTypeID::UBIGINT
+        || ((LiteralExpression&)(*boundExpression)).getDataType().typeID == DataTypeID::INT64)) {
         return ((LiteralExpression&)(*boundExpression)).literal->val.uint64Val;
     }
 
@@ -173,8 +173,8 @@ void Binder::addExpressionsToScope(const expression_vector& projectionExpression
 
 void Binder::resolveAnyDataTypeWithDefaultType(const expression_vector& expressions) {
     for (auto& expression : expressions) {
-        if (expression->dataType.typeID == ANY) {
-            ExpressionBinder::implicitCastIfNecessary(expression, STRING);
+        if (expression->dataType.typeID == DataTypeID::ANY) {
+            ExpressionBinder::implicitCastIfNecessary(expression, DataTypeID::STRING);
         }
     }
 }

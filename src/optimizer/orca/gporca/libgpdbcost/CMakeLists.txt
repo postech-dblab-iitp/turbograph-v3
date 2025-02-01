@@ -1,8 +1,16 @@
-file(GLOB_RECURSE srcs ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+file(GLOB_RECURSE LIBGPDBCOST_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.c*")
+file(GLOB_RECURSE LIBGPDBCOST_LEGACY_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/legacy/*")
 
-add_library(gpdbcost SHARED ${srcs})
+if (LIBGPDBCOST_LEGACY_SRC_FILES)
+    list(REMOVE_ITEM LIBGPDBCOST_SRC_FILES ${LIBGPDBCOST_LEGACY_SRC_FILES})
+endif()
 
-target_link_libraries(gpdbcost  
-                      ${CMAKE_DL_LIBS}
-                      gpos
-                      ${XERCES_LIBRARIES})
+add_library_unity(
+  s62gdb_libgpdbcost
+  OBJECT
+  ${LIBGPDBCOST_SRC_FILES}
+)
+
+set(ALL_OBJECT_FILES
+    ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:s62gdb_libgpdbcost>
+    PARENT_SCOPE)
