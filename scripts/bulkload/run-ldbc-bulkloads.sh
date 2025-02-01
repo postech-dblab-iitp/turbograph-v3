@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Define the possible values for each configuration
-scale_factors=("1")
+BUILD_DIR="/turbograph-v3/build-release/tools/"
+scale_factors=("1" "10" "100")
 source_dir_base="/source-data/ldbc/"
 target_dir_base="/data/ldbc/"
 
@@ -13,11 +14,11 @@ for scale_factor in "${scale_factors[@]}"; do
     rm -rf ${target_dir}
     mkdir -p ${target_dir}
     
-    /turbograph-v3/build-release/tbgpp-graph-store/store 365GB &
-    /turbograph-v3/build-release/tbgpp-graph-store/catalog_test_catalog_server ${target_dir} &
+    ${BUILD_DIR}/store 365GB &
+    ${BUILD_DIR}/catalog_server ${target_dir} &
     sleep 15
 
-    /turbograph-v3/build-release/tbgpp-execution-engine/bulkload_using_map \
+    ${BUILD_DIR}/bulkload \
         --output_dir:${target_dir} \
         --nodes:Person ${data_dir}/dynamic/Person.csv \
         --nodes:Comment:Message ${data_dir}/dynamic/Comment.csv \
@@ -73,11 +74,8 @@ for scale_factor in "${scale_factors[@]}"; do
         --relationships_backward:IS_SUBCLASS_OF ${data_dir}/static/TagClass_isSubclassOf_TagClass.csv.backward \
         --relationships:HAS_TYPE ${data_dir}/static/Tag_hasType_TagClass.csv \
         --relationships_backward:HAS_TYPE ${data_dir}/static/Tag_hasType_TagClass.csv.backward
-    
-    /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:flush_file_meta;
-    /turbograph-v3/build-release/tbgpp-client/TurboGraph-S62 --workspace:${target_dir} --query:analyze;
 
     pkill -f store
-    pkill -f catalog_test_catalog_server
+    pkill -f catalog_server
     sleep 5
 done

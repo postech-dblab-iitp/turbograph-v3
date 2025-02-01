@@ -6,7 +6,7 @@
 #include <cmath>
 #include <unordered_set>
 #include <Python.h>
-#include "<simdjson.h>"
+#include <simdjson.h>
 
 #include "common/vector.hpp"
 #include "common/enums/json_file_type.hpp"
