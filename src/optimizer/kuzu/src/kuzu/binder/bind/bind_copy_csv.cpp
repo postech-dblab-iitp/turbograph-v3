@@ -36,9 +36,9 @@
 //             }
 //             csvReaderConfig.hasHeader =
 //                 ((LiteralExpression&)(*boundCopyOptionExpression)).literal->val.booleanVal;
-//         } else if (boundCopyOptionExpression->dataType.typeID == STRING &&
+//         } else if (boundCopyOptionExpression->dataType.typeID == DataTypeID::STRING &&
 //                    isValidStringParsingOption) {
-//             if (boundCopyOptionExpression->dataType.typeID != STRING) {
+//             if (boundCopyOptionExpression->dataType.typeID != DataTypeID::STRING) {
 //                 throw BinderException(
 //                     "The value type of parsing csv option " + copyOptionName + " must be string.");
 //             }

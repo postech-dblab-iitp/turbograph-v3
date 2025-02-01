@@ -13,7 +13,7 @@ public:
     RelExpression(const string& uniqueName, vector<table_id_t> partitionIDs, vector<table_id_t> tableIDs,
         shared_ptr<NodeExpression> srcNode, shared_ptr<NodeExpression> dstNode, uint64_t lowerBound,
         uint64_t upperBound)
-        : NodeOrRelExpression{REL, uniqueName, std::move(partitionIDs), std::move(tableIDs)}, srcNode{std::move(srcNode)},
+        : NodeOrRelExpression{DataTypeID::REL, uniqueName, std::move(partitionIDs), std::move(tableIDs)}, srcNode{std::move(srcNode)},
           dstNode{std::move(dstNode)}, lowerBound{lowerBound}, upperBound{upperBound} {}
 
     inline bool isBoundByMultiLabeledNode() const {

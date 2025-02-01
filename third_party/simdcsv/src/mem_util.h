@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-namespace turbograph_simdcsv {
+namespace s62_simdcsv {
 
 // portable version of  posix_memalign
 static inline void *aligned_malloc(size_t alignment, size_t size) {
@@ -31,6 +31,6 @@ static inline void aligned_free(void *memblock) {
 #endif
 }
 
-} // turbograph_simdcsv
+} // s62_simdcsv
 
 #endif

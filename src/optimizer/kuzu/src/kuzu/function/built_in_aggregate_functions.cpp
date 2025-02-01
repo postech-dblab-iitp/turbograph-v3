@@ -78,7 +78,7 @@ void BuiltInAggregateFunctions::registerAggregateFunctions() {
 void BuiltInAggregateFunctions::registerCountStar() {
     vector<unique_ptr<AggregateFunctionDefinition>> definitions;
     definitions.push_back(make_unique<AggregateFunctionDefinition>(COUNT_STAR_FUNC_NAME,
-        vector<DataTypeID>{}, INT64, AggregateFunctionUtil::getCountStarFunction(), false));
+        vector<DataTypeID>{}, DataTypeID::INT64, AggregateFunctionUtil::getCountStarFunction(), false));
     aggregateFunctions.insert({COUNT_STAR_FUNC_NAME, move(definitions)});
 }
 
@@ -86,10 +86,10 @@ void BuiltInAggregateFunctions::registerCount() {
     vector<unique_ptr<AggregateFunctionDefinition>> definitions;
     for (auto& typeID : DataType::getAllValidTypeIDs()) {
         auto inputType =
-            typeID == LIST ? DataType(LIST, make_unique<DataType>(ANY)) : DataType(typeID);
+            typeID == DataTypeID::LIST ? DataType(DataTypeID::LIST, make_unique<DataType>(DataTypeID::ANY)) : DataType(typeID);
         for (auto isDistinct : vector<bool>{true, false}) {
             definitions.push_back(make_unique<AggregateFunctionDefinition>(COUNT_FUNC_NAME,
-                vector<DataTypeID>{typeID}, INT64,
+                vector<DataTypeID>{typeID}, DataTypeID::INT64,
                 AggregateFunctionUtil::getCountFunction(inputType, isDistinct), isDistinct));
         }
     }
@@ -113,7 +113,7 @@ void BuiltInAggregateFunctions::registerAvg() {
     for (auto typeID : DataType::getNumericalTypeIDs()) {
         for (auto isDistinct : vector<bool>{true, false}) {
             definitions.push_back(make_unique<AggregateFunctionDefinition>(AVG_FUNC_NAME,
-                vector<DataTypeID>{typeID}, DOUBLE,
+                vector<DataTypeID>{typeID}, DataTypeID::DOUBLE,
                 AggregateFunctionUtil::getAvgFunction(DataType(typeID), isDistinct), isDistinct));
         }
     }
@@ -122,7 +122,7 @@ void BuiltInAggregateFunctions::registerAvg() {
 
 void BuiltInAggregateFunctions::registerMin() {
     vector<unique_ptr<AggregateFunctionDefinition>> definitions;
-    for (auto typeID : vector<DataTypeID>{BOOLEAN, INTEGER, INT64, UBIGINT, DOUBLE, DATE, STRING, DECIMAL}) {
+    for (auto typeID : vector<DataTypeID>{DataTypeID::BOOLEAN, DataTypeID::INTEGER, DataTypeID::INT64, DataTypeID::UBIGINT, DataTypeID::DOUBLE, DataTypeID::DATE, DataTypeID::STRING, DataTypeID::DECIMAL}) {
         for (auto isDistinct : vector<bool>{true, false}) {
             definitions.push_back(make_unique<AggregateFunctionDefinition>(MIN_FUNC_NAME,
                 vector<DataTypeID>{typeID}, typeID,
@@ -134,7 +134,7 @@ void BuiltInAggregateFunctions::registerMin() {
 
 void BuiltInAggregateFunctions::registerMax() {
     vector<unique_ptr<AggregateFunctionDefinition>> definitions;
-    for (auto typeID : vector<DataTypeID>{BOOLEAN, INTEGER, INT64, UBIGINT, DOUBLE, DATE, STRING, DECIMAL}) {
+    for (auto typeID : vector<DataTypeID>{DataTypeID::BOOLEAN, DataTypeID::INTEGER, DataTypeID::INT64, DataTypeID::UBIGINT, DataTypeID::DOUBLE, DataTypeID::DATE, DataTypeID::STRING, DataTypeID::DECIMAL}) {
         for (auto isDistinct : vector<bool>{true, false}) {
             definitions.push_back(make_unique<AggregateFunctionDefinition>(MAX_FUNC_NAME,
                 vector<DataTypeID>{typeID}, typeID,
@@ -148,7 +148,7 @@ void BuiltInAggregateFunctions::registerFirstLast() {
     vector<unique_ptr<AggregateFunctionDefinition>> definitions;
     for (auto& typeID : DataType::getAllValidTypeIDs()) {
         auto inputType =
-            typeID == LIST ? DataType(LIST, make_unique<DataType>(ANY)) : DataType(typeID);
+            typeID == DataTypeID::LIST ? DataType(DataTypeID::LIST, make_unique<DataType>(DataTypeID::ANY)) : DataType(typeID);
         for (auto isDistinct : vector<bool>{true, false}) {
             definitions.push_back(make_unique<AggregateFunctionDefinition>(FIRST_FUNC_NAME,     // first()
                 vector<DataTypeID>{typeID}, typeID,                                             // output type = input type 
@@ -160,7 +160,7 @@ void BuiltInAggregateFunctions::registerFirstLast() {
     vector<unique_ptr<AggregateFunctionDefinition>> definitions_last;
     for (auto& typeID : DataType::getAllValidTypeIDs()) {
         auto inputType =
-            typeID == LIST ? DataType(LIST, make_unique<DataType>(ANY)) : DataType(typeID);
+            typeID == DataTypeID::LIST ? DataType(DataTypeID::LIST, make_unique<DataType>(DataTypeID::ANY)) : DataType(typeID);
         for (auto isDistinct : vector<bool>{true, false}) {
             definitions.push_back(make_unique<AggregateFunctionDefinition>(LAST_FUNC_NAME,     // last()
                 vector<DataTypeID>{typeID}, typeID,                                             // output type = input type 
@@ -174,7 +174,7 @@ void BuiltInAggregateFunctions::registerCollect() {
     vector<unique_ptr<AggregateFunctionDefinition>> definitions;
     for (auto& typeID : DataType::getAllValidTypeIDs()) {
         auto inputType =
-            typeID == LIST ? DataType(LIST, make_unique<DataType>(ANY)) : DataType(typeID);
+            typeID == DataTypeID::LIST ? DataType(DataTypeID::LIST, make_unique<DataType>(DataTypeID::ANY)) : DataType(typeID);
         for (auto isDistinct : vector<bool>{true, false}) {
             definitions.push_back(make_unique<AggregateFunctionDefinition>(COLLECT_FUNC_NAME,     // collect()
                 vector<DataTypeID>{typeID}, DataTypeID::LIST,                                             // output type = list(input type)

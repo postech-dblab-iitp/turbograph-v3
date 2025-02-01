@@ -1,5 +1,11 @@
-file(GLOB_RECURSE srcs ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+file(GLOB_RECURSE LIBGPOS_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.c*")
 
-add_library(gpos SHARED ${srcs})
+add_library_unity(
+  s62gdb_libgpos
+  OBJECT
+  ${LIBGPOS_SRC_FILES}
+)
 
-target_link_libraries(gpos ${CMAKE_DL_LIBS} -ltcmalloc)
+set(ALL_OBJECT_FILES
+    ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:s62gdb_libgpos>
+    PARENT_SCOPE)

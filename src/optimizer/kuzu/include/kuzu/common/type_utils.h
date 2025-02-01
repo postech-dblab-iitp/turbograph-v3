@@ -69,63 +69,63 @@ inline bool TypeUtils::isValueEqual(ku_list_t& left, ku_list_t& right, const Dat
 
     for (auto i = 0u; i < left.size; i++) {
         switch (leftDataType.childType->typeID) {
-        case BOOLEAN: {
+        case DataTypeID::BOOLEAN: {
             if (!isValueEqual(reinterpret_cast<uint8_t*>(left.overflowPtr)[i],
                     reinterpret_cast<uint8_t*>(right.overflowPtr)[i], *leftDataType.childType,
                     *rightDataType.childType)) {
                 return false;
             }
         } break;
-        case INT64: {
+        case DataTypeID::INT64: {
             if (!isValueEqual(reinterpret_cast<int64_t*>(left.overflowPtr)[i],
                     reinterpret_cast<int64_t*>(right.overflowPtr)[i], *leftDataType.childType,
                     *rightDataType.childType)) {
                 return false;
             }
         } break;
-        case UBIGINT: {
+        case DataTypeID::UBIGINT: {
             if (!isValueEqual(reinterpret_cast<uint64_t*>(left.overflowPtr)[i],
                     reinterpret_cast<uint64_t*>(right.overflowPtr)[i], *leftDataType.childType,
                     *rightDataType.childType)) {
                 return false;
             }
         } break;
-        case DOUBLE: {
+        case DataTypeID::DOUBLE: {
             if (!isValueEqual(reinterpret_cast<double_t*>(left.overflowPtr)[i],
                     reinterpret_cast<double_t*>(right.overflowPtr)[i], *leftDataType.childType,
                     *rightDataType.childType)) {
                 return false;
             }
         } break;
-        case STRING: {
+        case DataTypeID::STRING: {
             if (!isValueEqual(reinterpret_cast<ku_string_t*>(left.overflowPtr)[i],
                     reinterpret_cast<ku_string_t*>(right.overflowPtr)[i], *leftDataType.childType,
                     *rightDataType.childType)) {
                 return false;
             }
         } break;
-        case DATE: {
+        case DataTypeID::DATE: {
             if (!isValueEqual(reinterpret_cast<date_t*>(left.overflowPtr)[i],
                     reinterpret_cast<date_t*>(right.overflowPtr)[i], *leftDataType.childType,
                     *rightDataType.childType)) {
                 return false;
             }
         } break;
-        case TIMESTAMP: {
+        case DataTypeID::TIMESTAMP: {
             if (!isValueEqual(reinterpret_cast<timestamp_t*>(left.overflowPtr)[i],
                     reinterpret_cast<timestamp_t*>(right.overflowPtr)[i], *leftDataType.childType,
                     *rightDataType.childType)) {
                 return false;
             }
         } break;
-        case INTERVAL: {
+        case DataTypeID::INTERVAL: {
             if (!isValueEqual(reinterpret_cast<interval_t*>(left.overflowPtr)[i],
                     reinterpret_cast<interval_t*>(right.overflowPtr)[i], *leftDataType.childType,
                     *rightDataType.childType)) {
                 return false;
             }
         } break;
-        case LIST: {
+        case DataTypeID::LIST: {
             if (!isValueEqual(reinterpret_cast<ku_list_t*>(left.overflowPtr)[i],
                     reinterpret_cast<ku_list_t*>(right.overflowPtr)[i], *leftDataType.childType,
                     *rightDataType.childType)) {

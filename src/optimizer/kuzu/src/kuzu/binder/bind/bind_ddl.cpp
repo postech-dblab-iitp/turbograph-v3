@@ -93,8 +93,8 @@
 //     }
 //     auto primaryKey = propertyNameDataTypes[primaryKeyIdx];
 //     StringUtils::toUpper(primaryKey.second);
-//     // We only support INT64 and STRING column as the primary key.
-//     if ((primaryKey.second != string("INT64")) && (primaryKey.second != string("STRING"))) {
+//     // We only support DataTypeID::INT64 and DataTypeID::STRING column as the primary key.
+//     if ((primaryKey.second != string("DataTypeID::INT64")) && (primaryKey.second != string("DataTypeID::STRING"))) {
 //         throw BinderException("Invalid primary key type: " + primaryKey.second + ".");
 //     }
 //     return primaryKeyIdx;

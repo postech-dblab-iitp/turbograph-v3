@@ -1,3 +1,6 @@
+#ifndef CACHE_DATA_TRANSFORMER_H
+#define CACHE_DATA_TRANSFORMER_H
+
 #include "common/constants.hpp"
 #include "storage/cache/common.h"
 #include "storage/cache/disk_aio/Turbo_bin_aio_handler.hpp"
@@ -17,3 +20,5 @@ public:
 };
 
 }
+
+#endif

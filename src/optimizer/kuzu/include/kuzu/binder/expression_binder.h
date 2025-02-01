@@ -79,7 +79,7 @@ private:
     /****** cast *****/
     // Note: we expose two implicitCastIfNecessary interfaces.
     // For function binding we cast with data type ID because function definition cannot be
-    // recursively generated, e.g. list_extract(param) we only declare param with type LIST but do
+    // recursively generated, e.g. list_extract(param) we only declare param with type DataTypeID::LIST but do
     // not specify its child type.
     // For the rest, i.e. set clause binding, we cast with data type. For example, a.list = $1.
     static shared_ptr<Expression> implicitCastIfNecessary(

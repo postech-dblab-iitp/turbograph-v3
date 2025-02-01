@@ -33,7 +33,7 @@
 #include "common.h"
 #include "container.h"
 
-class thread {
+class my_thread {
 	static pthread_key_t thread_key;
 	static atomic_integer num_threads;
 
@@ -61,8 +61,8 @@ class thread {
 	friend void init_thread_class();
 	friend void *thread_run(void *arg);
   public:
-	thread(std::string name, int node_id, bool blocking = true);
-	thread(std::string name, const std::vector<int> &cpu_affinity,
+	my_thread(std::string name, int node_id, bool blocking = true);
+	my_thread(std::string name, const std::vector<int> &cpu_affinity,
 	       bool blocking = true);
 
 	void set_user_data(void *user_data) {
@@ -74,7 +74,7 @@ class thread {
 		return (void *) user_data;
 	}
 
-	virtual ~thread() {
+	virtual ~my_thread() {
 		stop();
 		if (thread_idx >= 0)
 			join();
@@ -169,13 +169,13 @@ class thread {
 	 */
 	static void thread_class_init();
 
-	static thread *get_curr_thread();
+	static my_thread *get_curr_thread();
 
 	/*
 	 * This creates a thread instance to represent the current thread context.
 	 * It is used when the current thread isn't created by the thread class.
 	 */
-	static thread *represent_thread(int node_id);
+	static my_thread *represent_thread(int node_id);
 
 	const std::string &get_thread_name() const {
 		return name;
@@ -189,14 +189,14 @@ class thread_task {
 	virtual void run() = 0;
 };
 
-class task_thread: public thread {
+class task_thread: public my_thread {
 	fifo_queue<thread_task *> tasks;
 	std::atomic<size_t> num_pending;
 	bool all_complete;
 	pthread_mutex_t mutex;
 	pthread_cond_t cond;
   public:
-	task_thread(const std::string &name, int node): thread(name,
+	task_thread(const std::string &name, int node): my_thread(name,
 		        node), tasks(node, 1024, true) {
 		pthread_mutex_init(&mutex, NULL);
 		pthread_cond_init(&cond, NULL);
@@ -205,7 +205,7 @@ class task_thread: public thread {
 	}
 
 	task_thread(const std::string &name, const std::vector<int> &cpus,
-	            int node): thread(name, cpus), tasks(node, 1024, true) {
+	            int node): my_thread(name, cpus), tasks(node, 1024, true) {
 		pthread_mutex_init(&mutex, NULL);
 		pthread_cond_init(&cond, NULL);
 		all_complete = false;

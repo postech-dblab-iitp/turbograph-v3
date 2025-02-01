@@ -12,25 +12,25 @@
 //         return;
 //     }
 //     switch (literal.dataType.typeID) {
-//     case INT64: {
+//     case DataTypeID::INT64: {
 //         resultVector.setValue(pos, literal.val.int64Val);
 //     } break;
-//     case DOUBLE: {
+//     case DataTypeID::DOUBLE: {
 //         resultVector.setValue(pos, literal.val.doubleVal);
 //     } break;
 //     case BOOL: {
 //         resultVector.setValue(pos, literal.val.booleanVal);
 //     } break;
-//     case DATE: {
+//     case DataTypeID::DATE: {
 //         resultVector.setValue(pos, literal.val.dateVal);
 //     } break;
-//     case TIMESTAMP: {
+//     case DataTypeID::TIMESTAMP: {
 //         resultVector.setValue(pos, literal.val.timestampVal);
 //     } break;
-//     case INTERVAL: {
+//     case DataTypeID::INTERVAL: {
 //         resultVector.setValue(pos, literal.val.intervalVal);
 //     } break;
-//     case STRING: {
+//     case DataTypeID::STRING: {
 //         resultVector.setValue(pos, literal.strVal);
 //     } break;
 //     default:
@@ -53,10 +53,10 @@
 
 // void ValueVectorUtils::copyNonNullDataWithSameType(const DataType& dataType, const uint8_t* srcData,
 //     uint8_t* dstData, InMemOverflowBuffer& inMemOverflowBuffer) {
-//     if (dataType.typeID == STRING) {
+//     if (dataType.typeID == DataTypeID::STRING) {
 //         InMemOverflowBufferUtils::copyString(
 //             *(ku_string_t*)srcData, *(ku_string_t*)dstData, inMemOverflowBuffer);
-//     } else if (dataType.typeID == LIST) {
+//     } else if (dataType.typeID == DataTypeID::LIST) {
 //         InMemOverflowBufferUtils::copyListRecursiveIfNested(
 //             *(ku_list_t*)srcData, *(ku_list_t*)dstData, dataType, inMemOverflowBuffer);
 //     } else {

@@ -12,7 +12,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 CastToDateVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_DATE_FUNC_NAME,
-        std::vector<DataTypeID>{STRING}, DATE,
+        std::vector<DataTypeID>{DataTypeID::STRING}, DataTypeID::DATE,
         empty_scalar_exec_func()));
         // UnaryExecFunction<ku_string_t, date_t, operation::CastStringToDate>));
     return result;
@@ -22,7 +22,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 CastToTimestampVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_TIMESTAMP_FUNC_NAME,
-        std::vector<DataTypeID>{STRING}, TIMESTAMP,
+        std::vector<DataTypeID>{DataTypeID::STRING}, DataTypeID::TIMESTAMP,
         empty_scalar_exec_func()));
         // UnaryExecFunction<ku_string_t, timestamp_t, operation::CastStringToTimestamp>));
     return result;
@@ -32,7 +32,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 CastToIntervalVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_INTERVAL_FUNC_NAME,
-        std::vector<DataTypeID>{STRING}, INTERVAL,
+        std::vector<DataTypeID>{DataTypeID::STRING}, DataTypeID::INTERVAL,
         empty_scalar_exec_func()));
         // UnaryExecFunction<ku_string_t, interval_t, operation::CastStringToInterval>));
     return result;
@@ -42,38 +42,38 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 CastToStringVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
-        std::vector<DataTypeID>{BOOLEAN}, STRING,
+        std::vector<DataTypeID>{DataTypeID::BOOLEAN}, DataTypeID::STRING,
         empty_scalar_exec_func()));
         // UnaryCastExecFunction<bool, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
-        std::vector<DataTypeID>{INTEGER}, STRING,
+        std::vector<DataTypeID>{DataTypeID::INTEGER}, DataTypeID::STRING,
         empty_scalar_exec_func()));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
-        std::vector<DataTypeID>{INT64}, STRING,
+        std::vector<DataTypeID>{DataTypeID::INT64}, DataTypeID::STRING,
         empty_scalar_exec_func()));
         // UnaryCastExecFunction<int64_t, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
-        std::vector<DataTypeID>{DOUBLE}, STRING,
+        std::vector<DataTypeID>{DataTypeID::DOUBLE}, DataTypeID::STRING,
         empty_scalar_exec_func()));
         // UnaryCastExecFunction<double_t, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
-        std::vector<DataTypeID>{DATE}, STRING,
+        std::vector<DataTypeID>{DataTypeID::DATE}, DataTypeID::STRING,
         empty_scalar_exec_func()));
         // UnaryCastExecFunction<date_t, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
-        std::vector<DataTypeID>{TIMESTAMP}, STRING,
+        std::vector<DataTypeID>{DataTypeID::TIMESTAMP}, DataTypeID::STRING,
         empty_scalar_exec_func()));
         // UnaryCastExecFunction<timestamp_t, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
-        std::vector<DataTypeID>{INTERVAL}, STRING,
+        std::vector<DataTypeID>{DataTypeID::INTERVAL}, DataTypeID::STRING,
         empty_scalar_exec_func()));
         // UnaryCastExecFunction<interval_t, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
-        std::vector<DataTypeID>{STRING}, STRING,
+        std::vector<DataTypeID>{DataTypeID::STRING}, DataTypeID::STRING,
         empty_scalar_exec_func()));
         // UnaryCastExecFunction<ku_string_t, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
-        std::vector<DataTypeID>{LIST}, STRING,
+        std::vector<DataTypeID>{DataTypeID::LIST}, DataTypeID::STRING,
         empty_scalar_exec_func()));
         // UnaryCastExecFunction<ku_list_t, ku_string_t, operation::CastToString>));
     return result;
@@ -83,10 +83,10 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 CastToDoubleVectorFunction::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_DOUBLE_FUNC_NAME,
-        std::vector<DataTypeID>{INT64}, DOUBLE,
+        std::vector<DataTypeID>{DataTypeID::INT64}, DataTypeID::DOUBLE,
         empty_scalar_exec_func()));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_DOUBLE_FUNC_NAME,
-        std::vector<DataTypeID>{FLOAT}, DOUBLE,
+        std::vector<DataTypeID>{DataTypeID::FLOAT}, DataTypeID::DOUBLE,
         empty_scalar_exec_func()));
     return result;
 }
@@ -95,13 +95,13 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 CastToFloatVectorFunction::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_FLOAT_FUNC_NAME,
-        std::vector<DataTypeID>{INT64}, FLOAT,
+        std::vector<DataTypeID>{DataTypeID::INT64}, DataTypeID::FLOAT,
         empty_scalar_exec_func()));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_FLOAT_FUNC_NAME,
-        std::vector<DataTypeID>{DOUBLE}, FLOAT,
+        std::vector<DataTypeID>{DataTypeID::DOUBLE}, DataTypeID::FLOAT,
         empty_scalar_exec_func()));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_FLOAT_FUNC_NAME,
-        std::vector<DataTypeID>{STRING}, FLOAT,
+        std::vector<DataTypeID>{DataTypeID::STRING}, DataTypeID::FLOAT,
         empty_scalar_exec_func()));
     return result;
 }
@@ -110,10 +110,10 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 CastToInt64VectorFunction::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_INT64_FUNC_NAME,
-        std::vector<DataTypeID>{DOUBLE}, INT64,
+        std::vector<DataTypeID>{DataTypeID::DOUBLE}, DataTypeID::INT64,
         empty_scalar_exec_func()));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_INT64_FUNC_NAME,
-        std::vector<DataTypeID>{FLOAT}, INT64,
+        std::vector<DataTypeID>{DataTypeID::FLOAT}, DataTypeID::INT64,
         empty_scalar_exec_func()));
     return result;
 }

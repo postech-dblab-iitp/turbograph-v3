@@ -5,7 +5,6 @@
 #include <iostream>
 #include <vector>
 #include <atomic>
-//#include <mpi.h>
 #include <omp.h>
 
 #include "util.hpp"

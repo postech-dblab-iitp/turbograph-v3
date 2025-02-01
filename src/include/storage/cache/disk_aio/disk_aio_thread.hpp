@@ -26,7 +26,7 @@ struct DiskAioThreadStats {
 	size_t num_write_bytes = 0;
 };
 
-class DiskAioThread : public ::thread
+class DiskAioThread : public ::my_thread
 {
 private:
 	int max_num_ongoing_;
@@ -40,7 +40,7 @@ private:
 	tbb::concurrent_unordered_set<void*> interfaces_;
 public:
 	DiskAioThread(int id, void* system, int max_num_ongoing)
-		: thread(std::string("DiskAioThread"), 0, true)
+		: my_thread(std::string("DiskAioThread"), 0, true)
 		, buf_queue_(max_num_ongoing)
 	{
 		system_ = system;

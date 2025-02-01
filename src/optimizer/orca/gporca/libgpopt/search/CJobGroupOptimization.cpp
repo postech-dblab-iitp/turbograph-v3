@@ -59,7 +59,7 @@ using namespace gpopt;
 //                      +------------------------------+
 //
 const CJobGroupOptimization::EEvent
-	rgeev[CJobGroupOptimization::estSentinel]
+	rgeev_opt[CJobGroupOptimization::estSentinel]
 		 [CJobGroupOptimization::estSentinel] = {
 			 {// estInitialized
 			  CJobGroupOptimization::eevImplementing,
@@ -149,7 +149,7 @@ CJobGroupOptimization::Init(
 	GPOS_ASSERT(pgroup == poc->Pgroup());
 
 	CJobGroup::Init(pgroup);
-	m_jsm.Init(rgeev
+	m_jsm.Init(rgeev_opt
 #ifdef GPOS_DEBUG
 			   ,
 			   rgwszStates, rgwszEvents

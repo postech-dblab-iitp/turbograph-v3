@@ -133,4 +133,23 @@ class CypherPhysicalOperator {
     static idx_t operator_version;
 };
 
+inline uint64_t &getIdRefFromVector(Vector &vector, idx_t index)
+{
+    switch (vector.GetVectorType()) {
+        case VectorType::DICTIONARY_VECTOR: {
+            return ((uint64_t *)vector.GetData())
+                [DictionaryVector::SelVector(vector).get_index(index)];
+        }
+        case VectorType::FLAT_VECTOR: {
+            return ((uint64_t *)vector.GetData())[index];
+        }
+        case VectorType::CONSTANT_VECTOR: {
+            return ((uint64_t *)ConstantVector::GetData<uintptr_t>(vector))[0];
+        }
+        default: {
+            D_ASSERT(false);
+        }
+    }
+}
+
 }  // namespace duckdb

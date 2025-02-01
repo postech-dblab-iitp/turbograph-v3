@@ -1,7 +1,7 @@
 #ifndef PORTABILITY_H
 #define PORTABILITY_H
 
-namespace turbograph_simdcsv {
+namespace s62_simdcsv {
 
 #ifdef _MSC_VER
 /* Microsoft C/C++-compatible compiler */
@@ -82,6 +82,6 @@ static inline uint64_t hamming(uint64_t input_num) {
 
 #endif // _MSC_VER
 
-} // turbograph_simdcsv
+} // s62_simdcsv
 
 #endif // _PORTABILITY_H

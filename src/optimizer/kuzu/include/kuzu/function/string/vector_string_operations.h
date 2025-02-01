@@ -44,7 +44,7 @@ struct VectorStringOperations : public VectorOperations {
     getUnaryStrFunctionDefintion(std::string funcName) {
         std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
         definitions.emplace_back(make_unique<VectorOperationDefinition>(funcName,
-            std::vector<common::DataTypeID>{common::STRING}, common::STRING,
+            std::vector<common::DataTypeID>{common::DataTypeID::STRING}, common::DataTypeID::STRING,
             empty_scalar_exec_func(),
             false /* isVarLength */));
         return definitions;
@@ -84,7 +84,7 @@ struct LowerVectorOperation : public VectorStringOperations {
         // return getUnaryStrFunctionDefintion<operation::Lower>(common::LOWER_FUNC_NAME);
         std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
         definitions.emplace_back(make_unique<VectorOperationDefinition>(common::LOWER_FUNC_NAME,
-            std::vector<common::DataTypeID>{common::STRING}, common::STRING,
+            std::vector<common::DataTypeID>{common::DataTypeID::STRING}, common::DataTypeID::STRING,
             empty_scalar_exec_func(),
             false /* isVarLength */));
         return definitions;
@@ -100,7 +100,7 @@ struct LtrimVectorOperation : public VectorStringOperations {
         // return getUnaryStrFunctionDefintion<operation::Ltrim>(common::LTRIM_FUNC_NAME);
         std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
         definitions.emplace_back(make_unique<VectorOperationDefinition>(common::LTRIM_FUNC_NAME,
-            std::vector<common::DataTypeID>{common::STRING}, common::STRING,
+            std::vector<common::DataTypeID>{common::DataTypeID::STRING}, common::DataTypeID::STRING,
             empty_scalar_exec_func(),
             false /* isVarLength */));
         return definitions;
@@ -116,7 +116,7 @@ struct ReverseVectorOperation : public VectorStringOperations {
         // return getUnaryStrFunctionDefintion<operation::Reverse>(common::REVERSE_FUNC_NAME);
         std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
         definitions.emplace_back(make_unique<VectorOperationDefinition>(common::REVERSE_FUNC_NAME,
-            std::vector<common::DataTypeID>{common::STRING}, common::STRING,
+            std::vector<common::DataTypeID>{common::DataTypeID::STRING}, common::DataTypeID::STRING,
             empty_scalar_exec_func(),
             false /* isVarLength */));
         return definitions;
@@ -136,7 +136,7 @@ struct RtrimVectorOperation : public VectorStringOperations {
         // return getUnaryStrFunctionDefintion<operation::Rtrim>(common::RTRIM_FUNC_NAME);
         std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
         definitions.emplace_back(make_unique<VectorOperationDefinition>(common::RTRIM_FUNC_NAME,
-            std::vector<common::DataTypeID>{common::STRING}, common::STRING,
+            std::vector<common::DataTypeID>{common::DataTypeID::STRING}, common::DataTypeID::STRING,
             empty_scalar_exec_func(),
             false /* isVarLength */));
         return definitions;
@@ -162,7 +162,7 @@ struct TrimVectorOperation : public VectorStringOperations {
         // return getUnaryStrFunctionDefintion<operation::Trim>(common::TRIM_FUNC_NAME);
         std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
         definitions.emplace_back(make_unique<VectorOperationDefinition>(common::TRIM_FUNC_NAME,
-            std::vector<common::DataTypeID>{common::STRING}, common::STRING,
+            std::vector<common::DataTypeID>{common::DataTypeID::STRING}, common::DataTypeID::STRING,
             empty_scalar_exec_func(),
             false /* isVarLength */));
         return definitions;
@@ -174,7 +174,7 @@ struct UpperVectorOperation : public VectorStringOperations {
         // return getUnaryStrFunctionDefintion<operation::Upper>(common::UPPER_FUNC_NAME);
         std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
         definitions.emplace_back(make_unique<VectorOperationDefinition>(common::UPPER_FUNC_NAME,
-            std::vector<common::DataTypeID>{common::STRING}, common::STRING,
+            std::vector<common::DataTypeID>{common::DataTypeID::STRING}, common::DataTypeID::STRING,
             empty_scalar_exec_func(),
             false /* isVarLength */));
         return definitions;

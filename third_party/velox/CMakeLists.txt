@@ -50,9 +50,9 @@ if(DEFINED ENV{INSTALL_PREFIX})
   list(APPEND CMAKE_PREFIX_PATH "$ENV{INSTALL_PREFIX}")
 endif()
 
-list(PREPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/CMake"
-     "${PROJECT_SOURCE_DIR}/CMake/third-party")
-
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake"
+     "${CMAKE_CURRENT_SOURCE_DIR}/CMake/third-party")
+     
 # Include our ThirdPartyToolchain dependencies macros
 include(ResolveDependency)
 include(VeloxUtils)

@@ -49,11 +49,11 @@ typedef int16 AttrNumber; // From src/include/access/attnum.h
 #include "naucrates/md/IMDType.h"
 #include "naucrates/statistics/CHistogram.h"
 #include "naucrates/statistics/CStatisticsUtils.h"
+#include "optimizer/orca/utils/tbgpp_rel.hpp"
 
 #include "common/common.hpp"
 #include "catalog/catalog_entry/list.hpp"
 // fwd decl
-struct RelationData;
 typedef struct RelationData *Relation;
 struct LogicalIndexes;
 struct LogicalIndexInfo;

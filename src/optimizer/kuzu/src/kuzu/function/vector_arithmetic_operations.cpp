@@ -9,13 +9,13 @@ namespace function {
 
 // TODO very strange..
 static DataTypeID resolveResultType(DataTypeID leftTypeID, DataTypeID rightTypeID) {
-    if (leftTypeID == DOUBLE || rightTypeID == DOUBLE) {
-        return DOUBLE;
+    if (leftTypeID == DataTypeID::DOUBLE || rightTypeID == DataTypeID::DOUBLE) {
+        return DataTypeID::DOUBLE;
     }
-    if (leftTypeID == DECIMAL || rightTypeID == DECIMAL) {
-        return DECIMAL;
+    if (leftTypeID == DataTypeID::DECIMAL || rightTypeID == DataTypeID::DECIMAL) {
+        return DataTypeID::DECIMAL;
     }
-    return INT64;
+    return DataTypeID::INT64;
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> AddVectorOperation::getDefinitions() {
@@ -28,31 +28,31 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> AddVectorOperation::getD
     }
     // // date + int → date
     // result.push_back(
-    //     make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, std::vector<DataTypeID>{DATE, INT64},
-    //         DATE, BinaryExecFunction<date_t, int64_t, date_t, operation::Add>));
+    //     make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, std::vector<DataTypeID>{DataTypeID::DATE, DataTypeID::INT64},
+    //         DataTypeID::DATE, BinaryExecFunction<date_t, int64_t, date_t, operation::Add>));
     // // int + date → date
     // result.push_back(
-    //     make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, std::vector<DataTypeID>{INT64, DATE},
-    //         DATE, BinaryExecFunction<int64_t, date_t, date_t, operation::Add>));
+    //     make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, std::vector<DataTypeID>{DataTypeID::INT64, DataTypeID::DATE},
+    //         DataTypeID::DATE, BinaryExecFunction<int64_t, date_t, date_t, operation::Add>));
     // // date + interval → date
     // result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
-    //     std::vector<DataTypeID>{DATE, INTERVAL}, DATE,
+    //     std::vector<DataTypeID>{DataTypeID::DATE, DataTypeID::INTERVAL}, DataTypeID::DATE,
     //     BinaryExecFunction<date_t, interval_t, date_t, operation::Add>));
     // // interval + date → date
     // result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
-    //     std::vector<DataTypeID>{INTERVAL, DATE}, DATE,
+    //     std::vector<DataTypeID>{DataTypeID::INTERVAL, DataTypeID::DATE}, DataTypeID::DATE,
     //     BinaryExecFunction<interval_t, date_t, date_t, operation::Add>));
     // // timestamp + interval → timestamp
     // result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
-    //     std::vector<DataTypeID>{TIMESTAMP, INTERVAL}, TIMESTAMP,
+    //     std::vector<DataTypeID>{DataTypeID::TIMESTAMP, DataTypeID::INTERVAL}, DataTypeID::TIMESTAMP,
     //     BinaryExecFunction<timestamp_t, interval_t, timestamp_t, operation::Add>));
     // // interval + timestamp → timestamp
     // result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
-    //     std::vector<DataTypeID>{INTERVAL, TIMESTAMP}, TIMESTAMP,
+    //     std::vector<DataTypeID>{DataTypeID::INTERVAL, DataTypeID::TIMESTAMP}, DataTypeID::TIMESTAMP,
     //     BinaryExecFunction<interval_t, timestamp_t, timestamp_t, operation::Add>));
     // // interval + interval → interval
     // result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
-    //     std::vector<DataTypeID>{INTERVAL, INTERVAL}, INTERVAL,
+    //     std::vector<DataTypeID>{DataTypeID::INTERVAL, DataTypeID::INTERVAL}, DataTypeID::INTERVAL,
     //     BinaryExecFunction<interval_t, interval_t, interval_t, operation::Add>));
     return result;
 }
@@ -68,27 +68,27 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> SubtractVectorOperation:
 
     // // date - date → integer
     // result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
-    //     std::vector<DataTypeID>{DATE, DATE}, INT64,
+    //     std::vector<DataTypeID>{DataTypeID::DATE, DataTypeID::DATE}, DataTypeID::INT64,
     //     BinaryExecFunction<date_t, date_t, int64_t, operation::Subtract>));
     // // date - integer → date
     // result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
-    //     std::vector<DataTypeID>{DATE, INT64}, DATE,
+    //     std::vector<DataTypeID>{DataTypeID::DATE, DataTypeID::INT64}, DataTypeID::DATE,
     //     BinaryExecFunction<date_t, int64_t, date_t, operation::Subtract>));
     // // date - interval → date
     // result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
-    //     std::vector<DataTypeID>{DATE, INTERVAL}, DATE,
+    //     std::vector<DataTypeID>{DataTypeID::DATE, DataTypeID::INTERVAL}, DataTypeID::DATE,
     //     BinaryExecFunction<date_t, interval_t, date_t, operation::Subtract>));
     // // timestamp - timestamp → interval
     // result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
-    //     std::vector<DataTypeID>{TIMESTAMP, TIMESTAMP}, INTERVAL,
+    //     std::vector<DataTypeID>{DataTypeID::TIMESTAMP, DataTypeID::TIMESTAMP}, DataTypeID::INTERVAL,
     //     BinaryExecFunction<timestamp_t, timestamp_t, interval_t, operation::Subtract>));
     // // timestamp - interval → timestamp
     // result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
-    //     std::vector<DataTypeID>{TIMESTAMP, INTERVAL}, TIMESTAMP,
+    //     std::vector<DataTypeID>{DataTypeID::TIMESTAMP, DataTypeID::INTERVAL}, DataTypeID::TIMESTAMP,
     //     BinaryExecFunction<timestamp_t, interval_t, timestamp_t, operation::Subtract>));
     // // interval - interval → interval
     // result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
-    //     std::vector<DataTypeID>{INTERVAL, INTERVAL}, INTERVAL,
+    //     std::vector<DataTypeID>{DataTypeID::INTERVAL, DataTypeID::INTERVAL}, DataTypeID::INTERVAL,
     //     BinaryExecFunction<interval_t, interval_t, interval_t, operation::Subtract>));
 
     // Issue #111 (Handle NEDAGE function)
@@ -120,7 +120,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
     }
     // // interval / int → interval
     // result.push_back(make_unique<VectorOperationDefinition>(DIVIDE_FUNC_NAME,
-    //     std::vector<DataTypeID>{INTERVAL, INT64}, INTERVAL,
+    //     std::vector<DataTypeID>{DataTypeID::INTERVAL, DataTypeID::INT64}, DataTypeID::INTERVAL,
     //     BinaryExecFunction<interval_t, int64_t, interval_t, operation::Divide>));
     return result;
 }
@@ -141,7 +141,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     for (auto& leftTypeID : DataType::getNumericalTypeIDs()) {
 //         for (auto& rightTypeID : DataType::getNumericalTypeIDs()) {
 //             result.push_back(getBinaryDefinition<operation::Power, true>(
-//                 POWER_FUNC_NAME, leftTypeID, rightTypeID, DOUBLE));
+//                 POWER_FUNC_NAME, leftTypeID, rightTypeID, DataTypeID::DOUBLE));
 //         }
 //     }
 //     return result;
@@ -183,7 +183,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Sin, false, true>(SIN_FUNC_NAME, typeID, DOUBLE));
+//             getUnaryDefinition<operation::Sin, false, true>(SIN_FUNC_NAME, typeID, DataTypeID::DOUBLE));
 //     }
 //     return result;
 // }
@@ -192,7 +192,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Cos, false, true>(COS_FUNC_NAME, typeID, DOUBLE));
+//             getUnaryDefinition<operation::Cos, false, true>(COS_FUNC_NAME, typeID, DataTypeID::DOUBLE));
 //     }
 //     return result;
 // }
@@ -201,7 +201,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Tan, false, true>(TAN_FUNC_NAME, typeID, DOUBLE));
+//             getUnaryDefinition<operation::Tan, false, true>(TAN_FUNC_NAME, typeID, DataTypeID::DOUBLE));
 //     }
 //     return result;
 // }
@@ -210,7 +210,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Cot, false, true>(COT_FUNC_NAME, typeID, DOUBLE));
+//             getUnaryDefinition<operation::Cot, false, true>(COT_FUNC_NAME, typeID, DataTypeID::DOUBLE));
 //     }
 //     return result;
 // }
@@ -219,7 +219,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Asin, false, true>(ASIN_FUNC_NAME, typeID, DOUBLE));
+//             getUnaryDefinition<operation::Asin, false, true>(ASIN_FUNC_NAME, typeID, DataTypeID::DOUBLE));
 //     }
 //     return result;
 // }
@@ -228,7 +228,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Acos, false, true>(ACOS_FUNC_NAME, typeID, DOUBLE));
+//             getUnaryDefinition<operation::Acos, false, true>(ACOS_FUNC_NAME, typeID, DataTypeID::DOUBLE));
 //     }
 //     return result;
 // }
@@ -237,7 +237,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Atan, false, true>(ATAN_FUNC_NAME, typeID, DOUBLE));
+//             getUnaryDefinition<operation::Atan, false, true>(ATAN_FUNC_NAME, typeID, DataTypeID::DOUBLE));
 //     }
 //     return result;
 // }
@@ -245,8 +245,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 // std::vector<std::unique_ptr<VectorOperationDefinition>> FactorialVectorOperation::getDefinitions() {
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     result.push_back(
-//         make_unique<VectorOperationDefinition>(FACTORIAL_FUNC_NAME, std::vector<DataTypeID>{INT64},
-//             INT64, UnaryExecFunction<int64_t, int64_t, operation::Factorial>));
+//         make_unique<VectorOperationDefinition>(FACTORIAL_FUNC_NAME, std::vector<DataTypeID>{DataTypeID::INT64},
+//             DataTypeID::INT64, UnaryExecFunction<int64_t, int64_t, operation::Factorial>));
 //     return result;
 // }
 
@@ -254,7 +254,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Sqrt, false, true>(SQRT_FUNC_NAME, typeID, DOUBLE));
+//             getUnaryDefinition<operation::Sqrt, false, true>(SQRT_FUNC_NAME, typeID, DataTypeID::DOUBLE));
 //     }
 //     return result;
 // }
@@ -263,7 +263,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Cbrt, false, true>(CBRT_FUNC_NAME, typeID, DOUBLE));
+//             getUnaryDefinition<operation::Cbrt, false, true>(CBRT_FUNC_NAME, typeID, DataTypeID::DOUBLE));
 //     }
 //     return result;
 // }
@@ -280,7 +280,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Lgamma, false, true>(LGAMMA_FUNC_NAME, typeID, DOUBLE));
+//             getUnaryDefinition<operation::Lgamma, false, true>(LGAMMA_FUNC_NAME, typeID, DataTypeID::DOUBLE));
 //     }
 //     return result;
 // }
@@ -289,7 +289,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Ln, false, true>(LN_FUNC_NAME, typeID, DOUBLE));
+//             getUnaryDefinition<operation::Ln, false, true>(LN_FUNC_NAME, typeID, DataTypeID::DOUBLE));
 //     }
 //     return result;
 // }
@@ -298,7 +298,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Log, false, true>(LOG_FUNC_NAME, typeID, DOUBLE));
+//             getUnaryDefinition<operation::Log, false, true>(LOG_FUNC_NAME, typeID, DataTypeID::DOUBLE));
 //     }
 //     return result;
 // }
@@ -307,7 +307,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Log2, false, true>(LOG2_FUNC_NAME, typeID, DOUBLE));
+//             getUnaryDefinition<operation::Log2, false, true>(LOG2_FUNC_NAME, typeID, DataTypeID::DOUBLE));
 //     }
 //     return result;
 // }
@@ -316,7 +316,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Degrees, false, true>(DEGREES_FUNC_NAME, typeID, DOUBLE));
+//             getUnaryDefinition<operation::Degrees, false, true>(DEGREES_FUNC_NAME, typeID, DataTypeID::DOUBLE));
 //     }
 //     return result;
 // }
@@ -325,7 +325,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Radians, false, true>(RADIANS_FUNC_NAME, typeID, DOUBLE));
+//             getUnaryDefinition<operation::Radians, false, true>(RADIANS_FUNC_NAME, typeID, DataTypeID::DOUBLE));
 //     }
 //     return result;
 // }
@@ -334,7 +334,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Even, true, false>(EVEN_FUNC_NAME, typeID, INT64));
+//             getUnaryDefinition<operation::Even, true, false>(EVEN_FUNC_NAME, typeID, DataTypeID::INT64));
 //     }
 //     return result;
 // }
@@ -343,7 +343,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& typeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(
-//             getUnaryDefinition<operation::Sign, true, false>(SIGN_FUNC_NAME, typeID, INT64));
+//             getUnaryDefinition<operation::Sign, true, false>(SIGN_FUNC_NAME, typeID, DataTypeID::INT64));
 //     }
 //     return result;
 // }
@@ -353,7 +353,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     for (auto& leftTypeID : DataType::getNumericalTypeIDs()) {
 //         for (auto& rightTypeID : DataType::getNumericalTypeIDs()) {
 //             result.push_back(getBinaryDefinition<operation::Atan2, true /* DOUBLE_RESULT */
-//                 >(ATAN2_FUNC_NAME, leftTypeID, rightTypeID, DOUBLE));
+//                 >(ATAN2_FUNC_NAME, leftTypeID, rightTypeID, DataTypeID::DOUBLE));
 //         }
 //     }
 //     return result;
@@ -363,7 +363,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     for (auto& leftTypeID : DataType::getNumericalTypeIDs()) {
 //         result.push_back(getBinaryDefinition<operation::Round, true /* DOUBLE_RESULT */>(
-//             ROUND_FUNC_NAME, leftTypeID, INT64, DOUBLE));
+//             ROUND_FUNC_NAME, leftTypeID, DataTypeID::INT64, DataTypeID::DOUBLE));
 //     }
 //     return result;
 // }
@@ -372,7 +372,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 // BitwiseXorVectorOperation::getDefinitions() {
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     result.push_back(make_unique<VectorOperationDefinition>(BITWISE_XOR_FUNC_NAME,
-//         std::vector<DataTypeID>{INT64, INT64}, INT64,
+//         std::vector<DataTypeID>{DataTypeID::INT64, DataTypeID::INT64}, DataTypeID::INT64,
 //         BinaryExecFunction<int64_t, int64_t, int64_t, operation::BitwiseXor>));
 //     return result;
 // }
@@ -381,7 +381,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 // BitwiseAndVectorOperation::getDefinitions() {
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     result.push_back(make_unique<VectorOperationDefinition>(BITWISE_AND_FUNC_NAME,
-//         std::vector<DataTypeID>{INT64, INT64}, INT64,
+//         std::vector<DataTypeID>{DataTypeID::INT64, DataTypeID::INT64}, DataTypeID::INT64,
 //         BinaryExecFunction<int64_t, int64_t, int64_t, operation::BitwiseAnd>));
 //     return result;
 // }
@@ -389,7 +389,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 // std::vector<std::unique_ptr<VectorOperationDefinition>> BitwiseOrVectorOperation::getDefinitions() {
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     result.push_back(make_unique<VectorOperationDefinition>(BITWISE_OR_FUNC_NAME,
-//         std::vector<DataTypeID>{INT64, INT64}, INT64,
+//         std::vector<DataTypeID>{DataTypeID::INT64, DataTypeID::INT64}, DataTypeID::INT64,
 //         BinaryExecFunction<int64_t, int64_t, int64_t, operation::BitwiseOr>));
 //     return result;
 // }
@@ -398,7 +398,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 // BitShiftLeftVectorOperation::getDefinitions() {
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     result.push_back(make_unique<VectorOperationDefinition>(BITSHIFT_LEFT_FUNC_NAME,
-//         std::vector<DataTypeID>{INT64, INT64}, INT64,
+//         std::vector<DataTypeID>{DataTypeID::INT64, DataTypeID::INT64}, DataTypeID::INT64,
 //         BinaryExecFunction<int64_t, int64_t, int64_t, operation::BitShiftLeft>));
 //     return result;
 // }
@@ -407,7 +407,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 // BitShiftRightVectorOperation::getDefinitions() {
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     result.push_back(make_unique<VectorOperationDefinition>(BITSHIFT_RIGHT_FUNC_NAME,
-//         std::vector<DataTypeID>{INT64, INT64}, INT64,
+//         std::vector<DataTypeID>{DataTypeID::INT64, DataTypeID::INT64}, DataTypeID::INT64,
 //         BinaryExecFunction<int64_t, int64_t, int64_t, operation::BitShiftRight>));
 //     return result;
 // }
@@ -415,7 +415,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 // std::vector<std::unique_ptr<VectorOperationDefinition>> PiVectorOperation::getDefinitions() {
 //     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
 //     result.push_back(make_unique<VectorOperationDefinition>(PI_FUNC_NAME, std::vector<DataTypeID>{},
-//         DOUBLE, ConstExecFunction<double_t, operation::Pi>));
+//         DataTypeID::DOUBLE, ConstExecFunction<double_t, operation::Pi>));
 //     return result;
 // }
 

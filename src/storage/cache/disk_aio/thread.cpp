@@ -142,8 +142,8 @@ static void bind2node_id(int node_id)
 
 void *thread_run(void *arg)
 {
-	thread *t = (thread *) arg;
-	pthread_setspecific(thread::thread_key, t);
+	my_thread *t = (my_thread *) arg;
+	pthread_setspecific(my_thread::thread_key, t);
 	t->tid = gettid();
 
 	std::vector<int> cpus = t->get_cpu_affinity();
@@ -170,7 +170,7 @@ void *thread_run(void *arg)
 	return NULL;
 }
 
-void thread::construct_init()
+void my_thread::construct_init()
 {
 	tid = -1;
 	thread_idx = num_threads.inc(1);
@@ -186,7 +186,7 @@ void thread::construct_init()
 	user_data = NULL;
 }
 
-thread::thread(std::string name, int node_id, bool blocking)
+my_thread::my_thread(std::string name, int node_id, bool blocking)
 {
 	thread_class_init();
 	construct_init();
@@ -196,7 +196,7 @@ thread::thread(std::string name, int node_id, bool blocking)
 	this->blocking = blocking;
 }
 
-thread::thread(std::string name, const std::vector<int> &cpu_affinity,
+my_thread::my_thread(std::string name, const std::vector<int> &cpu_affinity,
 		bool blocking)
 {
 	thread_class_init();
@@ -215,7 +215,7 @@ thread::thread(std::string name, const std::vector<int> &cpu_affinity,
 	this->blocking = blocking;
 }
 
-void thread::start()
+void my_thread::start()
 {
 	assert(id == 0);
 	int ret = pthread_create(&id, NULL, thread_run, (void *) this);
@@ -228,51 +228,51 @@ static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 
 void init_thread_class()
 {
-	pthread_key_create(&thread::thread_key, NULL);
+	pthread_key_create(&my_thread::thread_key, NULL);
 }
 
-void thread::thread_class_init()
+void my_thread::thread_class_init()
 {
 	pthread_once(&once_control, init_thread_class);
 }
 
-pthread_key_t thread::thread_key;
+pthread_key_t my_thread::thread_key;
 
-class thread_representer: public thread
+class thread_representer: public my_thread
 {
 	void run() {
 	}
 public:
-	thread_representer(int node_id): thread(std::string(
+	thread_representer(int node_id): my_thread(std::string(
 				"representer-thread-node") + itoa(node_id), node_id) {
 	}
 };
 
-thread *thread::get_curr_thread()
+my_thread *my_thread::get_curr_thread()
 {
-	thread *curr = (thread *) pthread_getspecific(thread_key);
+	my_thread *curr = (my_thread *) pthread_getspecific(thread_key);
 	if (curr)
 		return curr;
 	// If the thread isn't associated with a thread object, we'll create
 	// a thread representer just to make the other SAFS code work.
 	else {
 		curr = new thread_representer(-1);
-		pthread_setspecific(thread::thread_key, curr);
+		pthread_setspecific(my_thread::thread_key, curr);
 		curr->_is_sleeping = false;
 		curr->tid = gettid();
 		return curr;
 	}
 }
 
-thread *thread::represent_thread(int node_id)
+my_thread *my_thread::represent_thread(int node_id)
 {
 	if (node_id >= 0)
 		bind2node_id(node_id);
 
-	thread *curr = thread::get_curr_thread();
+	my_thread *curr = my_thread::get_curr_thread();
 	assert(curr == NULL);
 	curr = new thread_representer(node_id);
-	pthread_setspecific(thread::thread_key, curr);
+	pthread_setspecific(my_thread::thread_key, curr);
 	curr->_is_sleeping = false;
 	curr->tid = gettid();
 	return curr;
@@ -321,4 +321,4 @@ void task_thread::add_task(thread_task *t)
 	num_pending++;
 }
 
-atomic_integer thread::num_threads;
+atomic_integer my_thread::num_threads;

@@ -56,25 +56,25 @@ DataType Types::dataTypeFromString(const string& dataTypeString) {
 
 DataTypeID Types::dataTypeIDFromString(const std::string& dataTypeIDString) {
     if ("NODE_ID" == dataTypeIDString) {
-        return NODE_ID;
+        return DataTypeID::NODE_ID;
     } else if ("INT64" == dataTypeIDString) {
-        return INT64;
+        return DataTypeID::INT64;
     } else if ("UBIGINT" == dataTypeIDString) {
-        return UBIGINT;
+        return DataTypeID::UBIGINT;
     } else if ("DOUBLE" == dataTypeIDString) {
-        return DOUBLE;
+        return DataTypeID::DOUBLE;
     } else if ("BOOL" == dataTypeIDString) {
-        return BOOLEAN;
+        return DataTypeID::BOOLEAN;
     } else if ("BOOLEAN" == dataTypeIDString) {
-        return BOOLEAN;
+        return DataTypeID::BOOLEAN;
     } else if ("STRING" == dataTypeIDString) {
-        return STRING;
+        return DataTypeID::STRING;
     } else if ("DATE" == dataTypeIDString) {
-        return DATE;
+        return DataTypeID::DATE;
     } else if ("TIMESTAMP" == dataTypeIDString) {
-        return TIMESTAMP;
+        return DataTypeID::TIMESTAMP;
     } else if ("INTERVAL" == dataTypeIDString) {
-        return INTERVAL;
+        return DataTypeID::INTERVAL;
     } else {
         throw Exception("Cannot parse dataTypeID: " + dataTypeIDString);
     }
@@ -92,31 +92,31 @@ string Types::dataTypeToString(const DataType& dataType) {
 
 string Types::dataTypeToString(DataTypeID dataTypeID) {
     switch (dataTypeID) {
-    case ANY:
+    case DataTypeID::ANY:
         return "ANY";
-    case NODE:
+    case DataTypeID::NODE:
         return "NODE";
-    case REL:
+    case DataTypeID::REL:
         return "REL";
-    case NODE_ID:
+    case DataTypeID::NODE_ID:
         return "NODE_ID";
-    case BOOLEAN:
+    case DataTypeID::BOOLEAN:
         return "BOOL";
-    case INT64:
+    case DataTypeID::INT64:
         return "INT64";
-    case UBIGINT:
+    case DataTypeID::UBIGINT:
         return "UBIGINT";
-    case DOUBLE:
+    case DataTypeID::DOUBLE:
         return "DOUBLE";
-    case DATE:
+    case DataTypeID::DATE:
         return "DATE";
-    case TIMESTAMP:
+    case DataTypeID::TIMESTAMP:
         return "TIMESTAMP";
-    case INTERVAL:
+    case DataTypeID::INTERVAL:
         return "INTERVAL";
-    case STRING:
+    case DataTypeID::STRING:
         return "STRING";
-    case LIST:
+    case DataTypeID::LIST:
         return "LIST";
     default:
         return "DataTypeID:" + std::to_string(dataTypeID);
@@ -145,25 +145,25 @@ string Types::dataTypesToString(const vector<DataTypeID>& dataTypeIDs) {
 
 uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
     switch (dataTypeID) {
-    case NODE_ID:
+    case DataTypeID::NODE_ID:
         return sizeof(nodeID_t);
-    case BOOLEAN:
+    case DataTypeID::BOOLEAN:
         return sizeof(uint8_t);
-    case INT64:
+    case DataTypeID::INT64:
         return sizeof(int64_t);
-    case UBIGINT:
+    case DataTypeID::UBIGINT:
         return sizeof(uint64_t);
-    case DOUBLE:
+    case DataTypeID::DOUBLE:
         return sizeof(double_t);
-    case DATE:
+    case DataTypeID::DATE:
         return sizeof(date_t);
-    case TIMESTAMP:
+    case DataTypeID::TIMESTAMP:
         return sizeof(timestamp_t);
-    case INTERVAL:
+    case DataTypeID::INTERVAL:
         return sizeof(interval_t);
-    case STRING:
+    case DataTypeID::STRING:
         return sizeof(ku_string_t);
-    case LIST:
+    case DataTypeID::LIST:
         return sizeof(ku_list_t);
     default:
         throw Exception(

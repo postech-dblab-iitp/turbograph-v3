@@ -7,28 +7,28 @@ namespace common {
 
 Literal::Literal(uint8_t* value, const DataType& dataType) : _isNull{false}, dataType{dataType} {
     switch (dataType.typeID) {
-    case BOOLEAN:
+    case DataTypeID::BOOLEAN:
         val.booleanVal = *(bool*)value;
         break;
-    case INT64:
+    case DataTypeID::INT64:
         val.int64Val = *(int64_t*)value;
         break;
-    case UBIGINT:
+    case DataTypeID::UBIGINT:
         val.uint64Val = *(uint64_t*)value;
         break;
-    case DOUBLE:
+    case DataTypeID::DOUBLE:
         val.doubleVal = *(double_t*)value;
         break;
-    case NODE_ID:
+    case DataTypeID::NODE_ID:
         val.nodeID = *(nodeID_t*)value;
         break;
-    case DATE:
+    case DataTypeID::DATE:
         val.dateVal = *(date_t*)value;
         break;
-    case TIMESTAMP:
+    case DataTypeID::TIMESTAMP:
         val.timestampVal = *(timestamp_t*)value;
         break;
-    case INTERVAL:
+    case DataTypeID::INTERVAL:
         val.intervalVal = *(interval_t*)value;
         break;
     default:
@@ -48,37 +48,37 @@ void Literal::bind(const Literal& other) {
     _isNull = false;
     assert(dataType.typeID == other.dataType.typeID);
     switch (dataType.typeID) {
-    case BOOLEAN: {
+    case DataTypeID::BOOLEAN: {
         val.booleanVal = other.val.booleanVal;
     } break;
-    case INTEGER: {
+    case DataTypeID::INTEGER: {
         val.int32Val = other.val.int32Val;
     } break;
-    case INT64: {
+    case DataTypeID::INT64: {
         val.int64Val = other.val.int64Val;
     } break;
-    case UINTEGER: {
+    case DataTypeID::UINTEGER: {
         val.uint32Val = other.val.uint32Val;
     } break;
-    case UBIGINT: {
+    case DataTypeID::UBIGINT: {
         val.uint64Val = other.val.uint64Val;
     } break;
-    case DOUBLE: {
+    case DataTypeID::DOUBLE: {
         val.doubleVal = other.val.doubleVal;
     } break;
-    case DATE: {
+    case DataTypeID::DATE: {
         val.dateVal = other.val.dateVal;
     } break;
-    case TIMESTAMP: {
+    case DataTypeID::TIMESTAMP: {
         val.timestampVal = other.val.timestampVal;
     } break;
-    case INTERVAL: {
+    case DataTypeID::INTERVAL: {
         val.intervalVal = other.val.intervalVal;
     } break;
-    case STRING: {
+    case DataTypeID::STRING: {
         strVal = other.strVal;
     } break;
-    case LIST: {
+    case DataTypeID::LIST: {
         listVal = other.listVal;
     } break;
     default:

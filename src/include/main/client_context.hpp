@@ -42,7 +42,6 @@ class DatabaseInstance;
 class FileOpener;
 class LogicalOperator;
 class PreparedStatementData;
-class Relation;
 class BufferedFileWriter;
 class QueryProfiler;
 class ClientContextLock;

@@ -75,7 +75,7 @@ unique_ptr<QueryGraph> Binder::bindPatternElement(
 
         if (variablesInScope.find(pathName) != variablesInScope.end()) {
             auto prevVariable = variablesInScope.at(pathName);
-            ExpressionBinder::validateExpectedDataType(*prevVariable, PATH);
+            ExpressionBinder::validateExpectedDataType(*prevVariable, DataTypeID::PATH);
             throw BinderException("Bind path " + pathName +
                                   " to path with same name is not supported.");
         }
@@ -179,7 +179,7 @@ void Binder::bindQueryRel(const RelPattern &relPattern,
     auto parsedName = relPattern.getVariableName();
     if (variablesInScope.find(parsedName) != variablesInScope.end()) {
         auto prevVariable = variablesInScope.at(parsedName);
-        ExpressionBinder::validateExpectedDataType(*prevVariable, REL);
+        ExpressionBinder::validateExpectedDataType(*prevVariable, DataTypeID::REL);
         throw BinderException(
             "Bind relationship " + parsedName +
             " to relationship with same name is not supported.");
@@ -351,7 +351,7 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
     if (variablesInScope.find(parsedName) !=
         variablesInScope.end()) {  // bind to node in scope
         auto prevVariable = variablesInScope.at(parsedName);
-        ExpressionBinder::validateExpectedDataType(*prevVariable, NODE);
+        ExpressionBinder::validateExpectedDataType(*prevVariable, DataTypeID::NODE);
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
         auto idProperty = queryNode->getPropertyExpression(INTERNAL_ID_PROPERTY_KEY_ID); // this may add unnessary _id
         // E.g. MATCH (a:person) MATCH (a:organisation)
