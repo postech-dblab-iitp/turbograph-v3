@@ -18,7 +18,7 @@
 // }
 
 // void ValueVector::addString(uint32_t pos, char* value, uint64_t len) const {
-//     assert(dataType.typeID == STRING);
+//     assert(dataType.typeID == DataTypeID::STRING);
 //     auto& entry = ((ku_string_t*)getData())[pos];
 //     InMemOverflowBufferUtils::copyString(value, len, entry, *inMemOverflowBuffer);
 // }

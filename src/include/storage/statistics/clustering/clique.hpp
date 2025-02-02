@@ -127,8 +127,8 @@ private:
             double minElem = numeric_limits<double>::max();
             double maxElem = numeric_limits<double>::lowest();
             for (const auto& row : data) {
-                minElem = min(minElem, row[f]);
-                maxElem = max(maxElem, row[f]);
+                minElem = std::min(minElem, row[f]);
+                maxElem = std::max(maxElem, row[f]);
             }
             uint64_t range = maxElem - minElem;
             for (auto& row : data) {

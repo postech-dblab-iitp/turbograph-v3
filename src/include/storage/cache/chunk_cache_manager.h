@@ -60,6 +60,6 @@ public:
   const std::string file_meta_info_name = ".file_meta_info";
 };
 
-#endif // CHUNK_CACHE_MANAGER_H
-
 }
+
+#endif // CHUNK_CACHE_MANAGER_H

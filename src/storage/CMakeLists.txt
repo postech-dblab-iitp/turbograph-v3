@@ -1,76 +1,11 @@
-cmake_minimum_required(VERSION 3.16)
+file(GLOB_RECURSE STORAGE_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.c*")
 
-####################################################
-# PROJECT METADATA 
-####################################################
-project(storage)
-
-####################################################
-# DECLARE TARGETS
-####################################################
-add_library(lightning STATIC)
-add_library(storage-lib STATIC)
-add_executable(store)
-
-####################################################
-# GLOBAL DEFINITION
-####################################################
-link_libraries(pthread aio numa rt hwloc tbb)
-
-####################################################
-# PER-TARGET DEFINITION - storage-lib
-####################################################
-file(GLOB_RECURSE SYSTEM_SOURCES "${PROJECT_SOURCE_DIR}/*.c*")
-file(GLOB_RECURSE CATALOG_SOURCES "${PROJECT_SOURCE_DIR}/../catalog/*.c*")
-
-# Exclude files in the 'test' folder
-foreach(TEST_FILE ${SYSTEM_SOURCES})
-    if(TEST_FILE MATCHES "/test/")
-        list(REMOVE_ITEM SYSTEM_SOURCES ${TEST_FILE})
-    endif()
-endforeach()
-
-SET(TBGPP_SYSTEM_SOURCES ${SYSTEM_SOURCES} ${CATALOG_SOURCES})
-target_sources(storage-lib PUBLIC ${TBGPP_SYSTEM_SOURCES})
-target_link_libraries(storage-lib common-lib)
-target_link_libraries(storage-lib tbgpp-main)
-target_link_libraries(storage-lib velox_dwio_common)
-
-
-####################################################
-# PER-TARGET DEFINITION - lightning
-####################################################
-set(CACHE_SRC_DIR "${PROJECT_SOURCE_DIR}/cache")
-file (GLOB_RECURSE CACHE_SYSTEM_SOURCES "${CACHE_SRC_DIR}/*.c*")
-SET(CACHE_LIB_SRC ${CACHE_SYSTEM_SOURCES})
-target_sources(lightning PUBLIC ${CACHE_LIB_SRC})
-
-target_link_libraries(lightning "-lrt -lpthread -ltbb -fopenmp -laio -lnuma -lhwloc")
-target_link_libraries(lightning common-lib)
-
-####################################################
-# PER-TARGET DEFINITION - store
-####################################################
-target_sources(store PUBLIC "${PROJECT_SOURCE_DIR}/test/test_store.cc")
-target_link_libraries(store lightning)
-target_link_libraries(store common-lib)
-target_link_libraries(store tbgpp-main)
-
-
-####################################################
-# TESTS
-####################################################
-
-file(GLOB CATALOG_TEST_SRC
-  "${PROJECT_SOURCE_DIR}/test/catalog_test_catalog_server.cpp"
+add_library_unity(
+  s62gdb_storage
+  OBJECT
+  ${STORAGE_SRC_FILES}
 )
 
-if (TRUE)
-foreach(test_file ${CATALOG_TEST_SRC})
-  get_filename_component(prog_name ${test_file} NAME_WE)
-  add_executable(${prog_name} ${test_file})
-  target_compile_options(${prog_name} PRIVATE ${CXX_FLAGS})
-	target_compile_definitions(${prog_name} PRIVATE ${CXX_DEFINITION})
-  target_link_libraries(${prog_name} PRIVATE storage-lib)
-endforeach(test_file ${CATALOG_TEST_SRC})
-endif()
+set(ALL_OBJECT_FILES
+    ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:s62gdb_storage>
+    PARENT_SCOPE)

@@ -78,7 +78,7 @@ using namespace gpopt;
 //                 +------------------------+
 //
 const CJobGroupExpressionOptimization::EEvent
-	rgeev[CJobGroupExpressionOptimization::estSentinel]
+	rgeev_expr_opt[CJobGroupExpressionOptimization::estSentinel]
 		 [CJobGroupExpressionOptimization::estSentinel] = {
 			 {// estInitialized
 			  CJobGroupExpressionOptimization::eevSentinel,
@@ -196,7 +196,7 @@ CJobGroupExpressionOptimization::Init(CGroupExpression *pgexpr,
 	GPOS_ASSERT(ulOptReq <=
 				CPhysical::PopConvert(pgexpr->Pop())->UlOptRequests());
 
-	m_jsm.Init(rgeev
+	m_jsm.Init(rgeev_expr_opt
 #ifdef GPOS_DEBUG
 			   ,
 			   rgwszStates, rgwszEvents

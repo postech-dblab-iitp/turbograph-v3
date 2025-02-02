@@ -1,8 +1,14 @@
 add_subdirectory(gporca)
 
 # add libraries
-add_library(orca STATIC)
-file (GLOB_RECURSE SOURCES "gpopt/*.c*" "nodes/*.c*" "utils/*.c*")
-target_sources(orca PUBLIC ${SOURCES})
+file (GLOB_RECURSE ORCA_SOURCES "gpopt/*.c*" "nodes/*.c*" "utils/*.c*")
 
-target_link_libraries(orca PUBLIC gpos naucrates gpdbcost gpopt tbgpp-main common-lib storage-lib)
+add_library_unity(
+  s62gdb_orca
+  OBJECT
+  ${ORCA_SOURCES}
+)
+
+set(ALL_OBJECT_FILES
+    ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:s62gdb_orca>
+    PARENT_SCOPE)

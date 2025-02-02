@@ -13,7 +13,7 @@
 
 #include "gpos/base.h"
 #include "gpos/common/DbgPrintMixin.h"
-
+#include "gpopt/base/CColumnFactory.h"
 #include "gpopt/base/CKHeap.h"
 #include "naucrates/statistics/CBucket.h"
 #include "naucrates/statistics/CStatsPred.h"
@@ -22,7 +22,6 @@ namespace gpopt
 {
 class CColRef;
 class CStatisticsConfig;
-class CColumnFactory;
 }  // namespace gpopt
 
 namespace gpnaucrates

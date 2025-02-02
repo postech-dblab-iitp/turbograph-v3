@@ -32,11 +32,11 @@ bool BuiltInVectorOperations::canApplyStaticEvaluation(
     }
     if ((functionName == CAST_TO_DATE_FUNC_NAME || functionName == CAST_TO_TIMESTAMP_FUNC_NAME ||
             functionName == CAST_TO_INTERVAL_FUNC_NAME) &&
-        children[0]->expressionType == LITERAL && children[0]->dataType.typeID == STRING) {
+        children[0]->expressionType == LITERAL && children[0]->dataType.typeID == DataTypeID::STRING) {
         return true; // bind as literal
     }
     if (functionName == CAST_TO_YEAR_FUNC_NAME && 
-        children[0]->expressionType == LITERAL && children[0]->dataType.typeID == DATE) {
+        children[0]->expressionType == LITERAL && children[0]->dataType.typeID == DataTypeID::DATE) {
         return true; // bind as literal
     }
     return false;
@@ -140,12 +140,12 @@ uint32_t BuiltInVectorOperations::matchVarLengthParameters(
 }
 
 uint32_t BuiltInVectorOperations::castRules(DataTypeID inputTypeID, DataTypeID targetTypeID) {
-    if (inputTypeID == ANY) {
-        // ANY type can be any type
+    if (inputTypeID == DataTypeID::ANY) {
+        // DataTypeID::ANY type can be any type
         return 0;
     }
-    if (targetTypeID == ANY) {
-        // Any inputTypeID can match to type ANY
+    if (targetTypeID == DataTypeID::ANY) {
+        // Any inputTypeID can match to type DataTypeID::ANY
         return 0;
     }
     if (inputTypeID != targetTypeID) {
@@ -344,9 +344,9 @@ void BuiltInVectorOperations::registerListOperations() {
 // void BuiltInVectorOperations::registerInternalIDOperation() {
 //     vector<unique_ptr<VectorOperationDefinition>> definitions;
 //     definitions.push_back(make_unique<VectorOperationDefinition>(
-//         ID_FUNC_NAME, vector<DataTypeID>{NODE}, NODE_ID, nullptr));
+//         ID_FUNC_NAME, vector<DataTypeID>{DataTypeID::NODE}, DataTypeID::NODE_ID, nullptr));
 //     definitions.push_back(make_unique<VectorOperationDefinition>(
-//         ID_FUNC_NAME, vector<DataTypeID>{REL}, INT64, nullptr));
+//         ID_FUNC_NAME, vector<DataTypeID>{DataTypeID::REL}, DataTypeID::INT64, nullptr));
 //     vectorOperations.insert({ID_FUNC_NAME, move(definitions)});
 // }
 

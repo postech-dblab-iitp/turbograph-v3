@@ -9,7 +9,7 @@ class ListComprehensionExpression : public Expression {
    public:
     ListComprehensionExpression(shared_ptr<Expression> filterExpression,
                                 shared_ptr<Expression> expr, string name)
-        : Expression{LIST_COMPREHENSION, kuzu::common::LIST, name},
+        : Expression{LIST_COMPREHENSION, kuzu::common::DataTypeID::LIST, name},
           filterExpression(std::move(filterExpression)),
           expr(std::move(expr))
     {}

@@ -40,8 +40,8 @@ struct Divide {
 template<>
 inline void Divide::operation(int64_t& left, int64_t& right, int64_t& result) {
     if (right == 0) {
-        // According to c++ standard, only INT64 / 0(INT64) is undefined. (eg. DOUBLE / 0(INT64) and
-        // INT64 / 0.0(DOUBLE) are well-defined).
+        // According to c++ standard, only DataTypeID::INT64 / 0(DataTypeID::INT64) is undefined. (eg. DataTypeID::DOUBLE / 0(DataTypeID::INT64) and
+        // DataTypeID::INT64 / 0.0(DataTypeID::DOUBLE) are well-defined).
         throw common::RuntimeException("Divide by zero.");
     }
     result = left / right;
@@ -57,8 +57,8 @@ inline void Divide::operation(int64_t& left, int64_t& right, int64_t& result) {
 // template<>
 // inline void Modulo::operation(int64_t& left, int64_t& right, int64_t& result) {
 //     if (right == 0) {
-//         // According to c++ standard, only INT64 % 0(INT64) is undefined. (eg. DOUBLE % 0(INT64) and
-//         // INT64 % 0.0(DOUBLE) are well-defined).
+//         // According to c++ standard, only DataTypeID::INT64 % 0(DataTypeID::INT64) is undefined. (eg. DataTypeID::DOUBLE % 0(DataTypeID::INT64) and
+//         // DataTypeID::INT64 % 0.0(DataTypeID::DOUBLE) are well-defined).
 //         throw common::RuntimeException("Modulo by zero.");
 //     }
 //     result = left % right;

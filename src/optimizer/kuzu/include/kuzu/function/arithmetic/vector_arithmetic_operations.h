@@ -30,16 +30,16 @@ private:
     // static scalar_exec_func getBinaryExecFunc(
     //     common::DataTypeID leftTypeID, common::DataTypeID rightTypeID) {
     //     switch (leftTypeID) {
-    //     case common::INT64: {
+    //     case common::DataTypeID::INT64: {
     //         switch (rightTypeID) {
-    //         case common::INT64: {
+    //         case common::DataTypeID::INT64: {
     //             if constexpr (DOUBLE_RESULT) {
     //                 return BinaryExecFunction<int64_t, int64_t, double_t, FUNC>;
     //             } else {
     //                 return BinaryExecFunction<int64_t, int64_t, int64_t, FUNC>;
     //             }
     //         }
-    //         case common::DOUBLE: {
+    //         case common::DataTypeID::DOUBLE: {
     //             return BinaryExecFunction<int64_t, double_t, double_t, FUNC>;
     //         }
     //         default:
@@ -49,12 +49,12 @@ private:
     //                                            ") for getBinaryExecFunc.");
     //         }
     //     }
-    //     case common::DOUBLE: {
+    //     case common::DataTypeID::DOUBLE: {
     //         switch (rightTypeID) {
-    //         case common::INT64: {
+    //         case common::DataTypeID::INT64: {
     //             return BinaryExecFunction<double_t, int64_t, double_t, FUNC>;
     //         }
-    //         case common::DOUBLE: {
+    //         case common::DataTypeID::DOUBLE: {
     //             return BinaryExecFunction<double_t, double_t, double_t, FUNC>;
     //         }
     //         default:
@@ -74,14 +74,14 @@ private:
     // template<typename FUNC, bool INT_RESULT, bool DOUBLE_RESULT>
     // static scalar_exec_func getUnaryExecFunc(common::DataTypeID operandTypeID) {
     //     switch (operandTypeID) {
-    //     case common::INT64: {
+    //     case common::DataTypeID::INT64: {
     //         if constexpr (DOUBLE_RESULT) {
     //             return UnaryExecFunction<int64_t, double_t, FUNC>;
     //         } else {
     //             return UnaryExecFunction<int64_t, int64_t, FUNC>;
     //         }
     //     }
-    //     case common::DOUBLE: {
+    //     case common::DataTypeID::DOUBLE: {
     //         if constexpr (INT_RESULT) {
     //             return UnaryExecFunction<double_t, int64_t, FUNC>;
     //         } else {

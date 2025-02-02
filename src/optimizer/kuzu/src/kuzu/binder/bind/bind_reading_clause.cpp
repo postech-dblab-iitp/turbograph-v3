@@ -50,7 +50,7 @@ unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause& read
 unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause& readingClause) {
     auto& unwindClause = (UnwindClause&)readingClause;
     auto boundExpression = expressionBinder.bindExpression(*unwindClause.getExpression());
-    boundExpression = ExpressionBinder::implicitCastIfNecessary(boundExpression, LIST);
+    boundExpression = ExpressionBinder::implicitCastIfNecessary(boundExpression, DataTypeID::LIST);
     auto aliasExpression =
         createVariable(unwindClause.getAlias(), *boundExpression->dataType.childType);
     return make_unique<BoundUnwindClause>(move(boundExpression), move(aliasExpression));
