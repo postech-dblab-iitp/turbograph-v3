@@ -1,6 +1,6 @@
-#include "TG_NWSM_Utility.hpp"
-#include "TwoLevelBitMap.hpp"
-#include "TurboDB.hpp"
+#include "analytics/util/TG_NWSM_Utility.hpp"
+#include "analytics/datastructure/TwoLevelBitMap.hpp"
+#include "analytics/core/TurboDB.hpp"
 
 int64_t ComputeMemorySizeOfAdjacencyLists(BitMap<node_t>& vids, Range<node_t>& vid_range) {
 	int64_t adjlist_data_size = 0;

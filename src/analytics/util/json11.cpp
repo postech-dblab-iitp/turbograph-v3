@@ -19,7 +19,7 @@
  ** THE SOFTWARE.
  **/
 
-#include "json11.hpp"
+#include "analytics/util/json11.hpp"
 #include <cassert>
 #include <cmath>
 #include <cstdlib>

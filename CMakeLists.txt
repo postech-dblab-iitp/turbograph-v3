@@ -138,8 +138,12 @@ endif()
 
 if(BUILD_ANALYTICS)
   message(STATUS "Building Analytics")
-  find_package(MPI REQUIRED)
 endif()
+
+# MPI should be enforced due to #include <mpi.h>
+find_package(MPI REQUIRED)
+include_directories(${MPI_CXX_INCLUDE_PATH})
+link_libraries(${MPI_CXX_LIBRARIES})
 
 if(NOT MSVC)
   if(TREAT_WARNINGS_AS_ERRORS)
@@ -252,6 +256,7 @@ function(add_library_unity NAME MODE)
   endif()
   add_library(${NAME} OBJECT ${SRCS})
 endfunction()
+
 
 include_directories(src/include)
 include_directories(src/include/optimizer/orca/gpopt)

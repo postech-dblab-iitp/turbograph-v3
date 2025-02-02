@@ -43,6 +43,8 @@ RUN apt-get install -y \
     libgoogle-perftools-dev \
     libreadline-dev \
     libhwloc-dev \
+    openmpi-bin \
+    libopenmpi-dev \
     python3-pip && \
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 50 --slave /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION}
 

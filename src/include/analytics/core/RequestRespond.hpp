@@ -49,6 +49,7 @@
 #include "analytics/util/Aio_Helper.hpp"
 #include "analytics/util/TG_NWSM_Utility.hpp"
 #include "analytics/util/VariableSizedMemoryAllocatorWithCircularBuffer.hpp"
+#include "analytics/util/atomic_util.hpp"
 
 #define USE_DEGREE_THRESHOLD 1
 

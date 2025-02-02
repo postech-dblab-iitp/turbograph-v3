@@ -8,7 +8,19 @@ add_subdirectory(parser)
 add_subdirectory(planner)
 add_subdirectory(storage)
 if(BUILD_ANALYTICS)
-  add_subdirectory(analytics)
+    include(ExternalProject)
+    set(ANALYTICS_BUILD_DIR ${CMAKE_BINARY_DIR}/src/analytics-build)
+    set(ANALYTICS_LIB_NAME tbgpp-analytics)
+    ExternalProject_Add(analytics_project
+        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/analytics
+        PREFIX ${ANALYTICS_BUILD_DIR}
+        BINARY_DIR ${ANALYTICS_BUILD_DIR}
+        CMAKE_ARGS -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx 
+        -DINCLUDE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/include
+        -DANALYTICS_LIB_NAME=${ANALYTICS_LIB_NAME}
+        INSTALL_COMMAND "" 
+        BUILD_BYPRODUCTS ${ANALYTICS_BUILD_DIR}/lib${ANALYTICS_LIB_NAME}.so
+    )
 endif()
 
 set(S62GDB_SYSTEM_LIBS ${CMAKE_DL_LIBS})
@@ -47,11 +59,26 @@ set(S62GDB_INSTALLED_LIBS
     ${XERCES_LIBRARIES}
 )
 
-set(S62GDB_LINK_LIBS
-    ${S62GDB_SYSTEM_LIBS}
-    ${S62GDB_THIRD_PARTY_LIBS}
-    ${S62GDB_INSTALLED_LIBS}
-)
+if(BUILD_ANALYTICS)
+    add_library(tbgpp-analytics SHARED IMPORTED)
+    set_target_properties(tbgpp-analytics PROPERTIES
+        IMPORTED_LOCATION "${ANALYTICS_BUILD_DIR}/lib${ANALYTICS_LIB_NAME}.so"
+        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    )
+
+    set(S62GDB_LINK_LIBS
+        ${S62GDB_SYSTEM_LIBS}
+        ${S62GDB_THIRD_PARTY_LIBS}
+        ${S62GDB_INSTALLED_LIBS}
+        tbgpp-analytics
+    )
+else()
+    set(S62GDB_LINK_LIBS
+        ${S62GDB_SYSTEM_LIBS}
+        ${S62GDB_THIRD_PARTY_LIBS}
+        ${S62GDB_INSTALLED_LIBS}
+    )
+endif()
 
 add_library(s62gdb SHARED ${ALL_OBJECT_FILES})
 

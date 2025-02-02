@@ -463,7 +463,7 @@ void set_signal_handler() {
 }
 
 void stack_dump() {
-	static bool tried_throw = false;
+	static int tried_throw = 0;
 	try {
 		// try once to re-throw currently active exception
 		if (!tried_throw++) throw;
