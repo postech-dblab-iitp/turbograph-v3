@@ -29,11 +29,11 @@
 #include "analytics/core/TG_NWSM.hpp"
 #include "analytics/core/TG_DistributedVectorBase.hpp"
 #include "analytics/core/TG_DistributedVectorWindow.hpp"
-#include "analytics/io/Turbo_bin_io_handler.hpp"
 #include "analytics/datastructure/MemoryMappedArray.hpp"
 #include "analytics/datastructure/VersionedArray.hpp"
 #include "analytics/datastructure/GBVersionedArray.hpp"
 #include "analytics/datastructure/VersionedArrayDiff.hpp"
+#include "storage/cache/disk_aio/Turbo_bin_io_handler.hpp"
 
 #define NO_PER_THREAD_BUFFER 1
 #define PER_THREAD_GGB_PULL

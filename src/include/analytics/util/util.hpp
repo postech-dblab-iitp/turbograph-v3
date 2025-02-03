@@ -203,41 +203,6 @@ class StackTracer {
 
 static const long PAGE_SIZE = sysconf(_SC_PAGESIZE);
 
-// padded, aligned primitives
-template <typename T>
-class aligned_padded_elem {
-  public:
-
-	template <class... Args>
-	aligned_padded_elem(Args &&... args)
-		: elem(std::forward<Args>(args)...) {
-		ALWAYS_ASSERT(sizeof(aligned_padded_elem<T>) % CACHELINE_SIZE == 0);
-	}
-
-	T elem;
-	CACHE_PADOUT;
-
-	// syntactic sugar- can treat like a pointer
-	inline T & operator*() {
-		return elem;
-	}
-	inline const T & operator*() const {
-		return elem;
-	}
-	inline T * operator->() {
-		return &elem;
-	}
-	inline const T * operator->() const {
-		return &elem;
-	}
-
-  private:
-	inline void
-	__cl_asserter() const {
-		ALWAYS_ASSERT((sizeof(*this) % CACHELINE_SIZE) == 0);
-	}
-} CACHE_ALIGNED;
-
 #define SWAP(a,b) {swap_temp = a; a = b; b = swap_temp;}
 
 class NumaHelper {

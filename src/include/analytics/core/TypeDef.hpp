@@ -1,4 +1,3 @@
-#pragma once
 #ifndef TYPEDEF_H
 #define TYPEDEF_H
 
@@ -17,13 +16,17 @@
 #include <cmath>
 
 #include "analytics/util/pcg_random.hpp"
+#include "common/enums/return_status.hpp"
 
+#ifndef CACHE_PARAMETERS
+#define CACHE_PARAMETERS
 #define __XCONCAT2(a, b) a ## b
 #define __XCONCAT(a, b) __XCONCAT2(a, b)
 #define CACHELINE_SIZE 64
 #define CACHE_ALIGNED __attribute__((aligned(CACHELINE_SIZE)))
 #define CACHE_PADOUT  \
   char __XCONCAT(__padout, __COUNTER__)[0] __attribute__((aligned(CACHELINE_SIZE)))
+#endif
 
 #ifndef LATENT_FACTOR_K
 #define LATENT_FACTOR_K 2
@@ -31,13 +34,6 @@
 
 #define LATENT_VECTOR_WO_BIAS
 #define OldMessageTransfer
-
-enum ReturnStatus {
-	OK,
-	DONE,
-	FAIL,
-	ON_GOING,
-};
 
 enum EdgeType {
     OUTEDGE = 0,
@@ -56,11 +52,6 @@ enum DynamicDBType {
     NEW = 5,
 };
 
-enum IOMode {
-    READ_IO = 0,
-    WRITE_IO = 1,
-};
-
 enum Op {
 	PLUS,
 	MINUS,
@@ -73,6 +64,11 @@ enum Op {
     BOR,
 	UNDEFINED,
 	// can be added
+};
+
+enum IOMode {
+  READ_IO = 0,
+  WRITE_IO = 1,
 };
 
 enum CompareType {
@@ -95,7 +91,7 @@ typedef int64_t level_t;
 //typedef uint64_t bitmap_t;
 typedef unsigned char bitmap_t;
 
-typedef int16_t PartitionID;
+typedef int16_t PartID;
 typedef int32_t PageID;
 typedef int16_t SlotNo;
 
@@ -114,7 +110,7 @@ typedef int64_t level_t;
 
 typedef unsigned char bitmap_t;
 
-typedef int16_t PartitionID;
+typedef int16_t PartID;
 typedef int32_t PageID;
 typedef int16_t SlotNo;
 

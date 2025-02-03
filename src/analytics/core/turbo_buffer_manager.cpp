@@ -1,6 +1,6 @@
 #include "analytics/core/turbo_buffer_manager.hpp"
-#include "analytics/datastructure/disk_aio_factory.hpp"
 #include "analytics/core/TurboDB.hpp"
+#include "storage/cache/disk_aio/disk_aio_factory.hpp"
 
 void(*turbo_callback::AsyncCallbackUpdateDirectTableFunc)(diskaio::DiskAioRequestUserInfo &user_info) = AsyncCallbackUpdateDirectTable;
 turbo_buffer_manager turbo_buffer_manager::buf_mgr;
@@ -306,7 +306,7 @@ ReturnStatus turbo_buffer_manager::Init(std::size_t buffer_pool_size_bytes, std:
 
     num_read_pages = num_write_pages = 0;
 
-	return OK;
+	return ReturnStatus::OK;
 }
     
 void turbo_buffer_manager::ReportTimers(bool reset) {
@@ -324,7 +324,7 @@ void turbo_buffer_manager::ReportTimers(bool reset) {
 }
 
 ReturnStatus turbo_buffer_manager::PinPageCallbackLikelyCached(
-    PartitionID partition_id,
+    PartID partition_id,
     AioRequest& req,
     diskaio::DiskAioInterface** my_io) {
 	
@@ -349,11 +349,11 @@ ReturnStatus turbo_buffer_manager::PinPageCallbackLikelyCached(
     
     //req.buf = (char*) GetFrame(req.user_info.frame_id).GetPage();
     //fprintf(stdout, "[%ld] %ld (%ld) [bfm::PinPageCallbackLikelyCached] %ld at %p\n", PartitionStatistics::my_machine_id(), UserArguments::UPDATE_VERSION, (int64_t) pthread_self(), table_pid_to_read, req.buf);
-    return DONE;
+    return ReturnStatus::DONE;
 }
 
 ReturnStatus turbo_buffer_manager::PinPageCallback(
-    PartitionID partition_id,
+    PartID partition_id,
     AioRequest& req,
     diskaio::DiskAioInterface** my_io) {
 	
@@ -476,7 +476,7 @@ retry:
         }
         timer.stop_timer(5);
         timer.stop_timer(0);
-        return ON_GOING;
+        return ReturnStatus::ON_GOING;
 	} else {
 		// When the page is already in the buffer
 		// invoke callback explicitly
@@ -500,14 +500,14 @@ retry:
         timer.stop_timer(6);
         
         timer.stop_timer(0);
-        return DONE;
+        return ReturnStatus::DONE;
 	}
 	LOG_ASSERT(false);
-    return OK;
+    return ReturnStatus::OK;
 }
 
 
-ReturnStatus turbo_buffer_manager::PrePinPageUnsafe(PartitionID partition_id, AioRequest& req) {
+ReturnStatus turbo_buffer_manager::PrePinPageUnsafe(PartID partition_id, AioRequest& req) {
 	ENTER_BUF_MGR_CRIT_SECTION;
 
 	req.user_info.frame_id = INVALID_FRAME;
@@ -518,7 +518,7 @@ ReturnStatus turbo_buffer_manager::PrePinPageUnsafe(PartitionID partition_id, Ai
 
 	if (req.user_info.frame_id == INVALID_FRAME) {
 		LOG_ASSERT(false);
-        return FAIL;
+        return ReturnStatus::FAIL;
 	} else {
 		GetFrame(req.user_info.frame_id).PinUnsafe();
 		m_directTable->Insert(table_page_id, req.user_info.frame_id);
@@ -532,9 +532,9 @@ ReturnStatus turbo_buffer_manager::PrePinPageUnsafe(PartitionID partition_id, Ai
 		
         UpdateBufferHitCount(table_page_id, true);
 	}
-	return OK;
+	return ReturnStatus::OK;
 }
-ReturnStatus turbo_buffer_manager::PrePinPage(PartitionID partition_id, AioRequest& req) {
+ReturnStatus turbo_buffer_manager::PrePinPage(PartID partition_id, AioRequest& req) {
 	ENTER_BUF_MGR_CRIT_SECTION;
 
 	req.user_info.frame_id = INVALID_FRAME;
@@ -548,7 +548,7 @@ ReturnStatus turbo_buffer_manager::PrePinPage(PartitionID partition_id, AioReque
 
 	if (req.user_info.frame_id == INVALID_FRAME) {
 		m_directTable->unlock(table_page_id);
-		return FAIL;
+		return ReturnStatus::FAIL;
 	} else {
 		UpdateBufferHitCount(table_page_id, true);
 		GetFrame(req.user_info.frame_id).Lock();
@@ -562,10 +562,10 @@ ReturnStatus turbo_buffer_manager::PrePinPage(PartitionID partition_id, AioReque
 		m_directTable->unlock(table_page_id);
 		GetFrame(req.user_info.frame_id).Unlock();
 	}
-	return OK;
+	return ReturnStatus::OK;
 }
 ReturnStatus turbo_buffer_manager::ReplacePageCallback (
-    PartitionID partition_id,
+    PartID partition_id,
     AioRequest& req,
     PageID old_table_pid,
     bool& replaced,
@@ -679,7 +679,7 @@ ReturnStatus turbo_buffer_manager::ReplacePageCallback (
 
 			ReadPage(new_req, my_io[READ_IO]);
 		}
-		return ON_GOING;
+		return ReturnStatus::ON_GOING;
 	} else {
 		UpdateBufferHitCount(new_table_page_id, true);
 		GetFrame(new_req.user_info.frame_id).Lock();
@@ -694,11 +694,11 @@ ReturnStatus turbo_buffer_manager::ReplacePageCallback (
 
 		turbo_callback::AsyncCallbackUserFunction(new_req.user_info);
 	}
-	return OK;
+	return ReturnStatus::OK;
 }
 
 ReturnStatus turbo_buffer_manager::GetPagePtr_Unsafe(PageID pid, Page*& page) {
-	PartitionID partition_id = PartitionStatistics::my_machine_id();
+	PartID partition_id = PartitionStatistics::my_machine_id();
 	FrameID frameNo = FindFrame(partition_id, pid);
 
 	if (frameNo == INVALID_FRAME || !GetFrame(frameNo).IsPinned()) {
@@ -710,11 +710,11 @@ ReturnStatus turbo_buffer_manager::GetPagePtr_Unsafe(PageID pid, Page*& page) {
 	ALWAYS_ASSERT(GetFrame(frameNo).GetPageID() == pid);
 	ALWAYS_ASSERT(page != NULL);
     //fprintf(stdout, "[%ld] %ld (%ld) [bfm::GetPagePtr_Unsafe] %ld at %p\n", PartitionStatistics::my_machine_id(), UserArguments::UPDATE_VERSION, (int64_t) pthread_self(), pid, page);
-	return OK;
+	return ReturnStatus::OK;
 }
 
-ReturnStatus turbo_buffer_manager::UnpinPageUnsafeBulk(PartitionID partition_id, PageID* pids, int num_pages) {
-	if (num_pages == 0) return OK;
+ReturnStatus turbo_buffer_manager::UnpinPageUnsafeBulk(PartID partition_id, PageID* pids, int num_pages) {
+	if (num_pages == 0) return ReturnStatus::OK;
 	ENTER_BUF_MGR_CRIT_SECTION;
 	int cnts = 0;	
 	for (int idx = 0; idx < num_pages; idx++) {
@@ -729,10 +729,10 @@ ReturnStatus turbo_buffer_manager::UnpinPageUnsafeBulk(PartitionID partition_id,
 		if (pin_count_zero) cnts++;
 	}
         NumberOfUnpinnedFrames += cnts;
-	return OK;
+	return ReturnStatus::OK;
 }
 
-ReturnStatus turbo_buffer_manager::UnpinPageUnsafe( PartitionID partition_id, PageID pid ) {
+ReturnStatus turbo_buffer_manager::UnpinPageUnsafe( PartID partition_id, PageID pid ) {
 	ALWAYS_ASSERT(pid >= 0 && pid < m_NumPages);
 	ENTER_BUF_MGR_CRIT_SECTION;
 	FrameID frameNo = m_directTable->LookUp(pid);
@@ -740,10 +740,10 @@ ReturnStatus turbo_buffer_manager::UnpinPageUnsafe( PartitionID partition_id, Pa
 	ALWAYS_ASSERT(GetFrame(frameNo).GetPageID() == pid );
 	ALWAYS_ASSERT(GetFrame(frameNo).IsPinned());
 	GetFrame(frameNo).UnpinUnsafe();
-	return OK;
+	return ReturnStatus::OK;
 }
 
-ReturnStatus turbo_buffer_manager::UnpinPage( PartitionID partition_id, PageID pid ) {
+ReturnStatus turbo_buffer_manager::UnpinPage( PartID partition_id, PageID pid ) {
 	ALWAYS_ASSERT(partition_id == PartitionStatistics::my_machine_id());
 	ALWAYS_ASSERT(pid >= 0 && pid < m_NumPages);
 	ENTER_BUF_MGR_CRIT_SECTION;
@@ -761,7 +761,7 @@ ReturnStatus turbo_buffer_manager::UnpinPage( PartitionID partition_id, PageID p
 	GetFrame(frameNo).Unpin();
 	m_directTable->unlock(pid);
 	GetFrame(frameNo).Unlock();
-	return OK;
+	return ReturnStatus::OK;
 }
 
 ReturnStatus turbo_buffer_manager::UnpinPages(BitMap<PageID>& bitmap) {
@@ -831,7 +831,7 @@ FrameID turbo_buffer_manager::FindFrameAndPinPageIfCached(PageID pid) {
     }
 }
 
-FrameID turbo_buffer_manager::FindFrame( PartitionID partition_id, PageID pid ) {
+FrameID turbo_buffer_manager::FindFrame( PartID partition_id, PageID pid ) {
 	FrameID frameNo = m_directTable->LookUp(pid);
 	if (frameNo != INVALID_FRAME) {
 		if (GetFrame(frameNo).GetPageID() == pid) {
@@ -964,10 +964,10 @@ ReturnStatus turbo_buffer_manager::ReadPage(AioRequest& req, diskaio::DiskAioInt
 	bool success = DiskAioFactory::GetPtr()->ARead(req, my_io);
 	if (!success) {
 		std::cerr << "Turbo_DB::ReadPage, read page error" << std::endl;
-		return FAIL;
+		return ReturnStatus::FAIL;
 	}
 	ALWAYS_ASSERT (req.buf != NULL);
-	return OK;
+	return ReturnStatus::OK;
 }
 
 ReturnStatus turbo_buffer_manager::WritePage(AioRequest& req, diskaio::DiskAioInterface* my_io) {
@@ -980,10 +980,10 @@ ReturnStatus turbo_buffer_manager::WritePage(AioRequest& req, diskaio::DiskAioIn
 	bool success = DiskAioFactory::GetPtr()->AWrite(req, my_io);
 	if (!success) {
 		std::cerr << "Turbo_DB::WritePage, write page error" << std::endl;
-		return FAIL;
+		return ReturnStatus::FAIL;
 	}
 	ALWAYS_ASSERT (req.buf != NULL);
-	return OK;
+	return ReturnStatus::OK;
 }
 
 ReturnStatus turbo_buffer_manager::OpenCDB(const char* file_path, int version_id, EdgeType e_type, DynamicDBType d_type, bool bDirectIO, int flag) {
@@ -992,9 +992,9 @@ ReturnStatus turbo_buffer_manager::OpenCDB(const char* file_path, int version_id
     m_NumPages += (DiskAioFactory::GetPtr()->GetAioFileSize(file_ids[e_type][d_type][version_id]) + TBGPP_PAGE_SIZE - 1) / TBGPP_PAGE_SIZE;
 	if (file_ids[e_type][d_type][version_id] < 0) {
 		std::cerr << "[TurboDB] Failed to open the file : " << file_path << std::endl;
-		return FAIL;
+		return ReturnStatus::FAIL;
 	}
-	return OK;
+	return ReturnStatus::OK;
 }
 
 ReturnStatus turbo_buffer_manager::CloseCDB(bool rm, int version_id, EdgeType e_type, DynamicDBType d_type) {
@@ -1002,7 +1002,7 @@ ReturnStatus turbo_buffer_manager::CloseCDB(bool rm, int version_id, EdgeType e_
 		DiskAioFactory::GetPtr()->CloseAioFile(file_ids[e_type][d_type][version_id]);
         file_ids[e_type][d_type][version_id] = -1;
     }
-	return OK;
+	return ReturnStatus::OK;
 }
 
 void turbo_buffer_manager::GetPageBufferHitMissBytes(int64_t& hit, int64_t& miss) {

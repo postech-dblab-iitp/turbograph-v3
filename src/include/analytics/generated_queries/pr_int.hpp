@@ -1,7 +1,6 @@
 #include "analytics/Turbograph.hpp"
 
 class pr_int : public Turbograph {
-
   TG_NWSM<pr_int> engine;
   TG_DistributedVector<int32_t, PLUS> vec_pr_ov;
   TG_DistributedVector<int32_t, UNDEFINED> vec_pr_iv;
@@ -218,12 +217,3 @@ public:
   void synchronize_vectors() {}
 
 };
-
-int main(int argc, char **argv) {
-  pr_int tg_main;
-  fflush(stdout);
-  tg_main.inc_run(argc, argv);
-  return 0;
-}
-
-

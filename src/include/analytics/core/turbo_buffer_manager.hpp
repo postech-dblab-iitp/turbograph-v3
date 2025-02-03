@@ -3,10 +3,10 @@
 
 #include "analytics/core/turbo_clock_replacer.hpp"
 #include "analytics/core/turbo_callback.hpp"
-#include "analytics/datastructure/disk_aio_factory.hpp"
 #include "analytics/datastructure/TwoLevelBitMap.hpp"
 #include "analytics/util/timer.hpp"
 #include "analytics/util/scopedlock.hpp"
+#include "storage/cache/disk_aio/disk_aio_factory.hpp"
 
 #define ENTER_BUF_MGR_CRIT_SECTION
 
@@ -45,26 +45,26 @@ class turbo_buffer_manager {
 	ReturnStatus ReadPage(AioRequest& req, diskaio::DiskAioInterface* my_io=0);
  	ReturnStatus WritePage(AioRequest& req, diskaio::DiskAioInterface* my_io=0);
 
-	ReturnStatus PinPageCallback(PartitionID edge_partition_id, AioRequest& req, diskaio::DiskAioInterface** my_io);
-	ReturnStatus PinPageCallbackLikelyCached(PartitionID edge_partition_id, AioRequest& req, diskaio::DiskAioInterface** my_io);
-	ReturnStatus ReplacePageCallback (PartitionID partition_id, AioRequest& req, PageID new_pid, bool& replaced, int old_version=0, diskaio::DiskAioInterface** my_io=0);
+	ReturnStatus PinPageCallback(PartID edge_partition_id, AioRequest& req, diskaio::DiskAioInterface** my_io);
+	ReturnStatus PinPageCallbackLikelyCached(PartID edge_partition_id, AioRequest& req, diskaio::DiskAioInterface** my_io);
+	ReturnStatus ReplacePageCallback (PartID partition_id, AioRequest& req, PageID new_pid, bool& replaced, int old_version=0, diskaio::DiskAioInterface** my_io=0);
 
 
-	ReturnStatus PrePinPage(PartitionID edge_partition_id, AioRequest& req);
-	ReturnStatus PrePinPageUnsafe(PartitionID edge_partition_id, AioRequest& req);
+	ReturnStatus PrePinPage(PartID edge_partition_id, AioRequest& req);
+	ReturnStatus PrePinPageUnsafe(PartID edge_partition_id, AioRequest& req);
 
 	ReturnStatus GetPagePtr_Unsafe(PageID pid, Page*& page);
 
-	ReturnStatus UnpinPageUnsafe(PartitionID partition_id, PageID pid );
-	ReturnStatus UnpinPageUnsafeBulk(PartitionID partition_id, PageID* pids, int num_pages);
-	ReturnStatus UnpinPage( PartitionID partition_id, PageID pid );
+	ReturnStatus UnpinPageUnsafe(PartID partition_id, PageID pid );
+	ReturnStatus UnpinPageUnsafeBulk(PartID partition_id, PageID* pids, int num_pages);
+	ReturnStatus UnpinPage( PartID partition_id, PageID pid );
 	ReturnStatus UnpinPages(BitMap<PageID>& bitmap);
 	ReturnStatus UnpinAllPages();
 	void FlushDirtyPages();
 	void ClearAllFrames();
 
 	FrameID FindFrameAndPinPageIfCached(PageID pid);
-	FrameID FindFrame( PartitionID partition_id, PageID pid );
+	FrameID FindFrame( PartID partition_id, PageID pid );
 	Turbo_Buffer_Frame& GetFrame(FrameID fid);
 
 	PageAndFrameID PickVictim();

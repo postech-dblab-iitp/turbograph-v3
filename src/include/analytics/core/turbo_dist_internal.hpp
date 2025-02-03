@@ -16,11 +16,11 @@
 
 #include "analytics/util/util.hpp"
 
-void stack_dump();
+// void stack_dump();
 
 namespace {
 // invoke set_terminate as part of global constant initialization
-const bool SET_TERMINATE = std::set_terminate(stack_dump);
+// const bool SET_TERMINATE = std::set_terminate(stack_dump);
 }  // namespace
 
 template <typename T>
@@ -64,8 +64,8 @@ enum VECTOR_READ_WRITE_MODE {
 };
 
 static const int NTimers = 32;
-extern PartitionID num_partitions__;
-extern PartitionID my_partition_id__;
+extern PartID num_partitions__;
+extern PartID my_partition_id__;
 
 template <typename T>
 class per_partition_elem {
@@ -305,21 +305,21 @@ class PartitionStatistics {
     static void replicate();
     static void close();
 
-    inline static node_t &per_machine_first_node_id(PartitionID pid)
+    inline static node_t &per_machine_first_node_id(PartID pid)
     {
         return per_machine_first_node_id_[pid];
     }
-    inline static node_t &per_machine_last_node_id(PartitionID pid)
+    inline static node_t &per_machine_last_node_id(PartID pid)
     {
         return per_machine_last_node_id_[pid];
     }
-    inline static node_t &per_partition_num_nodes(PartitionID pid)
+    inline static node_t &per_partition_num_nodes(PartID pid)
     {
         return per_partition_num_nodes_[pid];
     };
     static node_t max_internal_nodes();
-    static PartitionID &num_machines();
-    static PartitionID &my_machine_id();
+    static PartID &num_machines();
+    static PartID &my_machine_id();
     static node_t &my_num_internal_nodes();
     static node_t &my_first_node_id();
     static node_t &my_last_node_id();
@@ -337,7 +337,7 @@ class PartitionStatistics {
         return Range<node_t>(my_first_internal_vid(), my_last_internal_vid());
     }
     static Range<node_t> my_chunkID_to_range(int64_t chunkID);
-    static Range<node_t> machine_id_and_chunk_idx_to_vid_range(PartitionID pid,
+    static Range<node_t> machine_id_and_chunk_idx_to_vid_range(PartID pid,
                                                                int64_t chunkID);
     static Range<node_t> per_edge_partition_vid_range(
         int64_t edge_partition_id);
@@ -410,13 +410,13 @@ class PartitionStatistics {
             return GetDstVidValue_(vid);
     }
     static node_t VidToDegreeOrder(node_t vid);
-    static node_t VidToDegreeOrder(node_t vid, PartitionID pid);
+    static node_t VidToDegreeOrder(node_t vid, PartID pid);
     static node_t DegreeOrderToVid(node_t vid);
-    static node_t DegreeOrderToVid(node_t vid, PartitionID pid);
+    static node_t DegreeOrderToVid(node_t vid, PartID pid);
 
    private:
-    static PartitionID &num_partitions_;
-    static PartitionID &my_partition_id_;
+    static PartID &num_partitions_;
+    static PartID &my_partition_id_;
 
     static node_t num_total_nodes_;
     static node_t max_num_nodes_per_vector_chunk_;

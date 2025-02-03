@@ -93,7 +93,7 @@ class Turbo_bin_mmapper {
 		if(file_descriptor == -1) {
 			perror("error while opening");
 			std::cout << "MMAP FILE OPEN ERROR : " << file_name << std::endl << std::flush;
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
 
 		file_size_ = lseek64(file_descriptor, 0, SEEK_END);
@@ -103,14 +103,14 @@ class Turbo_bin_mmapper {
 			pFileMap_ = (char *) mmap64(NULL, file_size_, mmap_prot, mmap_flag, file_descriptor, 0);
 			if(pFileMap_ == MAP_FAILED) {
 				std::cout << "MMAP FILE MAPPING FAILED WHEN OPENING : " << file_name <<" FILE SIZE :"<<file_size_<< ", ErrorCode=" << errno << std::endl << std::flush;
-				return FAIL;
+				return ReturnStatus::FAIL;
 			}
 		} else {
 			pFileMap_ = NULL;
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
 
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	ReturnStatus CreateFileAndMemoryMap(const char* file_name, std::size_t file_size) {
@@ -138,7 +138,7 @@ class Turbo_bin_mmapper {
 		if(file_descriptor == -1) {
 			perror("mmap open");
 			std::cout << "MMAP FILE OPEN ERROR : " << file_name << std::endl << std::flush;
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
 
 		file_size_ = file_size;
@@ -153,38 +153,37 @@ class Turbo_bin_mmapper {
 		pFileMap_ = (char *) mmap64(NULL, file_size_, mmap_prot, mmap_flag, file_descriptor, 0);
 		if(pFileMap_ == MAP_FAILED) {
 			std::cout << "MMAP FILE MAPPING FAILED : " << file_name << std::endl << std::flush;
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
 
-
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	ReturnStatus Read(std::size_t offset, std::size_t size_to_read, char*& pData) {
 		if (size_to_read >= 0 && size_to_read + offset <= file_size_) {
 			pData =  pFileMap_ + offset;
-			return OK;
+			return ReturnStatus::OK;
 		} else {
 			pData = NULL;
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	ReturnStatus ReadNext(std::size_t size_to_read, char*& pData) {
 		if (size_to_read >= 0 && size_to_read + bytes_read_ < file_size_) {
 			pData = pFileMap_ + bytes_read_;
 			bytes_read_ += size_to_read;
-			return OK;
+			return ReturnStatus::OK;
 		} else if (size_to_read + bytes_read_ == file_size_) {
 			pData = pFileMap_ + bytes_read_;
 			bytes_read_ += size_to_read;
-			return DONE;
+			return ReturnStatus::DONE;
 		} else {
 			pData = NULL;
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	char* data() {

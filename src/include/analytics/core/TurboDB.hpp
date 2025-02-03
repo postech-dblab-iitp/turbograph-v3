@@ -13,7 +13,6 @@
 
 #include "analytics/core/turbo_dist_internal.hpp"
 #include "analytics/core/turbo_buffer_manager.hpp"
-#include "analytics/io/Turbo_bin_io_handler.hpp"
 #include "analytics/io/MetaDataReader.hpp"
 #include "analytics/util/util.hpp"
 #include "analytics/datastructure/BitMap.hpp"
@@ -22,6 +21,7 @@
 #include "analytics/util/Aio_Helper.hpp"
 #include "analytics/datastructure/MemoryMappedArray.hpp"
 #include "analytics/util/ConfigurationProperties.hpp"
+#include "storage/cache/disk_aio/Turbo_bin_io_handler.hpp"
 
 #define PAGE_ID_MAX INT_MAX
 #define DIV 1048576
@@ -94,7 +94,7 @@ struct DBCatalog {
         success = success && properties.ReadPropertyLong(PROPERTY_KEY_R, r_value);
         success = success && properties.ReadPropertyInt(PROPERTY_KEY_LATEST_VERSION, latest_version);
 
-        return (success) ? OK : FAIL;
+        return (success) ? ReturnStatus::OK : ReturnStatus::FAIL;
     }
 };
 
@@ -114,7 +114,7 @@ struct DBStatistics {
     edge_t num_total_out_edges_;
     edge_t num_total_in_edges_;
 
-    PartitionID& my_partition_id_ = my_partition_id__;
+    PartID& my_partition_id_ = my_partition_id__;
 
     bool initialized = false;
 
@@ -147,7 +147,7 @@ struct DBStatistics {
 
     void set_accumulated_num_pages(EdgeType e_type) {
         accumulated_num_pages_in_edge_grids_[e_type][0] = 0;
-        for (PartitionID i = 1; i <= PartitionStatistics::num_target_vector_chunks() * PartitionStatistics::num_subchunks_per_edge_chunk() ; i++) {
+        for (PartID i = 1; i <= PartitionStatistics::num_target_vector_chunks() * PartitionStatistics::num_subchunks_per_edge_chunk() ; i++) {
             accumulated_num_pages_in_edge_grids_[e_type][i] = my_num_pages_in_edge_grids_[e_type][i - 1] + accumulated_num_pages_in_edge_grids_[e_type][i - 1];
         }
     }
@@ -268,7 +268,7 @@ class TurboDB {
 	// File I/O
 	ReturnStatus OpenFile(const char* file_name, int version_id, EdgeType e_type, DynamicDBType d_type);	// read-only
 	ReturnStatus CloseFile(bool rm, int version_id, EdgeType e_type, DynamicDBType d_type=INSERT);
-	//ReturnStatus ReadPage(PartitionID partition_id, PageID pageno, Page* pageptr, void *pCallbackParam = NULL);
+	//ReturnStatus ReadPage(PartID partition_id, PageID pageno, Page* pageptr, void *pCallbackParam = NULL);
 	//ReturnStatus ReadPage(PageID pageno, Page* pageptr, void *pCallbackParam = NULL);
 
 	// BufMgr
@@ -289,11 +289,11 @@ class TurboDB {
     std::vector<std::vector<VidRangePerPage>> vid_range_per_page_;
     std::vector<std::vector<VidRangePerPage>> vid_range_per_page_full_list_;
 
-	PageID GetFirstPageId (PartitionID i, PartitionID j);
-	PageID GetLastPageId (PartitionID i, PartitionID j);
+	PageID GetFirstPageId (PartID i, PartID j);
+	PageID GetLastPageId (PartID i, PartID j);
 
-	PageID GetFirstPageId (PartitionID edge_partition_id, int version_id = 0, DynamicDBType d_type=INSERT);
-	PageID GetLastPageId (PartitionID edge_partition_id, int version_id = 0, DynamicDBType d_type=INSERT, bool use_fulllist_db=false);
+	PageID GetFirstPageId (PartID edge_partition_id, int version_id = 0, DynamicDBType d_type=INSERT);
+	PageID GetLastPageId (PartID edge_partition_id, int version_id = 0, DynamicDBType d_type=INSERT, bool use_fulllist_db=false);
 	PageID GetFirstPageIdFullList (int version_id = 0, DynamicDBType d_type=INSERT);
 	PageID GetLastPageIdFullList (int version_id = 0, DynamicDBType d_type=INSERT);
     PageID ConvertToDirectTablePageID (int version_id, PageID pid, EdgeType e_type, DynamicDBType d_type=INSERT);

@@ -26,8 +26,8 @@
 
 #include <system_error>
 
-#include "analytics/io/disk_aio/thread.h"
-#include "analytics/io/disk_aio/common.h"
+#include "storage/cache/disk_aio/thread.h"
+#include "storage/cache/disk_aio/common.h"
 
 #ifdef USE_HWLOC
 

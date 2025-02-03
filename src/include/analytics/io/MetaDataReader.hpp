@@ -29,7 +29,7 @@ class MetaDataReader {
 		reader1_.resize(meta_lists.size());
 		for (std::size_t idx = 0; idx < reader1_.size(); idx++) {
 			st = reader1_[idx].Open(meta_lists[idx].c_str());
-			ALWAYS_ASSERT(st == OK);
+			ALWAYS_ASSERT(st == ReturnStatus::OK);
 		}
 		std::string buffer;
 		std::string token_buffer;
@@ -37,7 +37,7 @@ class MetaDataReader {
 		last_node_id_ = 0;
 		for (std::size_t idx = 0; idx < reader1_.size(); idx++) {
 			st = reader1_[idx].getNext(buffer);
-			ALWAYS_ASSERT(st == OK);
+			ALWAYS_ASSERT(st == ReturnStatus::OK);
 			std::istringstream iss(buffer);
 			node_t tempfirst, templast;
 			iss >> tempfirst >> templast;

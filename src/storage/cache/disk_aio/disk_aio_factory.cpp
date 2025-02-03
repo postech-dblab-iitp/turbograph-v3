@@ -92,7 +92,7 @@ int DiskAioFactory::ARead(AioRequest& req, diskaio::DiskAioInterface* my_io) {
 		if (backoff <= 256 * 1024) backoff *= 2;
 	}
 
-	my_io->Request(req.user_info.file_id, req.start_pos, req.io_size, req.buf, DISK_AIO_READ, req.user_info);
+	my_io->Request(req.user_info.db_info.file_id, req.start_pos, req.io_size, req.buf, DISK_AIO_READ, req.user_info);
 	return true;
 }
 
@@ -109,7 +109,7 @@ int DiskAioFactory::AWrite(AioRequest& req, diskaio::DiskAioInterface* my_io) {
 		if (backoff <= 256 * 1024) backoff *= 2;
 	}
 
-	my_io->Request(req.user_info.file_id, req.start_pos, req.io_size, req.buf, DISK_AIO_WRITE, req.user_info);
+	my_io->Request(req.user_info.db_info.file_id, req.start_pos, req.io_size, req.buf, DISK_AIO_WRITE, req.user_info);
 	return true;
 }
 
@@ -118,7 +118,7 @@ int DiskAioFactory::AAppend(AioRequest& req, diskaio::DiskAioInterface* my_io) {
 		my_io = per_thread_aio_interface.get(omp_get_thread_num());
 	assert(my_io != NULL);
 
-	my_io->Request(req.user_info.file_id, req.start_pos, req.io_size, req.buf, DISK_AIO_APPEND, req.user_info);
+	my_io->Request(req.user_info.db_info.file_id, req.start_pos, req.io_size, req.buf, DISK_AIO_APPEND, req.user_info);
 
 	int backoff = 128;
 	while (my_io->GetNumOngoing() >= PER_THREAD_MAXIMUM_ONGOING_DISK_AIO) {
@@ -134,9 +134,10 @@ int DiskAioFactory::WaitForAllResponses(diskaio::DiskAioInterface** my_io) {
 	assert(my_io != NULL);
 
     int num_total_to_complete = 0;
-	std::list<IOMode> io_modes = { WRITE_IO, READ_IO };
+	// std::list<IOModes> io_modes = { WRITE_IO, READ_IO };
     do {
-        for (auto& io_mode: io_modes) {
+		// 0: READ_IO, 1: WRITE_IO
+        for (auto io_mode = 1; io_mode >= 0; io_mode--) {
             int num_to_complete = my_io[io_mode]->GetNumOngoing();
             int backoff = 1;
             while (my_io[io_mode]->GetNumOngoing() > 0) {
@@ -146,10 +147,10 @@ int DiskAioFactory::WaitForAllResponses(diskaio::DiskAioInterface** my_io) {
             }
             num_total_to_complete += num_to_complete;
         }
-    } while (my_io[READ_IO]->GetNumOngoing() > 0 || my_io[WRITE_IO]->GetNumOngoing() > 0);
+    } while (my_io[0]->GetNumOngoing() > 0 || my_io[1]->GetNumOngoing() > 0);
 
-    assert (my_io[READ_IO]->GetNumOngoing() == 0);
-    assert (my_io[WRITE_IO]->GetNumOngoing() == 0);
+    assert (my_io[0]->GetNumOngoing() == 0);
+    assert (my_io[1]->GetNumOngoing() == 0);
 	return num_total_to_complete;
 }
 
@@ -157,7 +158,8 @@ int DiskAioFactory::GetNumOngoing(diskaio::DiskAioInterface** my_io) {
 	int tid = omp_get_thread_num();
 	assert (tid >= 0 && tid < DiskAioParameters::NUM_THREADS);
 	assert (my_io != NULL);
-    int num_ongoing = my_io[READ_IO]->GetNumOngoing() + my_io[WRITE_IO]->GetNumOngoing();
+	// 0: READ_IO, 1: WRITE_IO
+    int num_ongoing = my_io[0]->GetNumOngoing() + my_io[1]->GetNumOngoing();
 	return num_ongoing;
 }
 

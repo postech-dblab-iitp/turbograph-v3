@@ -25,6 +25,7 @@
 
 #include <icecream.hpp>
 
+#include "analytics/Turbograph.hpp"
 #include "common/graph_csv_reader.hpp"
 #include "common/graph_simdcsv_parser.hpp"
 #include "common/error_handler.hpp"
@@ -97,6 +98,7 @@
 
 #include "catalog/catalog_wrapper.hpp"
 #include "optimizer/orca/gpopt/tbgppdbwrappers.hpp"
+// #include "analytics/AnalyticsQueryDriver.hpp"
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -592,6 +594,9 @@ int main(int argc, char** argv) {
 				hist_gen.CreateHistogram(client);
 			} else if (query_str.compare("flush_file_meta") == 0) {
 				ChunkCacheManager::ccm->FlushMetaInfo(DiskAioParameters::WORKSPACE.c_str());
+			} else if (query_str.compare(":analytics") == 0) {
+				// AnalyticsQueryDriver analytics_driver;
+				// analytics_driver.Run();
 			} else {
 				if (query_str != prev_query_str) {
 					add_history(query_str.c_str());

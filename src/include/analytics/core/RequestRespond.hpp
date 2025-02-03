@@ -43,13 +43,13 @@
 #include "analytics/core/TG_DistributedVectorBase.hpp"
 #include "analytics/core/turbo_callback.hpp"
 #include "analytics/core/turbo_tcp.hpp"
-#include "analytics/datastructure/disk_aio_factory.hpp"
 #include "analytics/datastructure/TwoLevelBitMap.hpp"
 #include "analytics/datastructure/FixedSizeVector.hpp"
 #include "analytics/util/Aio_Helper.hpp"
 #include "analytics/util/TG_NWSM_Utility.hpp"
 #include "analytics/util/VariableSizedMemoryAllocatorWithCircularBuffer.hpp"
 #include "analytics/util/atomic_util.hpp"
+#include "storage/cache/disk_aio/disk_aio_factory.hpp"
 
 #define USE_DEGREE_THRESHOLD 1
 

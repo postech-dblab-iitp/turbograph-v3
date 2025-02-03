@@ -56,7 +56,7 @@ class turbo_tcp {
 				} else {
 				}
 			}
-			return OK;
+			return ReturnStatus::OK;
 		}
 		
 		void set_port() {
@@ -93,7 +93,7 @@ class turbo_tcp {
                 if(server_socket[i] == -1) {
                     fprintf(stdout, "[turbo_tcp] Machine %lld failed to open server socket\n", PartitionStatistics::my_machine_id());
                     perror("");
-                    return FAIL;
+                    return ReturnStatus::FAIL;
                 }
                 setsockopt(server_socket[i], SOL_SOCKET, SO_REUSEADDR, &temp_buf, sizeof(temp_buf));
                 setsockopt(server_socket[i], SOL_SOCKET, SO_KEEPALIVE, &temp_buf, rn);
@@ -115,7 +115,7 @@ class turbo_tcp {
 
 			// XXX
             client_socket_for_server_lock = new atom[PartitionStatistics::num_machines()];
-			return OK;
+			return ReturnStatus::OK;
 		}
 
 		ReturnStatus open_clientsocket_all(bool set_timeo_) {
@@ -136,7 +136,7 @@ class turbo_tcp {
 				if(client_socket[i] == -1) {
 					fprintf(stdout, "[turbo_tcp] Machine %lld failed to open client socket\n", PartitionStatistics::my_machine_id());
                     perror("");
-					return FAIL;
+					return ReturnStatus::FAIL;
 				}
 				setsockopt(client_socket[i], SOL_SOCKET, SO_KEEPALIVE, &flag, rn);
 				setsockopt(client_socket[i], SOL_SOCKET, SO_LINGER, &ling, sizeof(ling));
@@ -153,7 +153,7 @@ class turbo_tcp {
 				server_addr[i].sin_port = htons(base_portnum + PartitionStatistics::my_machine_id());
 				server_addr[i].sin_addr.s_addr = inet_addr(hostname_list[i]);
 			}
-			return OK;
+			return ReturnStatus::OK;
 		}
 
 		ReturnStatus close_socket() {
@@ -182,7 +182,7 @@ class turbo_tcp {
                 delete[] hostname_list;
                 hostname_list = NULL;
             }
-			return OK;
+			return ReturnStatus::OK;
 		}
 
 		ReturnStatus bind_socket() {
@@ -192,10 +192,10 @@ class turbo_tcp {
                     close(server_socket[i]);
 					fprintf(stdout, "[turbo_tcp] Machine %lld failed to bind server socket\n", PartitionStatistics::my_machine_id());
                     perror("");
-                    return FAIL;
+                    return ReturnStatus::FAIL;
                 }
             }
-            return OK;
+            return ReturnStatus::OK;
 		}
 
 		ReturnStatus listen_socket() {
@@ -203,10 +203,10 @@ class turbo_tcp {
             for(int i = 0; i < PartitionStatistics::num_machines(); i++) {
                 if(listen(server_socket[i], 24) == -1) { //XXX control listen queue size
                     perror("[turbo_tcp] Failed to listen");
-                    return FAIL;
+                    return ReturnStatus::FAIL;
                 }
             }
-			return OK;
+			return ReturnStatus::OK;
 		}
 		
 		ReturnStatus accept_socket() {
@@ -222,7 +222,7 @@ class turbo_tcp {
             for(int i = 0; i < PartitionStatistics::num_machines(); i++) {
                 while(listen(server_socket[i], 24) == -1) { //XXX control listen queue size
                     //fprintf(stdout, "[turbo tcp][type:%d,lv:%d] Failed to listen\n");
-                    //return FAIL;
+                    //return ReturnStatus::FAIL;
                 }
                 client_addr_size = sizeof(client_addr);
                 setsockopt(client_socket_for_server[i], SOL_SOCKET, SO_REUSEADDR, &temp_buf, sizeof(temp_buf));
@@ -238,10 +238,10 @@ class turbo_tcp {
                 client_socket_for_server[i] = accept(server_socket[i], (struct sockaddr*)&client_addr, &client_addr_size);
                 if(client_socket_for_server[i] == -1) {
                     perror("[turbo_tcp] Failed to accept");
-                    return FAIL;
+                    return ReturnStatus::FAIL;
                 }
             }
-			return OK;
+			return ReturnStatus::OK;
 		}
 		
         ReturnStatus accept_socket(int partition_id) {
@@ -256,7 +256,7 @@ class turbo_tcp {
 			ling.l_linger = 0;
             while(listen(server_socket[partition_id], 24) == -1) { //XXX control listen queue size
                 //fprintf(stdout, "[turbo tcp][type:%d,lv:%d] Failed to listen\n");
-                //return FAIL;
+                //return ReturnStatus::FAIL;
             }
             client_addr_size = sizeof(client_addr);
             setsockopt(client_socket_for_server[partition_id], SOL_SOCKET, SO_REUSEADDR, &temp_buf, sizeof(temp_buf));
@@ -273,17 +273,17 @@ class turbo_tcp {
             if(client_socket_for_server[partition_id] == -1) {
                 fprintf(stdout, "[%lld] Failed to accept %d\n", PartitionStatistics::my_machine_id(), partition_id);
                 perror("");
-                return FAIL;
+                return ReturnStatus::FAIL;
             }
             //fprintf(stdout, "[%lld] Accept success %lld\n", PartitionStatistics::my_machine_id(), partition_id);
-			return OK;
+			return ReturnStatus::OK;
 		}
 
 		ReturnStatus connect_socket(int partition_id) {
 			ALWAYS_ASSERT(tcp_mode == CLIENT);
             while(connect(client_socket[partition_id], (struct sockaddr*)&server_addr[partition_id], sizeof(struct sockaddr)) == -1) {}
 	//			fprintf(stdout, "[%lld] Connect success\n", PartitionStatistics::my_machine_id());
-			return OK;
+			return ReturnStatus::OK;
 		}
         
         void disconnect_socket(int partition_id) {
@@ -733,7 +733,7 @@ Retry:
 			client_socket[socket_id] = socket(PF_INET, SOCK_STREAM, 0);
 			if(client_socket[socket_id] == -1) {
 				fprintf(stdout, "[turbo_tcp] Machine %lld failed to open client socket\n", PartitionStatistics::my_machine_id());
-				return FAIL;
+				return ReturnStatus::FAIL;
 			}
 			setsockopt(client_socket[socket_id], SOL_SOCKET, SO_KEEPALIVE, &flag, rn);
 			setsockopt(client_socket[socket_id], SOL_SOCKET, SO_LINGER, &ling, sizeof(ling));
@@ -748,7 +748,7 @@ Retry:
 				usleep (16*1024);
 			}
 			fprintf(stdout, "[turbo_tcp] Machine %lld reconnect success Machine %lld\n", PartitionStatistics::my_machine_id(), partition_id);
-			return OK;
+			return ReturnStatus::OK;
 		}
 		
 		ReturnStatus reaccept_socket(int partition_id) {
@@ -783,10 +783,10 @@ Retry:
 			if(client_socket_for_server[partition_id] == -1) {
 				fprintf(stdout, "[turbo_tcp] Machine %lld failed to reaccept Machine %lld\n", PartitionStatistics::my_machine_id(), partition_id);
                 perror("[turbo_tcp] Failed to accept");
-				return FAIL;
+				return ReturnStatus::FAIL;
 			}
 			fprintf(stdout, "[turbo_tcp] Machine %lld reaccept success Machine %lld, IP Address = %s\n", PartitionStatistics::my_machine_id(), partition_id, inet_ntoa(temp_client_addr->sin_addr));
-			return OK;
+			return ReturnStatus::OK;
 		}
 
         int64_t error_handling_mpi_send(const char* buf, int64_t size_to_send, int partition_id) {

@@ -50,24 +50,24 @@ class TextFormatSequentialReader {
 	ReturnStatus rewind() {
 		file_.clear();
 		file_.seekg(0);
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	ReturnStatus Open(const char* file_name) {
 		file_.open(file_name);
 		if (!file_.good()) {
 			fprintf(stdout, "[TextReader] Failed to open %s\n", file_name);
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
 		file_name_ = std::string(file_name);
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	ReturnStatus getNext(std::string& line) {
 		if (!std::getline(file_, line, '\n')) {
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 };
@@ -81,7 +81,7 @@ class TextFormatSequentialWriter {
 
 	TextFormatSequentialWriter(const char* file_name) {
 		ReturnStatus st = Open(file_name);
-		if (st != OK) {
+		if (st != ReturnStatus::OK) {
 			std::cout  << "[TextFormatSequentialWriter] failed to open the file "<<file_name << std::endl;
 		}
 	}
@@ -93,14 +93,14 @@ class TextFormatSequentialWriter {
 	ReturnStatus Open(const char* file_name) {
 		file_.open(file_name);
 		if (!file_.good()) {
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	ReturnStatus pushNext(std::string& str) {
 		file_ << str;
-		return OK;
+		return ReturnStatus::OK;
 	}
 };
 
@@ -134,15 +134,15 @@ class BinaryFormatSequentialReader {
 
 	ReturnStatus rewind() {
 		current_idx_ = -1;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	ReturnStatus getNext(entry_t& item) {
 		if (sizeof(entry_t) * (current_idx_ + 1) >= file_size_) {
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
 		item = ptr_[++current_idx_];
-		return OK;
+		return ReturnStatus::OK;
 	}
 	int64_t file_size() {
 		return reader_.file_size();
@@ -202,15 +202,15 @@ class ParallelBinaryFormatSequentialReader {
 			current_idx_list_[i] = first_idx_list_[i];
 			ALWAYS_ASSERT(current_idx_list_[i] <= file_size_);
 		}*/
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	ReturnStatus getNext(entry_t* item) {
 		//	ALWAYS_ASSERT(thread_num <= total_thread_ - 1);
 //		int64_t partition_end = first_idx_list_[thread_num + 1];
 
-//		if(current_idx_list_[thread_num] == partition_end) return FAIL;
-		if (sizeof(entry_t) * (current_idx_) >= file_size_) return FAIL;
+//		if(current_idx_list_[thread_num] == partition_end) return ReturnStatus::FAIL;
+		if (sizeof(entry_t) * (current_idx_) >= file_size_) return ReturnStatus::FAIL;
 		for(auto i = 0; i < total_thread_; i++) {
 			if (sizeof(entry_t) * (current_idx_ + i) < file_size_)
 				item[i] = ptr_[current_idx_ + i];
@@ -219,7 +219,7 @@ class ParallelBinaryFormatSequentialReader {
 		}
 		current_idx_ += total_thread_;
 //		item = ptr_[current_idx_list_[thread_num]++];
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	int64_t file_size() {
@@ -247,7 +247,7 @@ class TextAdjListReader {
 
 
         ReturnStatus getNext(EdgePairEntry<entry_t>& item) {
-            return OK;
+            return ReturnStatus::OK;
         }
     private:
         std::vector<TextFormatSequentialReader> readers_;

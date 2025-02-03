@@ -27,7 +27,7 @@
 
 #include "analytics/datastructure/page.hpp"
 #include "analytics/util/util.hpp"
-#include "analytics/io/Turbo_bin_io_handler.hpp"
+#include "storage/cache/disk_aio/Turbo_bin_io_handler.hpp"
 
 #define END_OF_file	-1
 #define FILE_CHUNK_SIZE (128 * 1024 * 1024)
@@ -84,7 +84,7 @@ class Splittable_Turbo_bin_io_handler {
 			}
 		}
 
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 
@@ -117,7 +117,7 @@ class Splittable_Turbo_bin_io_handler {
 			}
 		}
 
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	ReturnStatus Read(std::size_t offset_to_read, std::size_t size_to_read, char* data, bool rm = false) {
@@ -150,7 +150,7 @@ class Splittable_Turbo_bin_io_handler {
 			tmp_size_to_read -= size_to_read_chunk;
 		}
 
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	std::size_t Read_upto(std::size_t offset_to_read, std::size_t size_to_read, char* data, bool rm = false) {
@@ -225,7 +225,7 @@ class Splittable_Turbo_bin_io_handler {
 			tmp_size_to_write -= size_to_write_chunk;
 		}
 
-		return OK;
+		return ReturnStatus::OK;
 	}
 	//	static ReturnStatus callWrite(Turbo_bin_io_handler* object,size_t offset_to_write, size_t size_to_write, char* data) {
 	//	object->Write(offset_to_write, size_to_write, data);

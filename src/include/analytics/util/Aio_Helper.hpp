@@ -24,7 +24,7 @@
 #include "analytics/core/Global.hpp"
 #include "analytics/core/TypeDef.hpp"
 #include "analytics/datastructure/concurrentqueue/concurrentqueue.h"
-#include "analytics/io/disk_aio/thread.h"
+#include "storage/cache/disk_aio/thread.h"
 #include "analytics/util/ThreadPool.hpp"
 
 class Aio_Helper {

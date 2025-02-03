@@ -10,8 +10,8 @@
  * from being paged to the swap area. 
  */
 
-#include "analytics/io/Turbo_bin_mmapper.hpp"
 #include "analytics/core/TypeDef.hpp"
+#include "analytics/io/Turbo_bin_mmapper.hpp"
 
 template <typename T>
 class MemoryMappedArray {
@@ -44,7 +44,7 @@ class MemoryMappedArray {
 		ReturnStatus st;
 		st = bin_reader_.OpenFileAndMemoryMap(file_name, write_enabled);
 		is_mlocked_ = false;
-		if (st != OK) {
+		if (st != ReturnStatus::OK) {
 			fprintf(stderr, "[MemoryMappedArray] Open (%s) failed\n", file_name);
 			return st;
 		}
@@ -59,7 +59,7 @@ class MemoryMappedArray {
 		ReturnStatus st;
 		st = bin_reader_.CreateFileAndMemoryMap(file_name, sizeof(T) * num_entries);
 		is_mlocked_ = false;
-        if (st != OK) {
+        if (st != ReturnStatus::OK) {
             perror("[MemoryMappedArray] CreateFileAndMemoryMap failed");
             LOG_ASSERT(false);
         }

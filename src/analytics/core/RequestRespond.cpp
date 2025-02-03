@@ -742,7 +742,7 @@ void RequestRespond::FindPageIdsToReadFrom(Range<int> version_range, Range<int64
                 //CurPid[dbtype][version_id].resize(PartitionStatistics::my_total_num_subchunks(), -1);
                 ALWAYS_ASSERT(CurPid[dbtype][version_id].size() == PartitionStatistics::my_total_num_subchunks());
                 if (!TurboDB::GetTurboDB(e_type)->is_version_exist((DynamicDBType) dbtype, version_id)) continue;
-                for (PartitionID i = dst_edge_partition_range.GetBegin(); i <= dst_edge_partition_range.GetEnd(); i++) {
+                for (PartID i = dst_edge_partition_range.GetBegin(); i <= dst_edge_partition_range.GetEnd(); i++) {
                     VidRangePerPage& vidrangeperpage = TurboDB::GetTurboDB(e_type)->GetVidRangePerPage(version_id, (DynamicDBType)dbtype);
                     if (CurPid[dbtype][version_id][i] == -1 && version_id == 0) {
                         CurPid[dbtype][version_id][i] = TurboDB::GetTurboDB(e_type)->GetFirstPageByVidRange(i, ProcessedVertices, version_id, e_type, (DynamicDBType)dbtype, false);
@@ -764,7 +764,7 @@ void RequestRespond::FindPageIdsToReadFrom(Range<int> version_range, Range<int64
         for (int dbtype = begin_dbtype; dbtype < end_dbtype; dbtype++) {
             for (int64_t version_id = version_range.GetBegin(); version_id <= version_range.GetEnd(); version_id++) {
                 if (!TurboDB::GetTurboDB(e_type)->is_version_exist((DynamicDBType) dbtype, version_id)) continue;
-                for (PartitionID i = dst_edge_partition_range.GetBegin(); i <= dst_edge_partition_range.GetEnd(); i++) {
+                for (PartID i = dst_edge_partition_range.GetBegin(); i <= dst_edge_partition_range.GetEnd(); i++) {
                     VidRangePerPage& vidrangeperpage = TurboDB::GetTurboDB(e_type)->GetVidRangePerPage(version_id, (DynamicDBType)dbtype);
                     if (CurPid[dbtype][version_id][i] == -1 && version_id == 0) {
                         timer.start_timer(1);

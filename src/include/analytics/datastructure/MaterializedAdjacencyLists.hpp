@@ -6,13 +6,13 @@
 #include "analytics/core/TypeDef.hpp"
 #include "analytics/core/Global.hpp"
 #include "analytics/datastructure/page.hpp"
-#include "analytics/datastructure/disk_aio_factory.hpp"
 #include "analytics/util/atom.hpp"
 #include "analytics/util/timer.hpp"
 #include "analytics/util/kxsort.hpp"
 #include "analytics/util/BlockMemoryStackAllocator.hpp"
 #include "analytics/util/MemoryAllocator.hpp"
 #include "analytics/util/TG_NWSM_Utility.hpp"
+#include "storage/cache/disk_aio/disk_aio_factory.hpp"
 
 struct AdjacencyListMemoryPointer {
 	MaterializedAdjacencyLists* ptr;
@@ -562,7 +562,7 @@ class MaterializedAdjacencyLists {
 
 	ReturnStatus GetNextAdjList (TG_AdjacencyListIterator& iter) {
 		current_slot_idx_++;
-		if (current_slot_idx_ == vpage_.NumEntry()) return DONE;
+		if (current_slot_idx_ == vpage_.NumEntry()) return ReturnStatus::DONE;
 		if (current_slot_idx_ == 0) {
 			iter.Init(GetSlot(current_slot_idx_)->src_vid, (node_t*) Data(), GetSlot(current_slot_idx_)->end_offset);
 		} else {
@@ -570,7 +570,7 @@ class MaterializedAdjacencyLists {
 			int64_t cur_offset = GetSlot(current_slot_idx_)->end_offset;
 			iter.Init(GetSlot(current_slot_idx_)->src_vid, (node_t*) Data(), cur_offset - past_offset);
 		}
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	node_t& GetNumAdjacencyLists() {

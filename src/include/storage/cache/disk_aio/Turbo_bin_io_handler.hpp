@@ -22,13 +22,14 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/mman.h>
 #include <unistd.h>
 #include <algorithm>
 #include <iterator>
 #include <streambuf>
 
-#include "util.hpp"
 #include "storage/cache/common.h"
+#include "common/enums/return_status.hpp"
 
 class Turbo_bin_io_handler {
    public:
@@ -60,7 +61,7 @@ class Turbo_bin_io_handler {
             close(file_descriptor);
             file_descriptor = -1;
         }
-        if (rm && check_file_exists(file_path)) {
+        if (rm && check_file_existence(file_path)) {
             assert(remove(file_path.c_str()) == 0);
         }
     }
@@ -106,7 +107,7 @@ class Turbo_bin_io_handler {
         file_size_ = f;
         assert(f != -1);
         file_path = std::string(file_name);
-        return OK;
+        return ReturnStatus::OK;
     }
 
     ReturnStatus Append(std::int64_t size_to_append, char *data)
@@ -150,7 +151,7 @@ class Turbo_bin_io_handler {
             data = &data[tmp];
         }
         assert(tmp_size_to_read == size_read);
-        return OK;
+        return ReturnStatus::OK;
     }
 
     ReturnStatus Write(int64_t offset_to_write, int64_t size_to_write,
@@ -172,7 +173,7 @@ class Turbo_bin_io_handler {
             data = &data[tmp];
         }
         assert(tmp_size_to_write == size_written);
-        return OK;
+        return ReturnStatus::OK;
     }
 
     char *CreateMmap(bool write_enabled)

@@ -93,7 +93,7 @@ void ChunkCacheManager::InitializeFileHandlersByIteratingDirectories(const char 
             D_ASSERT(file_handlers.find(chunk_id) == file_handlers.end());
             file_handlers[chunk_id] = new Turbo_bin_aio_handler();
             ReturnStatus rs = file_handlers[chunk_id]->OpenFile(chunk_entry_path.c_str(), false, true, false, true);
-            D_ASSERT(rs == NOERROR);
+            D_ASSERT(rs == ReturnStatus::OK);
 
             // Read First Block & SetRequestedSize
             char *first_block;
@@ -134,7 +134,7 @@ void ChunkCacheManager::InitializeFileHandlersUsingMetaInfo(const char *path)
     D_ASSERT(file_handlers.find(chunk_id) == file_handlers.end());
     file_handlers[chunk_id] = new Turbo_bin_aio_handler();
     ReturnStatus rs = file_handlers[chunk_id]->OpenFile(chunk_path.c_str(), false, true, false, true);
-    D_ASSERT(rs == NOERROR);
+    D_ASSERT(rs == ReturnStatus::OK);
     file_handlers[chunk_id]->SetRequestedSize(requested_size);
   }
 
@@ -213,13 +213,13 @@ ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, u
       MemAlign(ptr, segment_size, required_memory_size, file_handler);
       *size = segment_size - sizeof(size_t);
     }
-    return NOERROR;
+    return ReturnStatus::OK;
   }
   // Get() success. Align memory & adjust size
   MemAlign(ptr, segment_size, required_memory_size, file_handler);
   *size = segment_size - sizeof(size_t);
   
-  return NOERROR;
+  return ReturnStatus::OK;
 }
 
 ReturnStatus ChunkCacheManager::UnPinSegment(ChunkID cid) {
@@ -231,7 +231,7 @@ ReturnStatus ChunkCacheManager::UnPinSegment(ChunkID cid) {
 
   // Unpin Segment using Lightning Release()
   // client->Release(cid);
-  return NOERROR;
+  return ReturnStatus::OK;
 }
 
 ReturnStatus ChunkCacheManager::SetDirty(ChunkID cid) {
@@ -246,7 +246,7 @@ ReturnStatus ChunkCacheManager::SetDirty(ChunkID cid) {
     // TODO: exception handling
     exit(-1);
   }
-  return NOERROR;
+  return ReturnStatus::OK;
 }
 
 ReturnStatus ChunkCacheManager::CreateSegment(ChunkID cid, std::string file_path, size_t alloc_size, bool can_destroy) {
@@ -278,12 +278,12 @@ ReturnStatus ChunkCacheManager::DestroySegment(ChunkID cid) {
   file_handlers[cid]->Close();
   file_handlers[cid] = nullptr;
   //AdjustMemoryUsage(-GetSegmentSize(cid)); // need type casting
-  return NOERROR;
+  return ReturnStatus::OK;
 }
 
 ReturnStatus ChunkCacheManager::FinalizeIO(ChunkID cid, bool read, bool write) {
   file_handlers[cid]->WaitForMyIoRequests(read, write);
-  return NOERROR;
+  return ReturnStatus::OK;
 }
 
 ReturnStatus ChunkCacheManager::FlushDirtySegmentsAndDeleteFromcache(bool destroy_segment) {
@@ -312,12 +312,12 @@ ReturnStatus ChunkCacheManager::FlushDirtySegmentsAndDeleteFromcache(bool destro
       DestroySegment(file_handler.first);
     }
   }
-  return NOERROR;
+  return ReturnStatus::OK;
 }
 
 ReturnStatus ChunkCacheManager::GetRemainingMemoryUsage(size_t &remaining_memory_usage) {
   remaining_memory_usage = client->GetRemainingMemory();
-  return NOERROR;
+  return ReturnStatus::OK;
 }
 
 int ChunkCacheManager::GetRefCount(ChunkID cid) {
@@ -389,7 +389,7 @@ ReturnStatus ChunkCacheManager::CreateNewFile(ChunkID cid, std::string file_path
   D_ASSERT(file_handlers.find(cid) == file_handlers.end());
   file_handlers[cid] = new Turbo_bin_aio_handler();
   ReturnStatus rs = file_handlers[cid]->OpenFile((file_path + std::to_string(cid)).c_str(), true, true, true, true);
-  D_ASSERT(rs == NOERROR);
+  D_ASSERT(rs == ReturnStatus::OK);
   
   // Compute aligned file size
   int64_t alloc_file_size = ((alloc_size + sizeof(size_t) - 1 + 512) / 512) * 512;

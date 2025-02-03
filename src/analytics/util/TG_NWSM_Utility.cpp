@@ -248,7 +248,7 @@ ReturnStatus TG_AdjacencyListIterator::GetNext(node_t& neighbor) {
 	ALWAYS_ASSERT (mBeginPtr != NULL || (mBeginPtr == NULL && mNumEntries == 0));
 	if(mCurrentOffset+1  >= (int)mNumEntries) {
 		mBeginPtr = NULL;
-		return DONE;
+		return ReturnStatus::DONE;
 	}
 	mCurrentOffset++;
 
@@ -257,12 +257,12 @@ ReturnStatus TG_AdjacencyListIterator::GetNext(node_t& neighbor) {
 	neighbor=mBeginPtr[mCurrentOffset];
 
 	ALWAYS_ASSERT(neighbor != -1);
-	return OK;
+	return ReturnStatus::OK;
 }
 
 ReturnStatus TG_AdjacencyListIterator::InitCursor(node_t start_dst_vid) {
 	if(mNumEntries == 0) {
-		return DONE;
+		return ReturnStatus::DONE;
 	}
 	//binary search
 	node_t* dst_pos = (node_t*)std::lower_bound(mBeginPtr, mBeginPtr + mNumEntries, start_dst_vid);
@@ -274,14 +274,14 @@ ReturnStatus TG_AdjacencyListIterator::InitCursor(node_t start_dst_vid) {
 		if(mStartOffset >= mNumEntries)
 			mStartOffset = 0;
 		mCurrentOffset = -1;
-		return FAIL;
+		return ReturnStatus::FAIL;
 	}
 
-	return OK;
+	return ReturnStatus::OK;
 }
 ReturnStatus TG_AdjacencyListIterator::MoveCursor(node_t dst_vid) {
 	if (mNumEntries == 0) {
-		return DONE;
+		return ReturnStatus::DONE;
 	}
 
 	//binary search
@@ -291,16 +291,16 @@ ReturnStatus TG_AdjacencyListIterator::MoveCursor(node_t dst_vid) {
 		mCurrentOffset -= 1;
 	} else {
 		mCurrentOffset = -1;
-		return FAIL;
+		return ReturnStatus::FAIL;
 	}
 
-	return OK;
+	return ReturnStatus::OK;
 }
 
 
 ReturnStatus TG_AdjacencyMatrixPageIterator::ReadNextPage (BitMap<PageID>& ActivePages) 	{
 	abort();
-	return OK;
+	return ReturnStatus::OK;
 }
 
 ReturnStatus TG_AdjacencyMatrixPageIterator::SetCurrentPage (PageID pid, Page* page) {
@@ -316,7 +316,7 @@ ReturnStatus TG_AdjacencyMatrixPageIterator::SetCurrentPage (PageID pid, Page* p
     PageFirstLid = LocalStatistics::Vid2Lid(mBuffer->GetSlot(0)->src_vid);
     PageLastLid = LocalStatistics::Vid2Lid(mBuffer->GetSlot(mNumSlots - 1)->src_vid);
     FirstVid = PartitionStatistics::my_first_internal_vid();
-	return OK;
+	return ReturnStatus::OK;
 }
 ReturnStatus TG_AdjacencyMatrixPageIterator::SetCurrentPage (Page* page) {
 	mBuffer = page;
@@ -329,12 +329,12 @@ ReturnStatus TG_AdjacencyMatrixPageIterator::SetCurrentPage (Page* page) {
 	mCurrentSlotIdx=-1;
     PageFirstLid = LocalStatistics::Vid2Lid(mBuffer->GetSlot(0)->src_vid);
     PageLastLid = LocalStatistics::Vid2Lid(mBuffer->GetSlot(mNumSlots - 1)->src_vid);
-	return OK;
+	return ReturnStatus::OK;
 }
 ReturnStatus TG_AdjacencyMatrixPageIterator::GetNextAdjList (TG_AdjacencyListIterator& iter) {
 	if(mBuffer == NULL) {
 		std::cout << "TG_AdjacencyMatrixPageIterator::GetNextAdjList() - Invalid page." << std::endl;
-		return FAIL;
+		return ReturnStatus::FAIL;
 	}
 	node_t past_lid = mCurrentLid;
 
@@ -349,7 +349,7 @@ ReturnStatus TG_AdjacencyMatrixPageIterator::GetNextAdjList (TG_AdjacencyListIte
 		}
 	}
 	if(mCurrentSlotIdx == mNumSlots)
-		return DONE;
+		return ReturnStatus::DONE;
 	if(mCurrentSlotIdx == 0)
 		iter.Init(mCurrentLid, vid, (node_t*) &(*mBuffer)[0], mBuffer->GetSlot(mCurrentSlotIdx)->end_offset);
 	else {
@@ -357,7 +357,7 @@ ReturnStatus TG_AdjacencyMatrixPageIterator::GetNextAdjList (TG_AdjacencyListIte
 		int64_t cur_offset = mBuffer->GetSlot(mCurrentSlotIdx)->end_offset;
 		iter.Init(mCurrentLid, vid, (node_t*) &(*mBuffer)[past_offset], cur_offset - past_offset);
 	}
-	return OK;
+	return ReturnStatus::OK;
 }
 
 ReturnStatus TG_AdjacencyMatrixPageIterator::PrintStat (BitMap<node_t>& ActiveNodes) {
@@ -376,7 +376,7 @@ ReturnStatus TG_AdjacencyMatrixPageIterator::GetNextAdjList2 (BitMap<node_t>& Ac
 #else
 	if(mCurrentPid == -1 || mBuffer == NULL) {
 		std::cout << "TG_AdjacencyMatrixPageIterator::GetNextAdjList() - Invalid page." << std::endl;
-		return FAIL;
+		return ReturnStatus::FAIL;
 	}
 #endif
     while (true) {
@@ -395,9 +395,9 @@ ReturnStatus TG_AdjacencyMatrixPageIterator::GetNextAdjList2 (BitMap<node_t>& Ac
                 iter.Init(mCurrentLid, vid_target, (node_t*) &(*mBuffer)[past_offset], cur_offset - past_offset);
             }
             mCurrentSlotIdx = SlotIdx;
-            return OK;
+            return ReturnStatus::OK;
         } else {
-            return DONE;
+            return ReturnStatus::DONE;
         }
     }
 }
@@ -408,7 +408,7 @@ ReturnStatus TG_AdjacencyMatrixPageIterator::GetNextAdjList (BitMap<node_t>& Act
 #else
 	if(mCurrentPid == -1 || mBuffer == NULL) {
 		std::cout << "TG_AdjacencyMatrixPageIterator::GetNextAdjList() - Invalid page." << std::endl;
-		return FAIL;
+		return ReturnStatus::FAIL;
 	}
 #endif
 	node_t past_lid = mCurrentLid;
@@ -423,7 +423,7 @@ ReturnStatus TG_AdjacencyMatrixPageIterator::GetNextAdjList (BitMap<node_t>& Act
 			break;
 		}
 	}
-	if(mCurrentSlotIdx == mNumSlots) return DONE;
+	if(mCurrentSlotIdx == mNumSlots) return ReturnStatus::DONE;
 	if(mCurrentSlotIdx == 0)
 		iter.Init(mCurrentLid, vid, (node_t*) &(*mBuffer)[0], mBuffer->GetSlot(mCurrentSlotIdx)->end_offset);
 	else {
@@ -431,7 +431,7 @@ ReturnStatus TG_AdjacencyMatrixPageIterator::GetNextAdjList (BitMap<node_t>& Act
 		int64_t cur_offset = mBuffer->GetSlot(mCurrentSlotIdx)->end_offset;
 		iter.Init(mCurrentLid, vid, (node_t*) &(*mBuffer)[past_offset], cur_offset - past_offset);
 	}
-	return OK;
+	return ReturnStatus::OK;
 }
 
 // 2-way Set Intersection with the partial order constraint

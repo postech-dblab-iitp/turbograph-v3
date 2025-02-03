@@ -29,12 +29,12 @@
 #include "analytics/Turbograph.hpp"
 #include "analytics/core/Global.hpp"
 #include "analytics/core/TurboDB.hpp"
-#include "analytics/io/Turbo_bin_io_handler.hpp"
 #include "analytics/io/HomogeneousPageWriter.hpp"
 #include "analytics/io/EdgePairListReader.hpp"
 #include "analytics/datastructure/VidRangePerPage.hpp"
-#include "analytics/datastructure/disk_aio_factory.hpp"
 #include "analytics/core/TG_DistributedVectorBase.hpp"
+#include "storage/cache/disk_aio/disk_aio_factory.hpp"
+#include "storage/cache/disk_aio/Turbo_bin_io_handler.hpp"
 
 #define TIMEDIFF_MILLISEC(begin, end) ((double)std::chrono::duration_cast<std::chrono::milliseconds>((end) - (begin)).count())
 #ifndef MIN
@@ -230,7 +230,7 @@ class TG_BuildDB  {
 		if(prev_src != edge.src_vid_) {
 			int64_t free_space = 0;
 			if(page.NumEntry() != 0) free_space = page.GetSlot(page.NumEntry() -1)->end_offset;
-			if((void *)&page[free_space] >= (void *)page.GetSlot(page.NumEntry())) return DONE;
+			if((void *)&page[free_space] >= (void *)page.GetSlot(page.NumEntry())) return ReturnStatus::DONE;
 
 			page.NumEntry()++;
 			ALWAYS_ASSERT(page[free_space] == 0);
@@ -239,17 +239,17 @@ class TG_BuildDB  {
 			page.GetSlot(page.NumEntry() -1)->end_offset = free_space + 1;
 		} else {
 			int64_t free_space = page.GetSlot(page.NumEntry() -1)->end_offset;
-			if((void *)&page[free_space] >= (void *)page.GetSlot(page.NumEntry() -1)) return DONE;
+			if((void *)&page[free_space] >= (void *)page.GetSlot(page.NumEntry() -1)) return ReturnStatus::DONE;
 			ALWAYS_ASSERT(page[free_space] == 0);
 			page[free_space] = edge.dst_vid_;
 			page.GetSlot(page.NumEntry() -1)->end_offset = free_space +1;
 		}
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	ReturnStatus CleanPage(Page& page) {
 		for(int64_t i = 0 ; i < TBGPP_PAGE_SIZE / sizeof(node_t) ; i++) page[i] = 0;
-		return DONE;
+		return ReturnStatus::DONE;
 	}
 
 	int64_t dst_vid_to_file_num (int64_t dst_vid, int64_t num_subchunks_per_edge_chunk, std::vector<std::vector<int64_t>>& SubchunkVidRangePerEdgeChunk) {
@@ -400,7 +400,7 @@ class TG_BuildDB  {
 
 		int64_t num_edges = 0;
 		// Read All Edges
-		while(edges_reader.getNext(edge_iter_64bits) == OK) {
+		while(edges_reader.getNext(edge_iter_64bits) == ReturnStatus::OK) {
 			edge_iter = edge_iter_64bits;
 
 			//remove duplicate edges & self_edges
@@ -422,7 +422,7 @@ class TG_BuildDB  {
 			}
 			ALWAYS_ASSERT(0 <= dst_file && dst_file < num_files);
 
-			if(MakePage(page_to_append[dst_file], edge_iter) == DONE) {
+			if(MakePage(page_to_append[dst_file], edge_iter) == ReturnStatus::DONE) {
 				ALWAYS_ASSERT(0 <= range_to_append[dst_file].GetBegin() < PartitionStatistics::num_total_nodes());
 				ALWAYS_ASSERT(0 <= range_to_append[dst_file].GetEnd() < PartitionStatistics::num_total_nodes());
 				ALWAYS_ASSERT(range_to_append[dst_file].GetBegin() <= range_to_append[dst_file].GetEnd());

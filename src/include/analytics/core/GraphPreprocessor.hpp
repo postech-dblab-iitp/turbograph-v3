@@ -65,7 +65,6 @@
 #include <chrono>
 #include <sys/statvfs.h>
 
-#include "analytics/core/eXDB_dist_internal.hpp"
 #include "analytics/core/TypeDef.hpp"
 #include "analytics/core/turbo_dist_internal.hpp"
 #include "analytics/core/RequestRespond.hpp"
@@ -80,6 +79,7 @@
 #include "analytics/util/GraphPreprocessorConfiguration.hpp"
 #include "analytics/util/ExternalSort.hpp"
 #include "analytics/util/GraphRedistributor.hpp"
+#include "storage/cache/disk_aio/eXDB_dist_internal.hpp"
 
 #define ALIGN_EXPAND(x, n) ((x) = (x) / (n) * (n - 1) + (n))
 #define TIMEDIFF_MILLISEC(begin, end) ((double)std::chrono::duration_cast<std::chrono::milliseconds>((end) - (begin)).count())

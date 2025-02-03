@@ -17,22 +17,24 @@ struct DiskAioRequestDBInfo {
 };
 
 struct DiskAioRequestUserInfo {
-    //DiskAioRequestDBInfo db_info;
-    //DiskAioRequestDBInfo db_info_cb;
+    DiskAioRequestDBInfo db_info;
+    DiskAioRequestDBInfo db_info_cb;
 
 	int32_t frame_id=-1;
 	int32_t task_id=-1;
-	int32_t file_id=-1;
 	void* caller=0;
 	void* func = NULL;
 	bool do_user_cb=false;
 	bool do_user_only_req_cb=false;
 	char* read_buf=0;
 	void* read_my_io=NULL;
+	void* buf_to_construct=NULL;
+	bool construct_next=false;
+	bool mark_changed=false;
 	
 	DiskAioRequestUserInfo(int32_t pid=-1, int32_t fid=-1, int32_t tid=-1, void* c=0, void* f=0, bool d=false, int32_t vid=-1) {
-		//db_info.page_id = pid;
-        //db_info.version_id = vid;
+		db_info.page_id = pid;
+        db_info.version_id = vid;
 		frame_id = fid;
 		task_id = tid;
 		caller = c;

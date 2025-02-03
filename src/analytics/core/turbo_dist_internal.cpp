@@ -4,11 +4,11 @@
 
 Statistics* final_statistics_[N_PERF_METRICS];
 
-PartitionID num_partitions__ = -1;
-PartitionID my_partition_id__ = 0;
+PartID num_partitions__ = -1;
+PartID my_partition_id__ = 0;
 
-PartitionID& PartitionStatistics::num_partitions_ = num_partitions__;
-PartitionID& PartitionStatistics::my_partition_id_ = my_partition_id__;
+PartID& PartitionStatistics::num_partitions_ = num_partitions__;
+PartID& PartitionStatistics::my_partition_id_ = my_partition_id__;
 
 int64_t PartitionStatistics::my_total_num_subchunks_ = -1;
 int64_t PartitionStatistics::num_subchunks_per_edge_chunk_ = -1;
@@ -173,7 +173,7 @@ void PartitionStatistics::replicate() {
 	per_partition_num_nodes_.pull();
 	num_total_nodes_ = 0;
 
-	for (PartitionID pid = 0; pid < num_partitions_; pid++) {
+	for (PartID pid = 0; pid < num_partitions_; pid++) {
 		if (max_num_nodes_per_vector_chunk_ < per_partition_num_nodes_[pid]) {
 			max_num_nodes_per_vector_chunk_ = per_partition_num_nodes_[pid];
 		}
@@ -248,7 +248,7 @@ Range<node_t> PartitionStatistics::my_chunkID_to_range(int64_t chunkID) {
 	return machine_id_and_chunk_idx_to_vid_range(my_machine_id(), chunkID);
 }
 
-Range<node_t> PartitionStatistics::machine_id_and_chunk_idx_to_vid_range(PartitionID pid, int64_t chunkID) {
+Range<node_t> PartitionStatistics::machine_id_and_chunk_idx_to_vid_range(PartID pid, int64_t chunkID) {
 	return vector_chunk_id_to_vid_range_[pid*UserArguments::VECTOR_PARTITIONS + chunkID];
 }
 
@@ -263,11 +263,11 @@ Range<node_t> PartitionStatistics::per_edge_partition_vid_range(int64_t edge_par
 	return machine_id_and_chunk_idx_to_vid_range(machine_id, chunk_idx);
 }
 
-PartitionID& PartitionStatistics::num_machines() {
+PartID& PartitionStatistics::num_machines() {
 	return num_partitions_;
 }
 
-PartitionID& PartitionStatistics::my_machine_id() {
+PartID& PartitionStatistics::my_machine_id() {
 	return my_partition_id_;
 }
 node_t& PartitionStatistics::my_num_internal_nodes() {
@@ -336,11 +336,11 @@ void PartitionStatistics::print_partition_info(int64_t my_edge_db_file_size) {
 node_t PartitionStatistics::VidToDegreeOrder(node_t v1) {
 	ALWAYS_ASSERT (v1 >= 0);
 	ALWAYS_ASSERT (v1 < PartitionStatistics::num_total_nodes());
-	PartitionID partition_id = v1/PartitionStatistics::per_partition_num_nodes(0);
+	PartID partition_id = v1/PartitionStatistics::per_partition_num_nodes(0);
 	return VidToDegreeOrder(v1, partition_id);
 }
 
-node_t PartitionStatistics::VidToDegreeOrder(node_t v1, PartitionID pid) {
+node_t PartitionStatistics::VidToDegreeOrder(node_t v1, PartID pid) {
 	ALWAYS_ASSERT (pid >= 0 && pid < PartitionStatistics::num_machines());
 	ALWAYS_ASSERT (v1 >= PartitionStatistics::per_machine_first_node_id(pid) && v1 <= PartitionStatistics::per_machine_last_node_id(pid));
 	node_t order = pid + num_partitions_ * (v1 - PartitionStatistics::per_machine_first_node_id(pid));
@@ -350,11 +350,11 @@ node_t PartitionStatistics::VidToDegreeOrder(node_t v1, PartitionID pid) {
 
 node_t PartitionStatistics::DegreeOrderToVid(node_t order) {
 	ALWAYS_ASSERT (order >= 0 && order < PartitionStatistics::num_total_nodes());
-	PartitionID pid = order % num_partitions_;
+	PartID pid = order % num_partitions_;
 	return PartitionStatistics::DegreeOrderToVid(order, pid);
 }
 
-node_t PartitionStatistics::DegreeOrderToVid(node_t order, PartitionID pid) {
+node_t PartitionStatistics::DegreeOrderToVid(node_t order, PartID pid) {
 	ALWAYS_ASSERT (pid >= 0 && pid < PartitionStatistics::num_machines());
 	ALWAYS_ASSERT (order >= 0 && order < PartitionStatistics::num_total_nodes());
 	ALWAYS_ASSERT ((order - pid) % PartitionStatistics::num_machines() == 0);
@@ -462,33 +462,33 @@ void set_signal_handler() {
 	}
 }
 
-void stack_dump() {
-	static int tried_throw = 0;
-	try {
-		// try once to re-throw currently active exception
-		if (!tried_throw++) throw;
-	} catch (const std::exception &e) {
-		std::cerr << __FUNCTION__ << " caught unhandled exception. what(): "
-		          << e.what() << std::endl;
-	} catch (...) {
-		std::cerr << __FUNCTION__ << " caught unknown/unhandled exception."
-		          << std::endl;
-	}
-	void * array[50];
-	int size = backtrace(array, 50);
+// void stack_dump() {
+// 	static int tried_throw = 0;
+// 	try {
+// 		// try once to re-throw currently active exception
+// 		if (!tried_throw++) throw;
+// 	} catch (const std::exception &e) {
+// 		std::cerr << __FUNCTION__ << " caught unhandled exception. what(): "
+// 		          << e.what() << std::endl;
+// 	} catch (...) {
+// 		std::cerr << __FUNCTION__ << " caught unknown/unhandled exception."
+// 		          << std::endl;
+// 	}
+// 	void * array[50];
+// 	int size = backtrace(array, 50);
 
-	std::cerr << __FUNCTION__ << " backtrace returned "
-	          << size << " frames\n\n";
+// 	std::cerr << __FUNCTION__ << " backtrace returned "
+// 	          << size << " frames\n\n";
 
-	char ** messages = backtrace_symbols(array, size);
+// 	char ** messages = backtrace_symbols(array, size);
 
-	for (int i = 0; i < size && messages != NULL; ++i) {
-        fprintf(stderr, "[bt][%ld]: (%d) %s\n", PartitionStatistics::my_machine_id(), i, messages[i]);
-	}
-	std::cerr << std::endl;
+// 	for (int i = 0; i < size && messages != NULL; ++i) {
+//         fprintf(stderr, "[bt][%ld]: (%d) %s\n", PartitionStatistics::my_machine_id(), i, messages[i]);
+// 	}
+// 	std::cerr << std::endl;
 
-	free(messages);
-}
+// 	free(messages);
+// }
 
 void crit_err_hdlr(int sig_num, siginfo_t* info, void* ucontext) {
 	sig_ucontext_t * uc = (sig_ucontext_t *)ucontext;

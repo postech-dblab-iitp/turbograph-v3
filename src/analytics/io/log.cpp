@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include "analytics/io/disk_aio/log.h"
+#include "storage/cache/disk_aio/log.h"
 
 c_log_level simple_log_stream::curr_log_level;
 

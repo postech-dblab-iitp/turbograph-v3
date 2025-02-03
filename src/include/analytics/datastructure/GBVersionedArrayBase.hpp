@@ -6,16 +6,16 @@
 #include <future>
 
 #include "analytics/io/Blocking_Turbo_bin_io_handler.hpp"
-#include "analytics/io/Turbo_bin_aio_handler.hpp"
 #include "analytics/io/Turbo_bin_mmapper.hpp"
+#include "storage/cache/disk_aio/Turbo_bin_aio_handler.hpp"
 
 #include "analytics/datastructure/MemoryMappedArray.hpp"
 #include "analytics/datastructure/TwoLevelBitMap.hpp"
 
 #include "analytics/core/TypeDef.hpp"
 #include "analytics/util/util.hpp"
-#include "analytics/core/eXDB_dist_internal.hpp"
-#include "analytics/io/disk_aio/disk_aio_request.hpp"
+#include "storage/cache/disk_aio/disk_aio_request.hpp"
+#include "storage/cache/disk_aio/eXDB_dist_internal.hpp"
 #include "analytics/core/turbo_dist_internal.hpp"
 
 #define USE_ENCODING
@@ -739,7 +739,7 @@ class GBVersionedArrayBase {
         }
         
         ReturnStatus FindVersionRangeToConstruct (int update_version, int superstep_version, Version& from, Version& to) {
-            if (!use_main_) return OK;
+            if (!use_main_) return ReturnStatus::OK;
             int from_update_version, from_superstep_version;
             if (update_version > current_version.GetUpdateVersion()) {
                 if (superstep_version > current_version.GetSuperstepVersion()) {
@@ -774,9 +774,9 @@ class GBVersionedArrayBase {
                 if (superstep_version == current_version.GetSuperstepVersion()) {
                     to.SetUpdateVersion(update_version);
                     to.SetSuperstepVersion(superstep_version);
-                    return DONE;
+                    return ReturnStatus::DONE;
                 } else if (superstep_version < current_version.GetSuperstepVersion()) {
-                    return DONE;
+                    return ReturnStatus::DONE;
                 }
                 if(!(current_version.GetSuperstepVersion() == superstep_version || current_version.GetSuperstepVersion() + 1 == superstep_version)) {
                     fprintf(stdout, "[%ld] %s cur_ss = %d, ss = %ld\n", PartitionStatistics::my_machine_id(), array_name.c_str(), current_version.GetSuperstepVersion(), superstep_version);
@@ -800,7 +800,7 @@ class GBVersionedArrayBase {
             to.SetUpdateVersion(update_version);
             to.SetSuperstepVersion(superstep_version);
             
-            return OK;
+            return ReturnStatus::OK;
         }
         
         void ConstructAndFlush(Range<int64_t> idx_range, int update_version, int superstep_version, bool construct_prev=false, GBVersionedArrayBase<T, op>* prev=NULL, bool flush=false) {
@@ -829,7 +829,7 @@ class GBVersionedArrayBase {
             temp_tim.start_timer(1);
             // Find version range which need to construct
             Version from, to;
-            if (FindVersionRangeToConstruct(update_version, superstep_version, from, to) == DONE) return;
+            if (FindVersionRangeToConstruct(update_version, superstep_version, from, to) == ReturnStatus::DONE) return;
             if (!use_main_) {
                 from.SetUpdateVersion(current_version.GetUpdateVersion());
                 from.SetSuperstepVersion(current_version.GetSuperstepVersion());

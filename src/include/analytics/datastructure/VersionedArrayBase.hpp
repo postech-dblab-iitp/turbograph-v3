@@ -6,15 +6,15 @@
 #include <future>
 
 #include "analytics/core/TypeDef.hpp"
-#include "analytics/core/eXDB_dist_internal.hpp"
 #include "analytics/core/turbo_dist_internal.hpp"
 #include "analytics/core/RequestRespond.hpp"
 #include "analytics/datastructure/MemoryMappedArray.hpp"
 #include "analytics/datastructure/TwoLevelBitMap.hpp"
 #include "analytics/io/Blocking_Turbo_bin_io_handler.hpp"
-#include "analytics/io/Turbo_bin_aio_handler.hpp"
 #include "analytics/io/Turbo_bin_mmapper.hpp"
-#include "analytics/io/disk_aio/disk_aio_request.hpp"
+#include "storage/cache/disk_aio/Turbo_bin_aio_handler.hpp"
+#include "storage/cache/disk_aio/disk_aio_request.hpp"
+#include "storage/cache/disk_aio/eXDB_dist_internal.hpp"
 #include "analytics/util/util.hpp"
 
 #define USE_ENCODING
@@ -1010,9 +1010,9 @@ class VersionedArrayBase {
                 if (superstep_version == current_version.GetSuperstepVersion()) {
                     to.SetUpdateVersion(update_version);
                     to.SetSuperstepVersion(superstep_version);
-                    return DONE;
+                    return ReturnStatus::DONE;
                 } else if (superstep_version < current_version.GetSuperstepVersion()) {
-                    return DONE;
+                    return ReturnStatus::DONE;
                 }
                 if(!(current_version.GetSuperstepVersion() == superstep_version || current_version.GetSuperstepVersion() + 1 == superstep_version)) {
                     fprintf(stdout, "[%ld] %s cur_ss = %d, ss = %ld\n", PartitionStatistics::my_machine_id(), array_name.c_str(), current_version.GetSuperstepVersion(), superstep_version);
@@ -1036,7 +1036,7 @@ class VersionedArrayBase {
             to.SetUpdateVersion(update_version);
             to.SetSuperstepVersion(superstep_version);
             
-            return OK;
+            return ReturnStatus::OK;
         }
         
         void ConstructAndFlush(Range<int64_t> idx_range, int update_version, int superstep_version, bool construct_prev=false, VersionedArrayBase<T, op>* prev=NULL, bool flush=false) {
@@ -1059,7 +1059,7 @@ class VersionedArrayBase {
             temp_tim.start_timer(1);
             // Find version range which need to construct
             Version from, to;
-            if (FindVersionRangeToConstruct(update_version, superstep_version, from, to) == DONE) return;
+            if (FindVersionRangeToConstruct(update_version, superstep_version, from, to) == ReturnStatus::DONE) return;
             temp_tim.stop_timer(1);
 
             temp_tim.start_timer(2);

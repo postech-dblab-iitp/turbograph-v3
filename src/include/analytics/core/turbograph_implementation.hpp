@@ -469,7 +469,7 @@ class TurbographImplementation {
 			try {
 				run_(argc, argv);
 			} catch (std::exception& e) {
-				stack_dump();
+				// stack_dump();
 				_exit(1);
 			}
 		}
@@ -1022,8 +1022,7 @@ class TurbographImplementation {
 			//version_range.SetEnd(version_range.GetBegin() + 1);
 			UserArguments::BEGIN_VERSION = version_range.GetBegin();
 			UserArguments::END_VERSION = version_range.GetEnd();
-      UserArguments::QUERY_ONGOING = true;
-
+      		UserArguments::QUERY_ONGOING = true;
 
 			//for (int ver = version_range.GetEnd() - 1; ver <= version_range.GetEnd(); ver++) {
 			//for (int ver = version_range.GetEnd(); ver <= version_range.GetEnd(); ver++) {
@@ -1554,7 +1553,7 @@ class TurbographImplementation {
 							per_thread_num_edges_in_pages_cnts[tid].idx = 0;
 							per_thread_num_processed_empty_pages_cnts[tid].idx = 0;
 						}
-						return OK;
+						return ReturnStatus::OK;
 						}
 
 						void start_main_thread_timer() {
@@ -1644,28 +1643,7 @@ class TurbographImplementation {
 							//local_json_logger->InsertKeyValue("DB", db_file[5]+"/"+db_file[6]);
 							local_json_logger->InsertKeyValue("MachineID", PartitionStatistics::my_machine_id());
 
-							// if(this->argc_ >= 7) {
-							// 	glog_filename.append(binary_file[binary_file.size()-1]).append("-");
-							// 	for (auto& str : db_file) {
-							// 		glog_filename.append(str).append("-");
-							// 	}
-							// 	for(int i = 3; i <= 5; i++) {
-							// 		glog_filename.append(argv_[i]).append("-");
-							// 	}
-							// 	glog_filename.append(argv_[6]);
-							// }
-							// char* _glog_filename = (char *) malloc( sizeof(char) * (strlen(glog_filename.c_str()) + 1));
-							// strncpy(_glog_filename, glog_filename.c_str(),  (strlen(glog_filename.c_str()) + 1));
-							// google::InitGoogleLogging(_glog_filename);
-							//std::string glog_dir("/mnt/sdb1/glog/");
-							// std::string glog_dir;
-							// if(const char* env_p = std::getenv("GLOG_DIR")) {
-							// 	glog_dir = env_p;
-							// }
-							//getlogin_r(name, 5);
-							//glog_dir.append(name);
 							std::cout << std::flush;
-							// FLAGS_log_dir=glog_dir.c_str();
 							FLAGS_logtostderr = 0;
 							if (this->argc_ < 11) {
 								if (PartitionStatistics::my_machine_id() == 0) {
@@ -1683,7 +1661,7 @@ class TurbographImplementation {
 										<< "argv_[10] : " << "Max Version Number" << std::endl;
 								}
 								throw std::runtime_error("[Turbograph::run] init() failed\n");
-								return FAIL;
+								return ReturnStatus::FAIL;
 							}
 							if (PartitionStatistics::my_machine_id() == 0) {
 								std::cout << "<INPUT> "<< std::endl
@@ -1738,7 +1716,7 @@ class TurbographImplementation {
 
 							argc_ -= 10;
 							argv_ = &argv_[10];
-							return OK;
+							return ReturnStatus::OK;
 						}
 
 						double get_main_thread_cpu_time() {
@@ -2119,7 +2097,7 @@ class TurbographImplementation {
 
 
 						virtual ReturnStatus load_db() {
-							ReturnStatus st = FAIL;
+							ReturnStatus st = ReturnStatus::FAIL;
 							InitDiskAioFactory();
 
 							//if (argc_ < 13) {
@@ -2130,7 +2108,7 @@ class TurbographImplementation {
 								DiskAioFactory::GetPtr()->CreateAioInterfaces();
 							}
 
-							if (st != OK) {
+							if (st != ReturnStatus::OK) {
 								system_fprintf(0, stderr, "[LoadDB] Failed\n");
 								_exit(1);
 							}
@@ -2144,7 +2122,7 @@ class TurbographImplementation {
 								_exit(1);
 							}
 
-							return OK;
+							return ReturnStatus::OK;
 						}
 
 							public:
@@ -2542,7 +2520,7 @@ class TurbographImplementation {
 									ALWAYS_ASSERT(dst_edge_partitions == Range<int64_t> (-1,-1));
 									src_edge_partitions = start_src_edge_partitions;
 									dst_edge_partitions = start_dst_edge_partitions;
-									return OK;
+									return ReturnStatus::OK;
 								}
 								if(dst_edge_partitions.GetEnd() == PartitionStatistics::num_target_vector_chunks() -1) {
 									dst_edge_partitions.Set(0, dst_edge_chunk_length - 1);
@@ -2554,9 +2532,9 @@ class TurbographImplementation {
 									dst_edge_partitions.Set(dst_edge_partitions.GetEnd() + 1, dst_edge_partitions.GetEnd() + dst_edge_chunk_length);
 								}
 								if(src_edge_partitions == start_src_edge_partitions && dst_edge_partitions == start_dst_edge_partitions)
-									return DONE;
+									return ReturnStatus::DONE;
 								else
-									return OK;
+									return ReturnStatus::OK;
 
 							} else if(schedule_type == 1) {
 								// column-direction
@@ -2571,7 +2549,7 @@ class TurbographImplementation {
 									ALWAYS_ASSERT(dst_edge_partitions == Range<int64_t> (-1,-1));
 									src_edge_partitions = start_src_edge_partitions;
 									dst_edge_partitions = start_dst_edge_partitions;
-									return OK;
+									return ReturnStatus::OK;
 								}
 								if(src_edge_partitions.GetEnd() == PartitionStatistics::my_vector_chunks().GetEnd()) {
 
@@ -2584,9 +2562,9 @@ class TurbographImplementation {
 									src_edge_partitions.Set(src_edge_partitions.GetEnd() + 1, src_edge_partitions.GetEnd() + src_edge_chunk_length);
 								}
 								if(src_edge_partitions == start_src_edge_partitions && dst_edge_partitions == start_dst_edge_partitions)
-									return DONE;
+									return ReturnStatus::DONE;
 								else
-									return OK;
+									return ReturnStatus::OK;
 
 							} else if(schedule_type == 2) {
 								// twisted-derection
@@ -2599,7 +2577,7 @@ class TurbographImplementation {
 									ALWAYS_ASSERT(dst_edge_partitions == Range<int64_t> (-1,-1));
 									src_edge_partitions = start_src_edge_partitions;
 									dst_edge_partitions = start_dst_edge_partitions;
-									return OK;
+									return ReturnStatus::OK;
 								}
 								if((dst_edge_partitions.GetBegin()/dst_edge_chunk_length) % 2 == 0) { // go down
 									if(src_edge_partitions.GetEnd() == PartitionStatistics::my_vector_chunks().GetEnd()) {
@@ -2623,9 +2601,9 @@ class TurbographImplementation {
 									}
 								}
 								if(src_edge_partitions == start_src_edge_partitions && dst_edge_partitions == start_dst_edge_partitions)
-									return DONE;
+									return ReturnStatus::DONE;
 								else
-									return OK;
+									return ReturnStatus::OK;
 							} else if(schedule_type == 3) {
 								//  odd number's superstep: forward row-direction
 								//
@@ -2644,7 +2622,7 @@ class TurbographImplementation {
 										ALWAYS_ASSERT(dst_edge_partitions == Range<int64_t> (-1,-1));
 										src_edge_partitions = start_src_edge_partitions;
 										dst_edge_partitions = start_dst_edge_partitions;
-										return OK;
+										return ReturnStatus::OK;
 									}
 									dst_edge_partitions.Set((dst_edge_partitions.GetEnd() + 1) % PartitionStatistics::num_target_vector_chunks(), (dst_edge_partitions.GetEnd() + dst_edge_chunk_length) % PartitionStatistics::num_target_vector_chunks());
 									if(dst_edge_partitions.GetEnd() == 0) {
@@ -2652,15 +2630,15 @@ class TurbographImplementation {
 										src_edge_partitions.Set(next_src_edge_partition, next_src_edge_partition + src_edge_chunk_length - 1);
 									}
 									if(src_edge_partitions == start_src_edge_partitions && dst_edge_partitions == start_dst_edge_partitions)
-										return DONE;
+										return ReturnStatus::DONE;
 									else
-										return OK;
+										return ReturnStatus::OK;
 								} else {
 									if(src_edge_partitions == Range<int64_t> (-1,-1)) { // first time
 										ALWAYS_ASSERT(dst_edge_partitions == Range<int64_t> (-1,-1));
 										src_edge_partitions = start_src_edge_partitions;
 										dst_edge_partitions = start_dst_edge_partitions;
-										return OK;
+										return ReturnStatus::OK;
 									}
 									int64_t next_dst_edge_partition = (dst_edge_partitions.GetBegin() - 1 + PartitionStatistics::num_target_vector_chunks())%PartitionStatistics::num_target_vector_chunks();
 									dst_edge_partitions.Set(next_dst_edge_partition, next_dst_edge_partition);
@@ -2669,16 +2647,16 @@ class TurbographImplementation {
 										src_edge_partitions.Set(next_src_edge_partition, next_src_edge_partition + src_edge_chunk_length - 1);
 									}
 									if(src_edge_partitions == start_src_edge_partitions && dst_edge_partitions == start_dst_edge_partitions)
-										return DONE;
+										return ReturnStatus::DONE;
 									else
-										return OK;
+										return ReturnStatus::OK;
 								}
 
 							} else {
 								fprintf(stdout,"Not Defined schedule type!!\n");
 								abort();
 							}
-							return OK;
+							return ReturnStatus::OK;
 						}
 
 						// Default scheduling
@@ -2756,7 +2734,7 @@ class TurbographImplementation {
 									}
 									ALWAYS_ASSERT(0 <= dst_file && dst_file < num_files);
 
-									if(MakePage(page_to_append[dst_file], edge_iter) == DONE) {
+									if(MakePage(page_to_append[dst_file], edge_iter) == ReturnStatus::DONE) {
 										ALWAYS_ASSERT(range_to_append[dst_file].GetBegin() <PartitionStatistics::num_total_nodes());
 										vidrangeperpage.push_back(dst_file, range_to_append[dst_file]);
 										range_to_append[dst_file].Set(edge_iter.src_vid_, edge_iter.src_vid_);
@@ -2828,7 +2806,7 @@ class TurbographImplementation {
 									free_space = page.GetSlot(page.NumEntry() -1)->end_offset;
 
 								if((void *)&page[free_space] >= (void *)page.GetSlot(page.NumEntry()))
-									return DONE;
+									return ReturnStatus::DONE;
 								page.NumEntry()++;
 								ALWAYS_ASSERT(page[free_space] == 0);
 								page[free_space] = edge.dst_vid_;
@@ -2837,18 +2815,18 @@ class TurbographImplementation {
 							} else {
 								int64_t free_space = page.GetSlot(page.NumEntry() -1)->end_offset;
 								if((void *)&page[free_space] >= (void *)page.GetSlot(page.NumEntry() -1))
-									return DONE;
+									return ReturnStatus::DONE;
 								ALWAYS_ASSERT(page[free_space] == 0);
 								page[free_space] = edge.dst_vid_;
 								page.GetSlot(page.NumEntry() -1)->end_offset = free_space +1;
 							}
-							return OK;
+							return ReturnStatus::OK;
 						}
 
 						ReturnStatus CleanPage(Page& page) {
 							for(int64_t i = 0 ; i < TBGPP_PAGE_SIZE / sizeof(node_t) ; i++)
 								page[i] = 0;
-							return DONE;
+							return ReturnStatus::DONE;
 						}
 
 						// Size of output vectors

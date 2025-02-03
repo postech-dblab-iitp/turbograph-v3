@@ -3,7 +3,7 @@
 
 #include "analytics/core/TG_NWSMTaskContext.hpp"
 #include "analytics/datastructure/page.hpp"
-#include "analytics/io/disk_aio/disk_aio_request.hpp"
+#include "storage/cache/disk_aio/disk_aio_request.hpp"
 
 class TG_NWSMCallback;
 

@@ -227,9 +227,9 @@ class TG_NWSM : public TG_NWSM_Base {
 			cur_input_vector_chunks = sched_input_vector_chunks[i];
 			next_input_vector_chunks = sched_input_vector_chunks[i + 1];
 
-			PartitionID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
-			PartitionID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
-			PartitionID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
+			PartID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
+			PartID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
+			PartID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
 
 			vid_range = PartitionStatistics::machine_id_and_chunk_idx_to_vid_range(machine_id, cur_src_vector_chunk_id % UserArguments::VECTOR_PARTITIONS);
 
@@ -240,7 +240,7 @@ class TG_NWSM : public TG_NWSM_Base {
 			// While (asjw^l = AsyncRead(...))
 			// Un-Finalize LV-'lv' window
 			per_level_timer[lv-1].start_timer(3);
-			while (adj_win[UserArguments::CURRENT_LEVEL].RunScatterGather(cur_input_vector_chunks, next_input_vector_chunks, vid_range, MaxNumBytesToPin, !NeedUnpin, update_version_range, e_type) == ON_GOING) {
+			while (adj_win[UserArguments::CURRENT_LEVEL].RunScatterGather(cur_input_vector_chunks, next_input_vector_chunks, vid_range, MaxNumBytesToPin, !NeedUnpin, update_version_range, e_type) == ReturnStatus::ON_GOING) {
 
 				// Foreach j in [1, q*]
 				for (int j = 0; j < sched_output_vector_chunks.size() - 1; j++) {
@@ -257,13 +257,13 @@ class TG_NWSM : public TG_NWSM_Base {
 
 					user_program_->set_context(cur_input_vector_chunks, cur_output_vector_chunks);
 
-					PartitionID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
-					PartitionID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
-					PartitionID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
+					PartID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
+					PartID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
+					PartID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
 
-					PartitionID start_dst_vector_chunk_id = sched_output_vector_chunks[0].GetBegin();
-					PartitionID cur_dst_vector_chunk_id = cur_output_vector_chunks.GetBegin();
-					PartitionID next_dst_vector_chunk_id = next_output_vector_chunks.GetBegin();
+					PartID start_dst_vector_chunk_id = sched_output_vector_chunks[0].GetBegin();
+					PartID cur_dst_vector_chunk_id = cur_output_vector_chunks.GetBegin();
+					PartID next_dst_vector_chunk_id = next_output_vector_chunks.GetBegin();
 
 					per_level_timer[lv-1].start_timer(6);
 					// Nesting; ProcessNestedWindowedStreamFullList
@@ -351,9 +351,9 @@ class TG_NWSM : public TG_NWSM_Base {
 					cur_input_vector_chunks = sched_input_vector_chunks[i];
 					next_input_vector_chunks = sched_input_vector_chunks[i + 1];
 
-					PartitionID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
-					PartitionID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
-					PartitionID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
+					PartID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
+					PartID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
+					PartID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
 
 					vid_range = PartitionStatistics::machine_id_and_chunk_idx_to_vid_range(machine_id, cur_src_vector_chunk_id % UserArguments::VECTOR_PARTITIONS);
 
@@ -364,7 +364,7 @@ class TG_NWSM : public TG_NWSM_Base {
 					// While (asjw^l = AsyncRead(...))
 					// Un-Finalize LV-'lv' window
 					per_level_timer[lv-1].start_timer(3);
-					while (adj_win[UserArguments::CURRENT_LEVEL].RunScatterGather(cur_input_vector_chunks, next_input_vector_chunks, vid_range, MaxNumBytesToPin, !NeedUnpin, update_version_range, e_type) == ON_GOING) {
+					while (adj_win[UserArguments::CURRENT_LEVEL].RunScatterGather(cur_input_vector_chunks, next_input_vector_chunks, vid_range, MaxNumBytesToPin, !NeedUnpin, update_version_range, e_type) == ReturnStatus::ReturnStatus::ON_GOING) {
 
 						// Foreach j in [1, q*]
 						for (int j = 0; j < sched_output_vector_chunks.size() - 1; j++) {
@@ -381,13 +381,13 @@ class TG_NWSM : public TG_NWSM_Base {
 
 							user_program_->set_context(cur_input_vector_chunks, cur_output_vector_chunks);
 
-							PartitionID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
-							PartitionID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
-							PartitionID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
+							PartID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
+							PartID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
+							PartID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
 
-							PartitionID start_dst_vector_chunk_id = sched_output_vector_chunks[0].GetBegin();
-							PartitionID cur_dst_vector_chunk_id = cur_output_vector_chunks.GetBegin();
-							PartitionID next_dst_vector_chunk_id = next_output_vector_chunks.GetBegin();
+							PartID start_dst_vector_chunk_id = sched_output_vector_chunks[0].GetBegin();
+							PartID cur_dst_vector_chunk_id = cur_output_vector_chunks.GetBegin();
+							PartID next_dst_vector_chunk_id = next_output_vector_chunks.GetBegin();
 
 							per_level_timer[lv-1].start_timer(6);
 							// Nesting; ProcessNestedWindowedStreamFullList
@@ -453,9 +453,9 @@ class TG_NWSM : public TG_NWSM_Base {
 				cur_input_vector_chunks = sched_input_vector_chunks[i];
 				next_input_vector_chunks = sched_input_vector_chunks[i + 1];
 
-				PartitionID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
-				PartitionID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
-				PartitionID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
+				PartID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
+				PartID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
+				PartID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
 
 				vid_range = PartitionStatistics::machine_id_and_chunk_idx_to_vid_range(machine_id, cur_src_vector_chunk_id % UserArguments::VECTOR_PARTITIONS);
 
@@ -466,7 +466,7 @@ class TG_NWSM : public TG_NWSM_Base {
 				// While (asjw^l = AsyncRead(...))
 				// Un-Finalize LV-'lv' window
 				per_level_timer[lv-1].start_timer(3);
-				while (adj_win[UserArguments::CURRENT_LEVEL].RunScatterGather(cur_input_vector_chunks, next_input_vector_chunks, vid_range, MaxNumBytesToPin, !NeedUnpin, update_version_range, e_type) == ON_GOING) {
+				while (adj_win[UserArguments::CURRENT_LEVEL].RunScatterGather(cur_input_vector_chunks, next_input_vector_chunks, vid_range, MaxNumBytesToPin, !NeedUnpin, update_version_range, e_type) == ReturnStatus::ReturnStatus::ON_GOING) {
 
 					// Foreach j in [1, q*]
 					for (int j = 0; j < sched_output_vector_chunks.size() - 1; j++) {
@@ -483,13 +483,13 @@ class TG_NWSM : public TG_NWSM_Base {
 
 						user_program_->set_context(cur_input_vector_chunks, cur_output_vector_chunks);
 
-						PartitionID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
-						PartitionID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
-						PartitionID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
+						PartID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
+						PartID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
+						PartID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
 
-						PartitionID start_dst_vector_chunk_id = sched_output_vector_chunks[0].GetBegin();
-						PartitionID cur_dst_vector_chunk_id = cur_output_vector_chunks.GetBegin();
-						PartitionID next_dst_vector_chunk_id = next_output_vector_chunks.GetBegin();
+						PartID start_dst_vector_chunk_id = sched_output_vector_chunks[0].GetBegin();
+						PartID cur_dst_vector_chunk_id = cur_output_vector_chunks.GetBegin();
+						PartID next_dst_vector_chunk_id = next_output_vector_chunks.GetBegin();
 
 						per_level_timer[lv-1].start_timer(6);
 						// Nesting; ProcessNestedWindowedStreamFullList
@@ -574,9 +574,9 @@ class TG_NWSM : public TG_NWSM_Base {
 					cur_input_vector_chunks = sched_input_vector_chunks[i];
 					next_input_vector_chunks = sched_input_vector_chunks[i + 1];
 
-					PartitionID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
-					PartitionID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
-					PartitionID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
+					PartID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
+					PartID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
+					PartID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
 
 					vid_range = PartitionStatistics::machine_id_and_chunk_idx_to_vid_range(machine_id, cur_src_vector_chunk_id % UserArguments::VECTOR_PARTITIONS);
 
@@ -600,15 +600,15 @@ class TG_NWSM : public TG_NWSM_Base {
 
 						user_program_->set_context(cur_input_vector_chunks, cur_output_vector_chunks);
 
-						PartitionID start_dst_vector_chunk_id = sched_output_vector_chunks[0].GetBegin();
-						PartitionID cur_dst_vector_chunk_id = cur_output_vector_chunks.GetBegin();
-						PartitionID next_dst_vector_chunk_id = next_output_vector_chunks.GetBegin();
+						PartID start_dst_vector_chunk_id = sched_output_vector_chunks[0].GetBegin();
+						PartID cur_dst_vector_chunk_id = cur_output_vector_chunks.GetBegin();
+						PartID next_dst_vector_chunk_id = next_output_vector_chunks.GetBegin();
 
 						per_level_timer[lv-1].start_timer(7);
 						if (lv == 1 && UserArguments::MAX_LEVEL == 1) {
 							per_level_timer[lv-1].start_timer(4);
 							if (UserArguments::GRAPH_IN_MEMORY) {
-								while (adj_win[UserArguments::CURRENT_LEVEL].RunLocalScatterGatherInMemory(sched_output_vector_chunks[0], cur_input_vector_chunks, cur_output_vector_chunks, next_input_vector_chunks, next_output_vector_chunks, vid_range, MaxNumPagesToPin, !NeedUnpin, update_version_range, e_type, d_type) == ON_GOING) {
+								while (adj_win[UserArguments::CURRENT_LEVEL].RunLocalScatterGatherInMemory(sched_output_vector_chunks[0], cur_input_vector_chunks, cur_output_vector_chunks, next_input_vector_chunks, next_output_vector_chunks, vid_range, MaxNumPagesToPin, !NeedUnpin, update_version_range, e_type, d_type) == ReturnStatus::ReturnStatus::ON_GOING) {
 									if (lv != UserArguments::MAX_LEVEL) {
 										ProcessNestedWindowedStreamPartialList(lv + 1, target_machine_id, update_version_range, e_type, d_type);
 									}
@@ -626,7 +626,7 @@ class TG_NWSM : public TG_NWSM_Base {
 								}
 								per_level_timer[lv-1].stop_timer(4);
 
-								while (adj_win[UserArguments::CURRENT_LEVEL].RunLocalScatterGather(sched_output_vector_chunks[0], cur_input_vector_chunks, cur_output_vector_chunks, next_input_vector_chunks, next_output_vector_chunks, vid_range, MaxNumPagesToPin, !NeedUnpin, update_version_range, e_type, d_type) == ON_GOING) {
+								while (adj_win[UserArguments::CURRENT_LEVEL].RunLocalScatterGather(sched_output_vector_chunks[0], cur_input_vector_chunks, cur_output_vector_chunks, next_input_vector_chunks, next_output_vector_chunks, vid_range, MaxNumPagesToPin, !NeedUnpin, update_version_range, e_type, d_type) == ReturnStatus::ReturnStatus::ON_GOING) {
 									if (lv != UserArguments::MAX_LEVEL) {
 										ProcessNestedWindowedStreamPartialList(lv + 1, target_machine_id, update_version_range, e_type, d_type);
 									}
@@ -681,9 +681,9 @@ class TG_NWSM : public TG_NWSM_Base {
 				cur_input_vector_chunks = sched_input_vector_chunks[i];
 				next_input_vector_chunks = sched_input_vector_chunks[i + 1];
 
-				PartitionID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
-				PartitionID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
-				PartitionID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
+				PartID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
+				PartID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
+				PartID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
 
 				vid_range = PartitionStatistics::machine_id_and_chunk_idx_to_vid_range(machine_id, cur_src_vector_chunk_id % UserArguments::VECTOR_PARTITIONS);
 
@@ -707,15 +707,15 @@ class TG_NWSM : public TG_NWSM_Base {
 
 					user_program_->set_context(cur_input_vector_chunks, cur_output_vector_chunks);
 
-					PartitionID start_dst_vector_chunk_id = sched_output_vector_chunks[0].GetBegin();
-					PartitionID cur_dst_vector_chunk_id = cur_output_vector_chunks.GetBegin();
-					PartitionID next_dst_vector_chunk_id = next_output_vector_chunks.GetBegin();
+					PartID start_dst_vector_chunk_id = sched_output_vector_chunks[0].GetBegin();
+					PartID cur_dst_vector_chunk_id = cur_output_vector_chunks.GetBegin();
+					PartID next_dst_vector_chunk_id = next_output_vector_chunks.GetBegin();
 
 					per_level_timer[lv-1].start_timer(7);
 					if (lv == 1 && UserArguments::MAX_LEVEL == 1) {
 						per_level_timer[lv-1].start_timer(4);
 						if (UserArguments::GRAPH_IN_MEMORY) {
-							while (adj_win[UserArguments::CURRENT_LEVEL].RunLocalScatterGatherInMemory(sched_output_vector_chunks[0], cur_input_vector_chunks, cur_output_vector_chunks, next_input_vector_chunks, next_output_vector_chunks, vid_range, MaxNumPagesToPin, !NeedUnpin, update_version_range, e_type, d_type) == ON_GOING) {
+							while (adj_win[UserArguments::CURRENT_LEVEL].RunLocalScatterGatherInMemory(sched_output_vector_chunks[0], cur_input_vector_chunks, cur_output_vector_chunks, next_input_vector_chunks, next_output_vector_chunks, vid_range, MaxNumPagesToPin, !NeedUnpin, update_version_range, e_type, d_type) == ReturnStatus::ON_GOING) {
 								if (lv != UserArguments::MAX_LEVEL) {
 									ProcessNestedWindowedStreamPartialList(lv + 1, target_machine_id, update_version_range, e_type, d_type);
 								}
@@ -733,7 +733,7 @@ class TG_NWSM : public TG_NWSM_Base {
 							}
 							per_level_timer[lv-1].stop_timer(4);
 
-							while (adj_win[UserArguments::CURRENT_LEVEL].RunLocalScatterGather(sched_output_vector_chunks[0], cur_input_vector_chunks, cur_output_vector_chunks, next_input_vector_chunks, next_output_vector_chunks, vid_range, MaxNumPagesToPin, !NeedUnpin, update_version_range, e_type, d_type) == ON_GOING) {
+							while (adj_win[UserArguments::CURRENT_LEVEL].RunLocalScatterGather(sched_output_vector_chunks[0], cur_input_vector_chunks, cur_output_vector_chunks, next_input_vector_chunks, next_output_vector_chunks, vid_range, MaxNumPagesToPin, !NeedUnpin, update_version_range, e_type, d_type) == ReturnStatus::ON_GOING) {
 								if (lv != UserArguments::MAX_LEVEL) {
 									ProcessNestedWindowedStreamPartialList(lv + 1, target_machine_id, update_version_range, e_type, d_type);
 								}
@@ -1030,7 +1030,7 @@ class TG_NWSM : public TG_NWSM_Base {
 //#ifdef PRINT_PROFILING_TIMERS
         fprintf(stdout, "[%ld] UpdatePhaseOnly %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n", PartitionStatistics::my_machine_id(), update_phase_timer.get_timer(0), update_phase_timer.get_timer(1), update_phase_timer.get_timer(6), update_phase_timer.get_timer(2), update_phase_timer.get_timer(3), update_phase_timer.get_timer(4), update_phase_timer.get_timer(5));
 //#endif
-        return OK;
+        return ReturnStatus::OK;
     }
 
     ReturnStatus UpdatePhaseHJ() {
@@ -1176,7 +1176,7 @@ class TG_NWSM : public TG_NWSM_Base {
         
         UserArguments::USE_DEGREE_ORDER_REPRESENTATION = prev_use_degree_order;
         apply_timer.stop_timer(14);
-        return OK;   
+        return ReturnStatus::OK;   
     }
 
   public:
@@ -1582,7 +1582,7 @@ class TG_NWSM : public TG_NWSM_Base {
 
     ReturnStatus SynchronizeCutVertices() {
 		user_program_->synchronize_vectors();
-		return OK;
+		return ReturnStatus::OK;
 	}
 
   private:
@@ -1646,9 +1646,9 @@ void TG_NWSM<UserProgram_t>::ProcessNestedWindowedStreamPartialList (int lv, int
         cur_input_vector_chunks = sched_input_vector_chunks[i];
         next_input_vector_chunks = sched_input_vector_chunks[i + 1];
 
-        PartitionID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
-        PartitionID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
-        PartitionID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
+        PartID start_src_vector_chunk_id = sched_input_vector_chunks[0].GetBegin();
+        PartID cur_src_vector_chunk_id = cur_input_vector_chunks.GetBegin();
+        PartID next_src_vector_chunk_id = next_input_vector_chunks.GetBegin();
 
         vid_range = PartitionStatistics::machine_id_and_chunk_idx_to_vid_range(machine_id, cur_src_vector_chunk_id % UserArguments::VECTOR_PARTITIONS);
 
@@ -1672,15 +1672,15 @@ void TG_NWSM<UserProgram_t>::ProcessNestedWindowedStreamPartialList (int lv, int
 
             user_program_->set_context(cur_input_vector_chunks, cur_output_vector_chunks);
 
-            PartitionID start_dst_vector_chunk_id = sched_output_vector_chunks[0].GetBegin();
-            PartitionID cur_dst_vector_chunk_id = cur_output_vector_chunks.GetBegin();
-            PartitionID next_dst_vector_chunk_id = next_output_vector_chunks.GetBegin();
+            PartID start_dst_vector_chunk_id = sched_output_vector_chunks[0].GetBegin();
+            PartID cur_dst_vector_chunk_id = cur_output_vector_chunks.GetBegin();
+            PartID next_dst_vector_chunk_id = next_output_vector_chunks.GetBegin();
 
             per_level_timer[lv-1].start_timer(7);
             if (lv == 1 && UserArguments::MAX_LEVEL == 1) {
                 per_level_timer[lv-1].start_timer(4);
                 if (UserArguments::GRAPH_IN_MEMORY) {
-                    while (adj_win[UserArguments::CURRENT_LEVEL].RunLocalScatterGatherInMemory(sched_output_vector_chunks[0], cur_input_vector_chunks, cur_output_vector_chunks, next_input_vector_chunks, next_output_vector_chunks, vid_range, MaxNumPagesToPin, !NeedUnpin, update_version_range, e_type, d_type) == ON_GOING) {
+                    while (adj_win[UserArguments::CURRENT_LEVEL].RunLocalScatterGatherInMemory(sched_output_vector_chunks[0], cur_input_vector_chunks, cur_output_vector_chunks, next_input_vector_chunks, next_output_vector_chunks, vid_range, MaxNumPagesToPin, !NeedUnpin, update_version_range, e_type, d_type) == ReturnStatus::ON_GOING) {
                         if (lv != UserArguments::MAX_LEVEL) {
                             ProcessNestedWindowedStreamPartialList(lv + 1, target_machine_id, update_version_range, e_type, d_type);
                         }
@@ -1698,7 +1698,7 @@ void TG_NWSM<UserProgram_t>::ProcessNestedWindowedStreamPartialList (int lv, int
                     }
                     per_level_timer[lv-1].stop_timer(4);
 
-                    while (adj_win[UserArguments::CURRENT_LEVEL].RunLocalScatterGather(sched_output_vector_chunks[0], cur_input_vector_chunks, cur_output_vector_chunks, next_input_vector_chunks, next_output_vector_chunks, vid_range, MaxNumPagesToPin, !NeedUnpin, update_version_range, e_type, d_type) == ON_GOING) {
+                    while (adj_win[UserArguments::CURRENT_LEVEL].RunLocalScatterGather(sched_output_vector_chunks[0], cur_input_vector_chunks, cur_output_vector_chunks, next_input_vector_chunks, next_output_vector_chunks, vid_range, MaxNumPagesToPin, !NeedUnpin, update_version_range, e_type, d_type) == ReturnStatus::ON_GOING) {
                         if (lv != UserArguments::MAX_LEVEL) {
                             ProcessNestedWindowedStreamPartialList(lv + 1, target_machine_id, update_version_range, e_type, d_type);
                         }

@@ -7,10 +7,43 @@
 #include <atomic>
 #include <omp.h>
 
-#include "util.hpp"
-
-
+#include "storage/cache/disk_aio/TypeDef.hpp"
 //#define __thread __declspec( thread )
+
+// padded, aligned primitives
+template <typename T>
+class aligned_padded_elem {
+  public:
+
+	template <class... Args>
+	aligned_padded_elem(Args &&... args)
+		: elem(std::forward<Args>(args)...) {
+		assert(sizeof(aligned_padded_elem<T>) % CACHELINE_SIZE == 0);
+	}
+
+	T elem;
+	CACHE_PADOUT;
+
+	// syntactic sugar- can treat like a pointer
+	inline T & operator*() {
+		return elem;
+	}
+	inline const T & operator*() const {
+		return elem;
+	}
+	inline T * operator->() {
+		return &elem;
+	}
+	inline const T * operator->() const {
+		return &elem;
+	}
+
+  private:
+	inline void
+	__cl_asserter() const {
+		assert((sizeof(*this) % CACHELINE_SIZE) == 0);
+	}
+} CACHE_ALIGNED;
 
 class core_id {
   public:

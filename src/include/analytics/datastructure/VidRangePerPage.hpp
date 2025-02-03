@@ -14,7 +14,7 @@
  */
 
 #include "analytics/core/TypeDef.hpp"
-#include "analytics/io/Turbo_bin_io_handler.hpp"
+#include "storage/cache/disk_aio/Turbo_bin_io_handler.hpp"
 
 class VidRangePerPage {
   public:

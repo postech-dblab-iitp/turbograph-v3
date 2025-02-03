@@ -820,7 +820,7 @@ void MaterializedAdjacencyLists::MergeDeltaWithCachedCurrent(BitMap<node_t>* ful
     for (int dbtype = 0; dbtype < 2; dbtype++) {
         if (!TurboDB::GetTurboDB(e_type)->is_version_exist((DynamicDBType) dbtype, UserArguments::UPDATE_VERSION)) continue;
 
-        for (PartitionID i = dst_edge_partitions.GetBegin(); i <= dst_edge_partitions.GetEnd(); i++) {
+        for (PartID i = dst_edge_partitions.GetBegin(); i <= dst_edge_partitions.GetEnd(); i++) {
             VidRangePerPage& vidrangeperpage = TurboDB::GetTurboDB(e_type)->GetVidRangePerPage(version_id, (DynamicDBType)dbtype);
 
             for (PageID pid = TurboDB::GetTurboDB(e_type)->GetFirstPageId(i, version_id, (DynamicDBType)dbtype); pid <= TurboDB::GetTurboDB(e_type)->GetLastPageId(i, version_id, (DynamicDBType)dbtype); pid++) {
@@ -852,7 +852,7 @@ void MaterializedAdjacencyLists::MergeDeltaWithCachedCurrent(BitMap<node_t>* ful
                         ALWAYS_ASSERT(TurboDB::GetBufMgr()->IsPinnedPage(cur_pid));
                         TurboDB::GetBufMgr()->GetPagePtr_Unsafe(cur_pid, page_buffer);
                         adjlist_iter.SetCurrentPage(cur_pid, page_buffer);
-                        while (adjlist_iter.GetNextAdjList(nbrlist_iter) == OK) {
+                        while (adjlist_iter.GetNextAdjList(nbrlist_iter) == ReturnStatus::OK) {
                             int64_t sz = nbrlist_iter.GetNumEntries();
                             node_t vid = nbrlist_iter.GetSrcVid();
                             node_t* data = nbrlist_iter.GetData();
@@ -1349,7 +1349,7 @@ ReturnStatus MaterializedAdjacencyLists::MaterializeFullListAsCurrentAndDelta(Tw
 
     if (total_src_vertices_cnt[0] == 0) {
         vpage_.Initialize(0, 0, nullptr);
-        return FAIL;
+        return ReturnStatus::FAIL;
     }
 
     // Allocate container
@@ -1396,7 +1396,7 @@ ReturnStatus MaterializedAdjacencyLists::MaterializeFullListAsCurrentAndDelta(Tw
             Range<int64_t> dst_edge_partitions_to_process = dst_edge_partitions;
             if (use_fulllist_db) dst_edge_partitions_to_process.Set(0, 0);
             
-            for (PartitionID i = dst_edge_partitions_to_process.GetBegin(); i <= dst_edge_partitions_to_process.GetEnd(); i++) {
+            for (PartID i = dst_edge_partitions_to_process.GetBegin(); i <= dst_edge_partitions_to_process.GetEnd(); i++) {
                 VidRangePerPage& vidrangeperpage = TurboDB::GetTurboDB(db_e_type)->GetVidRangePerPage(version_id, (DynamicDBType)dbtype, use_fulllist_db);
                 PageID last_pid = TurboDB::GetTurboDB(db_e_type)->GetLastPageId(i, version_id, (DynamicDBType)dbtype, use_fulllist_db);
                 
@@ -1443,8 +1443,8 @@ ReturnStatus MaterializedAdjacencyLists::MaterializeFullListAsCurrentAndDelta(Tw
                     }
                     timer.stop_timer(8);
 
-                    if (rs == ON_GOING) page_io_cnts++;
-                    else if (rs == DONE) page_pin_wo_io_cnts++;
+                    if (rs == ReturnStatus::ON_GOING) page_io_cnts++;
+                    else if (rs == ReturnStatus::DONE) page_pin_wo_io_cnts++;
                     pin_counts++;
                     pending_page_counts++;
 
@@ -1506,7 +1506,7 @@ ReturnStatus MaterializedAdjacencyLists::MaterializeFullListAsCurrentAndDelta(Tw
     RequestRespond::ReturnTempDataBuffer(container_degrees);
     RequestRespond::ReturnTempDataBuffer(container_delta_degrees);
 
-    return OK;
+    return ReturnStatus::OK;
 }
 
 void MaterializedAdjacencyLists::FormatContainer(std::vector<node_t>& total_dummy_src_vertices_cnts, std::vector<node_t>& total_src_vertices_cnt, std::vector<node_t>& total_edges_cnt, VariableSizedPage<Slot32>* vpage, BitMap<node_t>* vids, Range<node_t> vid_range, int dbtype, std::vector<std::vector<int64_t>>& degrees, std::vector<std::vector<int64_t>>& offset_to_fill_from, node_t first_vid_of_bitmap, int64_t size_to_request, int64_t adjlist_data_size) {
@@ -1690,7 +1690,7 @@ void MaterializedAdjacencyLists::MaterializeFullList(TwoLevelBitMap<node_t>* vid
 
     timer.start_timer(5);
     for (int version_id = version_range.GetBegin(); version_id <= version_range.GetEnd(); version_id++) {
-        for (PartitionID i = dst_edge_partitions_to_process.GetBegin(); i <= dst_edge_partitions.GetEnd(); i++) {
+        for (PartID i = dst_edge_partitions_to_process.GetBegin(); i <= dst_edge_partitions.GetEnd(); i++) {
             VidRangePerPage& vidrangeperpage = TurboDB::GetTurboDB(db_e_type)->GetVidRangePerPage(version_id, d_type, use_fulllist_db);
             while (CurPid[version_id][i] != -1 && CurPid[version_id][i] <= TurboDB::GetTurboDB(db_e_type)->GetLastPageId(i, version_id, d_type, use_fulllist_db) && vid_range.Overlapped(vidrangeperpage.Get(CurPid[version_id][i]))) {
                 Range<node_t> cur_page_vid_range = vidrangeperpage.Get(CurPid[version_id][i]);
@@ -1727,8 +1727,8 @@ void MaterializedAdjacencyLists::MaterializeFullList(TwoLevelBitMap<node_t>* vid
                 }
                 ALWAYS_ASSERT(req.buf != NULL);
                 ALWAYS_ASSERT(TurboDB::GetBufMgr()->IsPinnedPage(table_page_id));
-                if (rs == ON_GOING) page_io_cnts++;
-                else if (rs == DONE) page_pin_wo_io_cnts++;
+                if (rs == ReturnStatus::ON_GOING) page_io_cnts++;
+                else if (rs == ReturnStatus::DONE) page_pin_wo_io_cnts++;
 
                 pin_counts++;
                 pending_page_counts++;
@@ -1852,7 +1852,7 @@ void MaterializedAdjacencyLists::FindPageIdsToReadFrom(BitMap<node_t>* vids, Ran
 
         all_found = true;
         for (int version_id = version_range.GetBegin(); version_id <= version_range.GetEnd(); version_id++) {
-            for (PartitionID i = dst_edge_partitions.GetBegin(); i <= dst_edge_partitions.GetEnd(); i++) {
+            for (PartID i = dst_edge_partitions.GetBegin(); i <= dst_edge_partitions.GetEnd(); i++) {
                 if (CurPid[version_id][i] == -1) {
                     CurPid[version_id][i] = TurboDB::GetTurboDB(db_e_type)->GetPageRangeByVid(i, vid, version_id, e_type, dbtype).GetBegin();
                     if (CurPid[version_id][i] == -1) {
@@ -1888,7 +1888,7 @@ void MaterializedAdjacencyLists::CopyAdjListsInPagesToContainer(VECTOR<std::queu
         TurboDB::GetBufMgr()->GetPagePtr_Unsafe(cur_pid, page_buffer);
 
         adjlist_iter.SetCurrentPage(cur_pid, page_buffer);
-        while (adjlist_iter.GetNextAdjList(*vids, nbrlist_iter) == OK) {
+        while (adjlist_iter.GetNextAdjList(*vids, nbrlist_iter) == ReturnStatus::OK) {
             if (!vid_range.contains(nbrlist_iter.GetSrcVid())) continue;
 
             ALWAYS_ASSERT (nbrlist_iter.GetSrcVid() >= PartitionStatistics::my_first_node_id()
@@ -1951,7 +1951,7 @@ void MaterializedAdjacencyLists::CopyAdjListsInPagesToContainer(VECTOR<std::queu
         TurboDB::GetBufMgr()->GetPagePtr_Unsafe(cur_pid, page_buffer);
 
         adjlist_iter.SetCurrentPage(cur_pid, page_buffer);
-        while (adjlist_iter.GetNextAdjList(*vids, nbrlist_iter) == OK) {
+        while (adjlist_iter.GetNextAdjList(*vids, nbrlist_iter) == ReturnStatus::OK) {
             if (!vid_range.contains(nbrlist_iter.GetSrcVid())) continue;
 
             ALWAYS_ASSERT (nbrlist_iter.GetSrcVid() >= PartitionStatistics::my_first_node_id()
@@ -2027,7 +2027,7 @@ void MaterializedAdjacencyLists::CopyAdjListsInPagesToContainer(std::queue<PageI
         TurboDB::GetTurboDB(e_type)->GetBufMgr()->GetPagePtr_Unsafe(cur_table_page_id, page_buffer);
 
         adjlist_iter.SetCurrentPage(cur_table_page_id, page_buffer);
-        while (adjlist_iter.GetNextAdjList(*vids, nbrlist_iter) == OK) {
+        while (adjlist_iter.GetNextAdjList(*vids, nbrlist_iter) == ReturnStatus::OK) {
             if (!vid_range.contains(nbrlist_iter.GetSrcVid())) continue;
             ALWAYS_ASSERT (nbrlist_iter.GetSrcVid() >= PartitionStatistics::my_first_node_id() && nbrlist_iter.GetSrcVid() <= PartitionStatistics::my_last_node_id());
             ALWAYS_ASSERT (vids->Get(nbrlist_iter.GetSrcVid() - first_vid_of_bitmap));

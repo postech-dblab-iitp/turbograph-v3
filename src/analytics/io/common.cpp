@@ -40,7 +40,7 @@
 #include <sstream>
 #include <random>
 
-#include "analytics/io/disk_aio/common.h"
+#include "storage/cache/disk_aio/common.h"
 
 extern "C" {
 

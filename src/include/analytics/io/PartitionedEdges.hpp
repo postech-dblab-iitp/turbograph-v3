@@ -11,13 +11,13 @@
 #include "analytics/core/TG_DistributedVector.hpp"
 #include "omp.h"
 #include "math.h"
-#include "analytics/io/Turbo_bin_mmapper.hpp"
-#include "analytics/io/Turbo_bin_io_handler.hpp"
 #include "analytics/io/Blocking_Turbo_bin_io_handler.hpp"
 #include "analytics/io/Splittable_Turbo_bin_io_handler.hpp"
+#include "analytics/io/Turbo_bin_mmapper.hpp"
 #include "analytics/datastructure/FixedSizeBufferPool.hpp"
 #include "analytics/util/atom.hpp"
 #include "analytics/util/timer.hpp"
+#include "storage/cache/disk_aio/Turbo_bin_io_handler.hpp"
 
 template <typename FileNodeType, typename Degree_t>
 class PartitionedEdges {
@@ -140,12 +140,12 @@ class PartitionedEdges {
 
     ReturnStatus Close() {
         reader_.Close();
-        return OK;
+        return ReturnStatus::OK;
     }
 
     ReturnStatus CloseGrid(int64_t row, int64_t col, bool rm = false) {
         oreader_[row][col].Close(rm);
-        return OK;
+        return ReturnStatus::OK;
     }
 
     ReturnStatus CloseAll() {
@@ -159,12 +159,12 @@ class PartitionedEdges {
 
     ReturnStatus CloseGrid_IO(int64_t row, int64_t col, bool rm = false) {
         io_reader_[row][col].Close(rm);
-        return OK;
+        return ReturnStatus::OK;
     }
 
     ReturnStatus CloseGrid_IO2(int64_t row, int64_t col, bool rm = false) {
         io_reader2_[row][col].Close(rm);
-        return OK;
+        return ReturnStatus::OK;
     }
 
     int64_t countOutDegreeAndProcess(int row, int col, TG_DistributedVector<degree_t, PLUS>& vector_for_count) {
@@ -319,7 +319,7 @@ class PartitionedEdges {
             degree_table_->Append(section_size * sizeof(degree_t), (char*)&degree_table_buffer_[0]);
         }
 
-        return OK;
+        return ReturnStatus::OK;
     }
 
     ReturnStatus calculateLocalInOutDegreeTable(Splittable_Turbo_bin_io_handler* indegree_table_, Splittable_Turbo_bin_io_handler* outdegree_table_, int64_t num_threads_, int64_t total_edge, int64_t total_vertices, int64_t num_chunks_, int machine_num) { // like buffer
@@ -376,7 +376,7 @@ class PartitionedEdges {
             indegree_table_->Append(section_size * sizeof(degree_t), (char*)&degree_table_buffer_[0]);
         }
 
-        return OK;
+        return ReturnStatus::OK;
     }
 
     ReturnStatus relabelingEdges_byOffset(std::vector<int64_t> & range, std::vector<int64_t> & offset, int64_t num_threads_, int64_t max_vid, int64_t num_chunks_) {
@@ -679,7 +679,7 @@ class PartitionedEdges {
             CloseGrid_IO2(i, index);
         }
 
-        return OK;
+        return ReturnStatus::OK;
     }
 
     ReturnStatus relabelingEdges_byVector2(int64_t num_threads_, int index, TG_DistributedVector<node_t, PLUS>& oldtonew_vid_mapping) {
@@ -898,7 +898,7 @@ class PartitionedEdges {
             }
         }
 
-        return OK;
+        return ReturnStatus::OK;
     }
 
     ReturnStatus relabelingEdges_byVector2_SrcOnly(int64_t num_threads_, int index, TG_DistributedVector<node_t, PLUS>& oldtonew_vid_mapping) {
@@ -1032,7 +1032,7 @@ class PartitionedEdges {
             }
         }
 
-        return OK;
+        return ReturnStatus::OK;
     }
 
     ReturnStatus makeSendPartition(GraphPreprocessArgs args_, std::vector<int64_t> range){
@@ -1050,7 +1050,7 @@ class PartitionedEdges {
                     throw std::runtime_error("");
                 });
         }
-        return OK;
+        return ReturnStatus::OK;
     }
 
     ReturnStatus makeSendPartitionWrapper(GraphPreprocessArgs args_, std::function<int64_t(FileNodeType)> dst_machine){
@@ -1258,7 +1258,7 @@ class PartitionedEdges {
         }
         for(int64_t i = 0; i < num_chunks_; i++) {
             for(int64_t j = 0; j < num_chunks_; j++) {
-                if(OpenGrid(i, j) == OK) {
+                if(OpenGrid(i, j) == ReturnStatus::OK) {
                     int64_t edge_size = ofile_size_[i][j] / sizeof(FileEdge);
 #pragma omp parallel num_threads(num_threads_)
                     {
@@ -1325,7 +1325,7 @@ class PartitionedEdges {
         //delete buffer_rw_size;
         //delete read_containers;
 
-        return OK;
+        return ReturnStatus::OK;
     }
 
     static void call_writeBuffertoFile(PartitionedEdges* pointer, Blocking_Turbo_bin_io_handler* handler,  char* buffer, std::size_t size_to_append, SimpleContainer cont) {

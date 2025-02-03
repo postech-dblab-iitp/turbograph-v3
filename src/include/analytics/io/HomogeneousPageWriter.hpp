@@ -14,7 +14,7 @@
  */
 
 #include "analytics/io/GraphDataReaderWriterInterface.hpp"
-#include "analytics/io/Turbo_bin_io_handler.hpp"
+#include "storage/cache/disk_aio/Turbo_bin_io_handler.hpp"
 #include "analytics/util/TG_NWSM_Utility.hpp"
 
 class HomogeneousPageWriter : public WriterInterface {
@@ -41,10 +41,10 @@ class HomogeneousPageWriter : public WriterInterface {
 		ReturnStatus st;
 		st = bin_writer_.Append(sizeof(Page), (char*) page.GetData());
 		ALWAYS_ASSERT(SanityCheck(&page));
-		if (st != OK) {
+		if (st != ReturnStatus::OK) {
 			abort();
 		}
-		ALWAYS_ASSERT(st == OK);
+		ALWAYS_ASSERT(st == ReturnStatus::OK);
 	}
 
 	/* 
@@ -59,7 +59,7 @@ class HomogeneousPageWriter : public WriterInterface {
 		NbrList_Iterator_t nbrlist_iter;
 		adjlist_iter.SetCurrentPage(page);
 
-		while (adjlist_iter.GetNextAdjList(nbrlist_iter) == OK) {
+		while (adjlist_iter.GetNextAdjList(nbrlist_iter) == ReturnStatus::OK) {
 			ALWAYS_ASSERT (nbrlist_iter.GetSrcVid() >= PartitionStatistics::my_first_node_id()
 			               && nbrlist_iter.GetSrcVid() <= PartitionStatistics::my_last_node_id());
 			ALWAYS_ASSERT(nbrlist_iter.GetNumEntries() > 0);

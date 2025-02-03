@@ -37,7 +37,7 @@ class BinaryFormatEdgePairDummyReader : public ReaderInterface<Entry_t> {
 	virtual ReturnStatus rewind() {
 		*rand_gen_ = *rand_chk_;
 		left_ = size_;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	virtual ReturnStatus getNext(Entry_t& item) {
@@ -47,12 +47,12 @@ class BinaryFormatEdgePairDummyReader : public ReaderInterface<Entry_t> {
 		else if(data_mode_ == 3) return duplicate_ring_Next(item);
 		else if(data_mode_ == 4) return self_Next(item);
 		else if(data_mode_ == 5) return duplicate_self_Next(item);
-		else return FAIL;
+		else return ReturnStatus::FAIL;
 	}
 
 	ReturnStatus random_Next(Entry_t& item) {
 		if (left_ <= 0)
-			return FAIL;
+			return ReturnStatus::FAIL;
 		left_--;
 		item.src_vid_ = (*rand_gen_)() % max_vid_;
 		item.dst_vid_ = (*rand_gen_)() % max_vid_;
@@ -61,14 +61,14 @@ class BinaryFormatEdgePairDummyReader : public ReaderInterface<Entry_t> {
 			item.dst_vid_ = __bswap_64(item.dst_vid_);
 		}
 		last_entry_ = item;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	ReturnStatus ring_Next(Entry_t& item) {
 		if(current_ > degree_) {
 			left_--;
 			current_ = 1;
-			if(left_ <= 0) return FAIL;
+			if(left_ <= 0) return ReturnStatus::FAIL;
 		}
 		item.src_vid_ = size_ - left_;
 		item.dst_vid_ = (size_ - left_ + current_) % max_vid_;
@@ -78,14 +78,14 @@ class BinaryFormatEdgePairDummyReader : public ReaderInterface<Entry_t> {
 			item.dst_vid_ = __bswap_64(item.dst_vid_);
 		}
 		last_entry_ = item;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	ReturnStatus decrease_Next(Entry_t& item) {
 		if(current_ > size_ - left_) {
 			left_--;
 			current_ = 1;
-			if(left_ <= 0) return FAIL;
+			if(left_ <= 0) return ReturnStatus::FAIL;
 		}
 		item.src_vid_ = size_ - left_;
 		item.dst_vid_ = size_ - left_ - current_;
@@ -96,14 +96,14 @@ class BinaryFormatEdgePairDummyReader : public ReaderInterface<Entry_t> {
 			item.dst_vid_ = __bswap_64(item.dst_vid_);
 		}
 		last_entry_ = item;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	ReturnStatus duplicate_ring_Next(Entry_t& item) {
 		if(current_ > degree_) {
 			left_--;
 			current_ = 1;
-			if(left_ <= 0) return FAIL;
+			if(left_ <= 0) return ReturnStatus::FAIL;
 		}
 		item.src_vid_ = size_ - left_;
 		item.dst_vid_ = (size_ - left_ + 1) % max_vid_;
@@ -113,14 +113,14 @@ class BinaryFormatEdgePairDummyReader : public ReaderInterface<Entry_t> {
 			item.dst_vid_ = __bswap_64(item.dst_vid_);
 		}
 		last_entry_ = item;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	ReturnStatus self_Next(Entry_t& item) {
 		if(current_ > degree_) {
 			left_--;
 			current_ = 1;
-			if(left_ <= 0) return FAIL;
+			if(left_ <= 0) return ReturnStatus::FAIL;
 		}
 		item.src_vid_ = size_ - left_;
 		item.dst_vid_ = size_ - left_;
@@ -130,14 +130,14 @@ class BinaryFormatEdgePairDummyReader : public ReaderInterface<Entry_t> {
 			item.dst_vid_ = __bswap_64(item.dst_vid_);
 		}
 		last_entry_ = item;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	ReturnStatus duplicate_self_Next(Entry_t& item) {
 		if(current_ > degree_) {
 			left_--;
 			current_ = 1;
-			if(left_ <= 0) return FAIL;
+			if(left_ <= 0) return ReturnStatus::FAIL;
 		}
 		if(current_ == 1) {
 			item.src_vid_ = size_ - left_;
@@ -153,15 +153,15 @@ class BinaryFormatEdgePairDummyReader : public ReaderInterface<Entry_t> {
 			item.dst_vid_ = __bswap_64(item.dst_vid_);
 		}
 		last_entry_ = item;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	ReturnStatus getCurrent(Entry_t& item) {
 		if (left_ < 0) {
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
 		item = last_entry_;
-		return OK;
+		return ReturnStatus::OK;
 	}
 	int64_t file_size() {
 		return size_;

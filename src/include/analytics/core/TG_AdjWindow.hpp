@@ -73,14 +73,14 @@
 #include "analytics/core/TG_NWSMTaskContext.hpp"
 #include "analytics/core/TurboDB.hpp"
 #include "analytics/datastructure/MaterializedAdjacencyLists.hpp"
-#include "analytics/datastructure/disk_aio_factory.hpp"
 #include "analytics/datastructure/TwoLevelBitMap.hpp"
-#include "analytics/io/Turbo_bin_aio_handler.hpp"
 #include "analytics/util/MemoryAllocator.hpp"
 #include "analytics/util/VariableSizedMemoryAllocatorWithCircularBuffer.hpp"
 #include "analytics/util/BlockMemoryStackAllocator.hpp"
 #include "analytics/util/util.hpp"
 #include "analytics/util/TG_NWSM_Utility.hpp"
+#include "storage/cache/disk_aio/disk_aio_factory.hpp"
+#include "storage/cache/disk_aio/Turbo_bin_aio_handler.hpp"
 
 #define MIN_WORKING_PAGE_SET_SIZE 64
 
@@ -305,7 +305,7 @@ class TG_AdjWindow : public TG_NWSMCallback {
 			vid_range_to_process.Set (-1, -1);
 			vid_range_processed.Set (-1, -1);
 			vid_range_being_processed.Set(-1, -1);
-			return DONE;
+			return ReturnStatus::DONE;
 		}
 
 		Range<PageID> cur_block_range(-1, -1);
@@ -315,10 +315,10 @@ class TG_AdjWindow : public TG_NWSMCallback {
 		if (UserArguments::MAX_LEVEL == 1) {
 			vid_range_being_processed = vid_range_to_process;
 			vid_range_processed.SetEnd(vid_range_being_processed.GetEnd());
-			return ON_GOING;
+			return ReturnStatus::ON_GOING;
 		} else {
 			abort(); // syko, tslee: 2018/10/17
-			return DONE;
+			return ReturnStatus::DONE;
         }
 	}
 	
@@ -358,7 +358,7 @@ class TG_AdjWindow : public TG_NWSMCallback {
 			vid_range_processed.Set (-1, -1);
 			vid_range_being_processed.Set (-1, -1);
 			SetWindowFinalized(true);
-			return DONE;
+			return ReturnStatus::DONE;
 		}
 
 		// Issue IO with Callback
@@ -392,7 +392,7 @@ class TG_AdjWindow : public TG_NWSMCallback {
 		        , fulllist_scatter_gather_timer.get_timer(3));
 #endif
         
-        return ON_GOING;
+        return ReturnStatus::ON_GOING;
     }
 	
     virtual ReturnStatus RunScatterGather(Range<int64_t> src_vector_chunks, Range<int64_t> next_src_vector_chunks, Range<node_t> vid_range, int64_t MaxNumBytesToPin, bool NoEvict, Range<int> version_range, EdgeType e_type) {
@@ -444,12 +444,12 @@ class TG_AdjWindow : public TG_NWSMCallback {
 			this->vid_range_being_processed.Set(-1, -1);
             
             SetWindowFinalized(true);
-			return DONE;
+			return ReturnStatus::DONE;
 		}
 
 		ALWAYS_ASSERT (src_vector_chunks.GetBegin() == src_vector_chunks.GetEnd());
-		PartitionID cur_src_vector_chunk_id = src_vector_chunks.GetBegin();
-		PartitionID next_src_vector_chunk_id = next_src_vector_chunks.GetBegin();
+		PartID cur_src_vector_chunk_id = src_vector_chunks.GetBegin();
+		PartID next_src_vector_chunk_id = next_src_vector_chunks.GetBegin();
 
 		// Identify the vertices that will be included in the next sliding window
 		vid_range_being_processed.Set(vid_range_processed.GetEnd() + 1, vid_range_to_process.GetEnd());
@@ -490,7 +490,7 @@ class TG_AdjWindow : public TG_NWSMCallback {
 #endif
         
         
-        return ON_GOING;
+        return ReturnStatus::ON_GOING;
 	}
 
 	bool HasVertexInWindow(node_t vid) {
@@ -878,7 +878,7 @@ Retry:
 
 	virtual ReturnStatus RunLocalScatterGather(Range<int64_t> start_dst_vector_chunks, Range<int64_t> src_vector_chunks, Range<int64_t> dst_vector_chunks, Range<int64_t> next_src_vector_chunks, Range<int64_t> next_dst_vector_chunks, Range<node_t> vid_range, PageID MaxNumPagesToPin, bool NoEvict, Range<int> version_range, EdgeType e_type, DynamicDBType d_type);
 
-	bool ScheduleNextTask (task_ctxt_t*& ctxt, PartitionID cur_src_vector_chunk_id, PartitionID cur_dst_vector_chunk_id, int64_t& num_subchunks_scheduled, Range<int> version_range, EdgeType e_type, DynamicDBType d_type=INSERT);
+	bool ScheduleNextTask (task_ctxt_t*& ctxt, PartID cur_src_vector_chunk_id, PartID cur_dst_vector_chunk_id, int64_t& num_subchunks_scheduled, Range<int> version_range, EdgeType e_type, DynamicDBType d_type=INSERT);
 
 	PageID LaunchTask (task_ctxt_t* ctxt, bool NoEvict, EdgeType e_type);
 
@@ -912,7 +912,7 @@ Retry:
 		int64_t edges_cnt = 0;
 		int64_t tid = omp_get_thread_num();
 		per_thread_lsg_timer[tid].start_timer(0);
-		while (adjlist_iter.GetNextAdjList(active_vertices_bitmap, nbrlist_iter) == OK) {
+		while (adjlist_iter.GetNextAdjList(active_vertices_bitmap, nbrlist_iter) == ReturnStatus::OK) {
 			ALWAYS_ASSERT (nbrlist_iter.GetSrcVid() >= PartitionStatistics::my_first_node_id()
 			               && nbrlist_iter.GetSrcVid() <= PartitionStatistics::my_last_node_id());
 
@@ -1870,7 +1870,7 @@ ReturnStatus TG_AdjWindow<UserProgram_t>::RunLocalScatterGatherInMemory(Range<in
 	FlushUpdateBuffer(0, 0, 0, 0, 1);
 	FlushUpdateBuffer(0, 0, 0, 1, 1);
 	fprintf(stdout, "# processed edges = %ld\n", num_total_processed_edges);
-	return DONE;
+	return ReturnStatus::DONE;
 }
 
 template<typename UserProgram_t>
@@ -1880,17 +1880,17 @@ ReturnStatus TG_AdjWindow<UserProgram_t>::RunLocalScatterGather(Range<int64_t> s
 
 	local_scatter_gather_timer.start_timer(0);
 	ReturnStatus rt = PrepareForLocalScatterGather(src_vector_chunks, dst_vector_chunks, vid_range, MaxNumPagesToPin, NoEvict);
-	if (rt == DONE) return rt;
+	if (rt == ReturnStatus::DONE) return rt;
 
 	ALWAYS_ASSERT (start_dst_vector_chunks.GetBegin() == start_dst_vector_chunks.GetEnd());
 	ALWAYS_ASSERT (src_vector_chunks.GetBegin() == src_vector_chunks.GetEnd());
 	ALWAYS_ASSERT (dst_vector_chunks.GetBegin() == dst_vector_chunks.GetEnd());
 
-	PartitionID start_dst_vector_chunk_id = start_dst_vector_chunks.GetBegin();
-	PartitionID cur_dst_vector_chunk_id = dst_vector_chunks.GetBegin();
-	PartitionID cur_src_vector_chunk_id = src_vector_chunks.GetBegin();
-	PartitionID next_dst_vector_chunk_id = next_dst_vector_chunks.GetBegin();
-	PartitionID next_src_vector_chunk_id = next_src_vector_chunks.GetBegin();
+	PartID start_dst_vector_chunk_id = start_dst_vector_chunks.GetBegin();
+	PartID cur_dst_vector_chunk_id = dst_vector_chunks.GetBegin();
+	PartID cur_src_vector_chunk_id = src_vector_chunks.GetBegin();
+	PartID next_dst_vector_chunk_id = next_dst_vector_chunks.GetBegin();
+	PartID next_src_vector_chunk_id = next_src_vector_chunks.GetBegin();
 
 	bool HasPageToProcess = false;
 	PageID num_pages_to_process = 0;
@@ -2010,7 +2010,7 @@ ReturnStatus TG_AdjWindow<UserProgram_t>::RunLocalScatterGather(Range<int64_t> s
 }
 
 template<typename UserProgram_t>
-bool TG_AdjWindow<UserProgram_t>::ScheduleNextTask (task_ctxt_t*& ctxt, PartitionID cur_src_vector_chunk_id, PartitionID cur_dst_vector_chunk_id, int64_t& num_subchunks_scheduled, Range<int> version_range, EdgeType e_type, DynamicDBType d_type) {
+bool TG_AdjWindow<UserProgram_t>::ScheduleNextTask (task_ctxt_t*& ctxt, PartID cur_src_vector_chunk_id, PartID cur_dst_vector_chunk_id, int64_t& num_subchunks_scheduled, Range<int> version_range, EdgeType e_type, DynamicDBType d_type) {
 	int64_t thread_id = omp_get_thread_num();
 	int64_t socket_id = NumaHelper::get_socket_id_by_omp_thread_id(thread_id);
 	INVARIANT (thread_id == TG_ThreadContexts::thread_id);
@@ -2274,7 +2274,7 @@ int64_t TG_AdjWindow<UserProgram_t>::PrePinMemoryHitPages (Range<int64_t> src_ed
 				req.user_info.db_info.version_id = version;
 				req.user_info.do_user_cb = false;
 				req.user_info.func = (void*) &InvokeUserCallback;
-				PartitionID my_machine_id = PartitionStatistics::my_machine_id();
+				PartID my_machine_id = PartitionStatistics::my_machine_id();
 				
 				hit_page_bitmap_.InvokeIfMarked([&](PageID table_page_id) {
 						if (my_num_pages_pinned > max_num_pages_to_prepin_per_task) {
@@ -2331,7 +2331,7 @@ PageID TG_AdjWindow<UserProgram_t>::PreFetchingIssueParallelRead(PageID start_pa
 			total_num_pages++;
 
 			PageID old_table_pid = -1;
-			ReturnStatus st = FAIL;
+			ReturnStatus st = ReturnStatus::FAIL;
 
 			AioRequest req;
 			req.user_info.caller = this;
@@ -2385,9 +2385,9 @@ PageID TG_AdjWindow<UserProgram_t>::PreFetchingIssueParallelRead(PageID start_pa
 				st = TurboDB::GetBufMgr()->PinPageCallback(PartitionStatistics::my_machine_id(), req, my_io);
 				pPage = (Page*) req.buf;
 			}
-			if (st == OK || st == ON_GOING) num_pages_requested++;
-			if (st == DONE) num_pages_requested_done++;
-			if (st == ON_GOING) num_pages_requested_ongoing++;
+			if (st == ReturnStatus::OK || st == ReturnStatus::ON_GOING) num_pages_requested++;
+			if (st == ReturnStatus::DONE) num_pages_requested_done++;
+			if (st == ReturnStatus::ON_GOING) num_pages_requested_ongoing++;
 	}, table_page_id_range, true);
 
 	//fprintf(stdout, "[%ld] Prefetch [%ld, %ld] on ver=%ld, subchunk_id=%ld, # pages requested=%ld (%ld + %ld) among %ld bits set\n", PartitionStatistics::my_machine_id(), start_page_id, last_page_id, version_id, task_id, (int64_t) num_pages_requested, (int64_t) num_pages_requested_done, (int64_t) num_pages_requested_ongoing, (int64_t) total_num_pages);

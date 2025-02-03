@@ -8,6 +8,7 @@
 #include "storage/cache/common.h"
 #include "storage/cache/client.h"
 #include "storage/cache/disk_aio/Turbo_bin_aio_handler.hpp"
+#include "common/enums/return_status.hpp"
 
 namespace duckdb {
 

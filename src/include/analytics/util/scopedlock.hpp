@@ -4,7 +4,7 @@
 #ifndef SCOPEDLOCK_H
 #define SCOPEDLOCK_H
 
-#include "analytics/core/eXDB_dist_internal.hpp"
+#include "storage/cache/disk_aio/eXDB_dist_internal.hpp"
 
 template<class T>
 class scopedlock {

@@ -72,7 +72,7 @@ ReturnStatus TurboDB::LoadDB(const char* dir_name, const RunConfig& config, Edge
         if (d_type == INSERT) system_fprintf(0, stdout, "Load Insert DB(e_type %d) Complete\n", (int)e_type_);
         if (d_type == DELETE) system_fprintf(0, stdout, "Load Delete DB(e_type %d) Complete\n", (int)e_type_);
     }
-    return OK;
+    return ReturnStatus::OK;
 }
 
 ReturnStatus TurboDB::LoadDB(const char* dir_name, EdgeType e_type_, DynamicDBType d_type, Range<int> version) {
@@ -184,7 +184,7 @@ ReturnStatus TurboDB::LoadDB(const char* dir_name, EdgeType e_type_, DynamicDBTy
     }
 		UserArguments::USE_FULLIST_DB = prev_use_fullist_db;
     fprintf(stdout, "[%ld] Load Partial List DB (%s, %s) %d of %d versions loaded, table_pid range [%d, %d)\n", PartitionStatistics::my_machine_id(), (e_type_ == OUTEDGE) ? "OUTEDGE" : "INEDGE", (d_type == INSERT) ? "INSERT" : "DELETE", num_loaded_db, version_end_id - version_begin_id + 1, first_table_pid, num_pages_loaded);
-    return OK;
+    return ReturnStatus::OK;
 }
 
 ReturnStatus TurboDB::LoadFullListDB(const char* dir_name, EdgeType e_type_, DynamicDBType d_type, Range<int> version) {
@@ -252,7 +252,7 @@ ReturnStatus TurboDB::LoadFullListDB(const char* dir_name, EdgeType e_type_, Dyn
     }
     fprintf(stdout, "[%ld] Load Full List DB (%s, %s) %d of %d versions loaded, table_pid range [%d, %d)\n", PartitionStatistics::my_machine_id(), (e_type_ == OUTEDGE) ? "OUTEDGE" : "INEDGE", (d_type == INSERT) ? "INSERT" : "DELETE", num_loaded_fulllistdb, version_end_id - version_begin_id + 1, first_table_pid, num_pages_loaded);
 
-    return OK;
+    return ReturnStatus::OK;
 }
 
 ReturnStatus TurboDB::LoadIdx(const char* dir_name, EdgeType e_type_) { //XXX idx directory
@@ -274,13 +274,13 @@ ReturnStatus TurboDB::LoadIdx(const char* dir_name, EdgeType e_type_) { //XXX id
     accumulated_num_pages_full_list_.resize(2);
     vid_range_per_page_.resize(2);
     vid_range_per_page_full_list_.resize(2);
-    return OK;
+    return ReturnStatus::OK;
 }
 
 // XXX - bool rm = true?
 ReturnStatus TurboDB::CloseDB(bool rm, DynamicDBType d_type_, Range<int> version) {
 	if (mDBPath.compare("") == 0) {
-		return OK;
+		return ReturnStatus::OK;
 	}
 	int err;
 	std::string file_name_prefix(mDBPath.c_str());
@@ -340,7 +340,7 @@ ReturnStatus TurboDB::CloseDB(bool rm, DynamicDBType d_type_, Range<int> version
     else if (d_type_ == DELETE) out_delete_degree_vector_.Close();
     else if (d_type_ == ALL) out_degree_vector_.Close();
     mDBPath = "";
-    return OK;
+    return ReturnStatus::OK;
 }
 
 ReturnStatus TurboDB::_Init_OutDegreeTable(std::string& dir_path, std::string& file_path, DynamicDBType d_type) {
@@ -381,7 +381,7 @@ ReturnStatus TurboDB::_Init_OutDegreeTable(std::string& dir_path, std::string& f
 
 	if (exist) {
 		ReturnStatus rt = out_degree_vector->Open(file_path.c_str(), false);
-		INVARIANT (rt == OK);
+		INVARIANT (rt == ReturnStatus::OK);
 		if (UserArguments::ITERATOR_MODE == FULL_LIST) {
 			// TODO - lock a chunk at a time
 			out_degree_vector->Mlock(false);
@@ -389,16 +389,16 @@ ReturnStatus TurboDB::_Init_OutDegreeTable(std::string& dir_path, std::string& f
 		} else {
 		}
 		//is_out_degree_vector_initialized_ = true;
-        return OK;
+        return ReturnStatus::OK;
 	} else {
 		// Otherwise, create one and set flag that it is not initialized!
 		ReturnStatus rt = out_degree_vector->Create(file_path.c_str(), PartitionStatistics::my_num_internal_nodes());
-		INVARIANT (rt == OK);
+		INVARIANT (rt == ReturnStatus::OK);
 		//is_out_degree_vector_initialized_ = false;
-        return FAIL;
+        return ReturnStatus::FAIL;
 	}
     */
-	return OK;
+	return ReturnStatus::OK;
 }
 
 ReturnStatus TurboDB::_Init_BufferManager(int64_t buffer_pool_size_bytes) {
@@ -407,13 +407,13 @@ ReturnStatus TurboDB::_Init_BufferManager(int64_t buffer_pool_size_bytes) {
 	ALWAYS_ASSERT (buffer_pool_size_bytes > 0);
 	//ALWAYS_ASSERT (num_pages > 0);
 	buf_mgr_.Init(buffer_pool_size_bytes, 0, TBGPP_PAGE_SIZE); //XXX - tslee
-	return OK;
+	return ReturnStatus::OK;
 }
 
 ReturnStatus TurboDB::_Init_VidRangePerPage(std::string& file_path, int version_id, DynamicDBType d_type) {
 	TurboDB::vid_range_per_page_[d_type][version_id].OpenVidRangePerPage(PartitionStatistics::my_total_num_subchunks(), file_path);
 	TurboDB::vid_range_per_page_[d_type][version_id].Load();
-	return OK;
+	return ReturnStatus::OK;
 }
 
 
@@ -426,7 +426,7 @@ ReturnStatus TurboDB::_Init_FirstPageIds(std::string& file_path, int version_id,
 
 	int partition_idx;
 	PageID first_page_id;
-	while (reader.getNext(line) == OK) {
+	while (reader.getNext(line) == ReturnStatus::OK) {
 		std::istringstream iss(line);
 		iss >> partition_idx >> first_page_id;
 		FirstPageIds[d_type][version_id].push_back(first_page_id);
@@ -434,7 +434,7 @@ ReturnStatus TurboDB::_Init_FirstPageIds(std::string& file_path, int version_id,
 	}
     //fprintf(stdout, "[%ld] sizeof(FirstPageIds[%d][%d]) = %ld\n", PartitionStatistics::my_machine_id(), (int)d_type, version_id, FirstPageIds[d_type][version_id].size());
 	reader.Close(false);
-	return OK;
+	return ReturnStatus::OK;
 }
 
 ReturnStatus TurboDB::_Init_PartitionRanges(std::string& file_path) {
@@ -448,7 +448,7 @@ ReturnStatus TurboDB::_Init_PartitionRanges(std::string& file_path) {
 	PartitionStatistics::my_last_node_id() = range_reader.LastNodeId();
 	PartitionStatistics::my_num_internal_nodes() = range_reader.MyNumNodes();
 
-	return OK;
+	return ReturnStatus::OK;
 }
 
 ReturnStatus TurboDB::_Init_EdgeSubchunks(std::string& file_path) {
@@ -495,7 +495,7 @@ ReturnStatus TurboDB::_Init_EdgeSubchunks(std::string& file_path) {
 		}
 	}
 	subrange_file.close();
-	return OK;
+	return ReturnStatus::OK;
 }
 
 void TurboDB::CheckDbConsistency() {
@@ -543,11 +543,11 @@ ReturnStatus TurboDB::_GetGraphDataFileLists(const char* dir_name, std::vector<s
 			metadata_file_lists_[i] = partition_ranges_dir + metadata_file_lists_[i];
 		}
 	}
-	return OK;
+	return ReturnStatus::OK;
 }
 
 ReturnStatus TurboDB::_AggregateMetadata() {
-	return OK;
+	return ReturnStatus::OK;
 }
 
 ReturnStatus TurboDB::_ReadMetaTable(Turbo_bin_mmapper& metadata_file_reader, node_t& first_node,
@@ -574,7 +574,7 @@ ReturnStatus TurboDB::_ReadMetaTable(Turbo_bin_mmapper& metadata_file_reader, no
 	if (st == FAIL) LOG(INFO) << "[TurboDB::_ReadMetaTable() failed to read 'num_cut_nodes'";
 	num_cut_nodes = *(node_t *)pData;
 
-	return OK;
+	return ReturnStatus::OK;
 }
 
 TurboDB* TurboDB::GetTurboDB(EdgeType e_type) {
@@ -610,30 +610,30 @@ VidRangePerPage& TurboDB::GetVidRangePerPageFullList(int version, DynamicDBType 
 
 ReturnStatus TurboDB::OpenFile(const char* file_name, int version_id, EdgeType e_type, DynamicDBType d_type) {
 	buf_mgr_.OpenCDB(file_name, version_id, e_type, d_type);
-	return OK;
+	return ReturnStatus::OK;
 }
 ReturnStatus TurboDB::CloseFile(bool rm, int version_id, EdgeType e_type, DynamicDBType d_type) {
 	buf_mgr_.CloseCDB(rm, version_id, e_type, d_type);
-	return OK;
+	return ReturnStatus::OK;
 }
 
-PageID TurboDB::GetFirstPageId (PartitionID i, PartitionID j) {
+PageID TurboDB::GetFirstPageId (PartID i, PartID j) {
 	ALWAYS_ASSERT (false);
 	ALWAYS_ASSERT (i >= 0 && i < PartitionStatistics::num_target_vector_chunks());
 	ALWAYS_ASSERT (j >= 0 && j < PartitionStatistics::num_target_vector_chunks());
-	PartitionID partition_id = i * UserArguments::VECTOR_PARTITIONS + j;
+	PartID partition_id = i * UserArguments::VECTOR_PARTITIONS + j;
 	return GetFirstPageId(partition_id);
 }
 
-PageID TurboDB::GetLastPageId (PartitionID i, PartitionID j) {
+PageID TurboDB::GetLastPageId (PartID i, PartID j) {
 	ALWAYS_ASSERT (false);
 	ALWAYS_ASSERT (i >= 0 && i < PartitionStatistics::num_target_vector_chunks());
 	ALWAYS_ASSERT (j >= 0 && j < PartitionStatistics::num_target_vector_chunks());
-	PartitionID partition_id = i * UserArguments::VECTOR_PARTITIONS + j;
+	PartID partition_id = i * UserArguments::VECTOR_PARTITIONS + j;
 	return GetLastPageId(partition_id);
 }
 
-PageID TurboDB::GetFirstPageId (PartitionID partition_id, int version_id, DynamicDBType d_type) {
+PageID TurboDB::GetFirstPageId (PartID partition_id, int version_id, DynamicDBType d_type) {
     ALWAYS_ASSERT(partition_id >= 0 && partition_id < PartitionStatistics::my_total_num_subchunks() * PartitionStatistics::num_subchunks_per_edge_chunk());
     ALWAYS_ASSERT((int)d_type >= 0 && (int)d_type < 2);
     ALWAYS_ASSERT(partition_id >= 0 && partition_id < FirstPageIds[d_type][version_id].size());
@@ -645,7 +645,7 @@ PageID TurboDB::GetFirstPageIdFullList (int version_id, DynamicDBType d_type) {
     return 0;
 }
 
-PageID TurboDB::GetLastPageId (PartitionID partition_id, int version_id, DynamicDBType d_type, bool use_fulllist_db) {
+PageID TurboDB::GetLastPageId (PartID partition_id, int version_id, DynamicDBType d_type, bool use_fulllist_db) {
     if (!is_version_exist(d_type, version_id)) return -1;
     if (UserArguments::USE_FULLIST_DB)  return GetLastPageIdFullList(version_id, d_type);
     ALWAYS_ASSERT(partition_id >= 0 && partition_id < PartitionStatistics::my_total_num_subchunks() * PartitionStatistics::num_subchunks_per_edge_chunk());
@@ -696,14 +696,14 @@ void TurboDB::ConvertDirectTablePageIDToVersionID (PageID table_pid, PageID& pid
 }
 
 void TurboDB::ConvertDirectTablePageID (PageID table_pid, PageID& pid, int& fid) {
-    if (FindPidOffset(table_pid, pid, fid, OUTEDGE, INSERT) == OK) return;
-    if (FindPidOffset(table_pid, pid, fid, OUTEDGE, DELETE) == OK) return;
-    if (FindPidOffset(table_pid, pid, fid, OUTEDGEFULLLIST, INSERT) == OK) return;
-    if (FindPidOffset(table_pid, pid, fid, OUTEDGEFULLLIST, DELETE) == OK) return;
-    if (FindPidOffset(table_pid, pid, fid, INEDGE, INSERT) == OK) return;
-    if (FindPidOffset(table_pid, pid, fid, INEDGE, DELETE) == OK) return;
-    if (FindPidOffset(table_pid, pid, fid, INEDGEFULLLIST, INSERT) == OK) return;
-    if (FindPidOffset(table_pid, pid, fid, INEDGEFULLLIST, DELETE) == OK) return;
+    if (FindPidOffset(table_pid, pid, fid, OUTEDGE, INSERT) == ReturnStatus::OK) return;
+    if (FindPidOffset(table_pid, pid, fid, OUTEDGE, DELETE) == ReturnStatus::OK) return;
+    if (FindPidOffset(table_pid, pid, fid, OUTEDGEFULLLIST, INSERT) == ReturnStatus::OK) return;
+    if (FindPidOffset(table_pid, pid, fid, OUTEDGEFULLLIST, DELETE) == ReturnStatus::OK) return;
+    if (FindPidOffset(table_pid, pid, fid, INEDGE, INSERT) == ReturnStatus::OK) return;
+    if (FindPidOffset(table_pid, pid, fid, INEDGE, DELETE) == ReturnStatus::OK) return;
+    if (FindPidOffset(table_pid, pid, fid, INEDGEFULLLIST, INSERT) == ReturnStatus::OK) return;
+    if (FindPidOffset(table_pid, pid, fid, INEDGEFULLLIST, DELETE) == ReturnStatus::OK) return;
     INVARIANT(false);
 }
 
@@ -721,10 +721,10 @@ ReturnStatus TurboDB::FindPidOffset (PageID table_pid, PageID& pid, int& fid, Ed
             INVARIANT(table_pid >= pid_offset_floor);
             pid = table_pid - pid_offset_floor;
             fid = TurboDB::GetBufMgr()->ConvertToFileID(version_id, e_type, d_type);
-            return OK;
+            return ReturnStatus::OK;
         }
     }
-    return FAIL;
+    return ReturnStatus::FAIL;
 }
 
 struct GetPageRangeByVidComparatonr {
@@ -975,7 +975,7 @@ bool TurboDB::is_full_list_db_exist() {
 }
 
 int64_t TurboDB::DstVidToEdgeSubChunkId(node_t dst_vid) {
-	for(PartitionID pid = 0 ; pid < PartitionStatistics::num_machines() ; pid++) {
+	for(PartID pid = 0 ; pid < PartitionStatistics::num_machines() ; pid++) {
 		for(int64_t chunkidx = 0 ; chunkidx < UserArguments::VECTOR_PARTITIONS ; chunkidx++) {
 			for(int64_t subchunkidx = 0; subchunkidx < PartitionStatistics::num_subchunks_per_edge_chunk(); subchunkidx++) {
 				int64_t subchunk_id = pid * UserArguments::VECTOR_PARTITIONS * PartitionStatistics::num_subchunks_per_edge_chunk() + chunkidx * PartitionStatistics::num_subchunks_per_edge_chunk() + subchunk_id;
@@ -990,7 +990,7 @@ int64_t TurboDB::DstVidToEdgeSubChunkId(node_t dst_vid) {
 
 int64_t TurboDB::EdgeToEdgeSubChunkId(node_t src_vid, node_t dst_vid) {
 	return -1;
-	for(PartitionID pid = 0 ; pid < PartitionStatistics::num_machines() ; pid++) {
+	for(PartID pid = 0 ; pid < PartitionStatistics::num_machines() ; pid++) {
 		for(int64_t chunkidx = 0 ; chunkidx < UserArguments::VECTOR_PARTITIONS ; chunkidx++) {
 			for(int64_t subchunkidx = 0; subchunkidx < PartitionStatistics::num_subchunks_per_edge_chunk(); subchunkidx++) {
 				int64_t subchunk_id = pid * UserArguments::VECTOR_PARTITIONS * PartitionStatistics::num_subchunks_per_edge_chunk() + chunkidx * PartitionStatistics::num_subchunks_per_edge_chunk() + subchunk_id;

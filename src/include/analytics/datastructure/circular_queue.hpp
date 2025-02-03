@@ -56,26 +56,26 @@ class circular_queue {
 		memset(pData_, 0, buffer_alloc_size_);
 	}
 
-	//return OK; If successfully inserted
-	//return FAIL; If buffer is full
+	//return ReturnStatus::OK; If successfully inserted
+	//return ReturnStatus::FAIL; If buffer is full
 	inline ReturnStatus enqueue(task_t& item) {
 		if ((enqueue_idx_ + 1) % buffer_length_ == dequeue_idx_)
-			return FAIL;
+			return ReturnStatus::FAIL;
 		pData_[enqueue_idx_] = item;
 		enqueue_idx_ = (enqueue_idx_ + 1) % buffer_length_;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
-	// return OK; if it returns any item
-	// return FAIL; it it's empty.
+	// return ReturnStatus::OK; if it returns any item
+	// return ReturnStatus::FAIL; it it's empty.
 	inline ReturnStatus dequeue(task_t& item) {
 		if (enqueue_idx_ == dequeue_idx_)
-			return FAIL;
+			return ReturnStatus::FAIL;
 		if (fix_end == dequeue_idx_)
-			return FAIL;
+			return ReturnStatus::FAIL;
 		item = pData_[dequeue_idx_];
 		dequeue_idx_ = (dequeue_idx_ + 1) % buffer_length_;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	inline void set_fix_end() {

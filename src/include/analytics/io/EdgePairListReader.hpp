@@ -53,7 +53,7 @@ class BinaryFormatEdgePairListReader : public ReaderInterface<Entry_t> {
 			last_entry_.src_vid_ = -1;
 			last_entry_.dst_vid_ = -1;
 			item = last_entry_;
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
 		/* If the the edges was stored in the big endian style */
 		if(endian_trfm) {
@@ -61,17 +61,17 @@ class BinaryFormatEdgePairListReader : public ReaderInterface<Entry_t> {
 			item.dst_vid_ = __bswap_64(item.dst_vid_);
 		}
 		last_entry_ = item;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	/* Get the current edge pair */
 	ReturnStatus getCurrent(Entry_t& item) {
 		if (last_entry_.src_vid_ == -1 && last_entry_.dst_vid_ == -1) {
 			item = last_entry_;
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
 		item = last_entry_;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	/* Get the size of the file */
@@ -124,22 +124,22 @@ class TextEdgePairListReader: public ReaderInterface<EdgePairEntry<node_t>> {
 			last_entry_.src_vid_ = -1;
 			last_entry_.dst_vid_ = -1;
 			item = last_entry_;
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
 		std::istringstream iss(line_buffer_);
 		iss >> item.src_vid_ >> item.dst_vid_;
 		last_entry_ = item;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	/* Get the current edge pair */
 	ReturnStatus getCurrent(EdgePairEntry<node_t>& item) {
 		if (last_entry_.src_vid_ == -1 && last_entry_.dst_vid_ == -1) {
 			item = last_entry_;
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
 		item = last_entry_;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	/* Get the file size */
@@ -187,7 +187,7 @@ class TextFormatAdjListReader: public ReaderInterface<EdgePairEntry<Entry_t> > {
 		src_vid = dst_vid = -1;
 		file_.clear();
 		file_.seekg(0);
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	/* Initialize the reader for the given file */
@@ -195,21 +195,21 @@ class TextFormatAdjListReader: public ReaderInterface<EdgePairEntry<Entry_t> > {
 		fprintf(stdout, "[TextFormatAdjListReader] Open File %s\n", file_name);
 		file_.open(file_name);
 		if (!file_.good()) {
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	/* Close the reader */
 	ReturnStatus Close(bool rm = false) {
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	/* Get the next edge */
 	virtual ReturnStatus getNext(EdgePairEntry<node_t>& edge) {
 		while(degree_left == 0) {
 			if(file_.eof())
-				return FAIL;
+				return ReturnStatus::FAIL;
 
 			file_>> src_vid >> degree_left;
 		}
@@ -223,11 +223,11 @@ class TextFormatAdjListReader: public ReaderInterface<EdgePairEntry<Entry_t> > {
 	ReturnStatus getCurrent(EdgePairEntry<node_t>& item) {
 		if (src_vid == -1 && dst_vid == -1) {
 			item.src_vid_ = item.dst_vid_ = -1;
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
 		item.src_vid_ = src_vid;
 		item.dst_vid_ = dst_vid;
-		return OK;
+		return ReturnStatus::OK;
 	}
   private:
 	node_t src_vid; /* the source id of the last edge that this reader read */
@@ -284,7 +284,7 @@ class EdgePairListFilesReader : public ReaderInterface<Entry_t> {
 
 		if (smallest.src_vid_ == -1 && smallest.dst_vid_ == -1) {
 			item = smallest;
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
 		ALWAYS_ASSERT(smallest == cached_entries_[smallest_idx]);
 		Entry_t dummy;
@@ -295,7 +295,7 @@ class EdgePairListFilesReader : public ReaderInterface<Entry_t> {
 		st = readers_[smallest_idx].getNext(cached_entries_[smallest_idx]);
 		ALWAYS_ASSERT(smallest.src_vid_ >= 0);
 		ALWAYS_ASSERT(smallest.dst_vid_ >= 0);
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	/* Rewind the reader */
@@ -307,7 +307,7 @@ class EdgePairListFilesReader : public ReaderInterface<Entry_t> {
 		for (std::size_t idx = 0; idx < readers_.size(); idx++) {
 			readers_[idx].getNext(cached_entries_[idx]);
 		}
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	/* Get the total size of the files */
@@ -347,14 +347,14 @@ class EdgePairListSortedFilesReader : public ReaderInterface<Entry_t> {
 	* if the index of a is smaller than that of b
 	*/
 	virtual ReturnStatus getNext(Entry_t& item) {
-		if(current_reader == -1) return FAIL;
+		if(current_reader == -1) return ReturnStatus::FAIL;
 		while(readers_[current_reader].getNext(item) == FAIL) {
 			if(remove_mode)
 				readers_[current_reader++].Close(true);
 			if(current_reader == readers_.size())
-				return FAIL;
+				return ReturnStatus::FAIL;
 		}
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	/* Rewind this reader */
@@ -363,7 +363,7 @@ class EdgePairListSortedFilesReader : public ReaderInterface<Entry_t> {
 			readers_[idx].rewind();
 		}
 		current_reader = 0;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	/* Get the total size of files */
@@ -408,7 +408,7 @@ class ParallelEdgePairListSortedFilesReader : public ReaderInterface<Entry_t> {
 
 	/* get the next edge */
 	virtual ReturnStatus getNext(Entry_t& item) {
-		return FAIL;
+		return ReturnStatus::FAIL;
 	}
 
 	/* get the next edge */
@@ -423,9 +423,9 @@ class ParallelEdgePairListSortedFilesReader : public ReaderInterface<Entry_t> {
 
 			current_reader++;
 			if(current_reader == readers_.size())
-				return FAIL;
+				return ReturnStatus::FAIL;
 		}
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	/* rewind this reader */
@@ -435,7 +435,7 @@ class ParallelEdgePairListSortedFilesReader : public ReaderInterface<Entry_t> {
 		}
 
 		current_reader = 0;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	/* Get the total size of the files */
@@ -494,14 +494,14 @@ class BinaryAdjListReader : public ReaderInterface<EdgePairEntry<node_t>> {
 	virtual ReturnStatus rewind() {
 		src_ = -1;
 		current_idx_ = -1;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	/* Get next edge */
 	virtual ReturnStatus getNext(EdgePairEntry<node_t>& item) {
 		if(src_ == -1) {
 			if (sizeof(entry_t) * (current_idx_ + 2) >= file_size_) {
-				return FAIL;
+				return ReturnStatus::FAIL;
 			}
 			src_ = (node_t)(int64_t)ptr_[current_idx_ + 1];
 			if(endian_trfm)
@@ -514,7 +514,7 @@ class BinaryAdjListReader : public ReaderInterface<EdgePairEntry<node_t>> {
 		} else
 			current_idx_ ++;
 		if (sizeof(entry_t) * (current_idx_) >= file_size_) {
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
 		item.dst_vid_ = (node_t)(int64_t)ptr_[current_idx_];
 		if(endian_trfm)
@@ -523,7 +523,7 @@ class BinaryAdjListReader : public ReaderInterface<EdgePairEntry<node_t>> {
 		src_degree_--;
 		if(src_degree_ == 0)
 			src_ = -1;
-		return OK;
+		return ReturnStatus::OK;
 	}
 	int64_t file_size() {
 		return reader_.file_size();
@@ -579,7 +579,7 @@ class TextEdgePairListFastReader: public ReaderInterface<EdgePairEntry<Entry_t>>
 		char line[100];
 		char* pEnd;
 
-		if(current_idx_ == file_size_) return FAIL;
+		if(current_idx_ == file_size_) return ReturnStatus::FAIL;
 
 		while(current_idx_ < file_size_) {
 			char temp = ptr_[current_idx_];
@@ -588,15 +588,15 @@ class TextEdgePairListFastReader: public ReaderInterface<EdgePairEntry<Entry_t>>
 				line[lineLen] = ' ';
 				item.src_vid_ = std::strtoll(line, &pEnd, 10);
 				item.dst_vid_ = std::strtoll(pEnd, NULL, 10);
-				return OK;
+				return ReturnStatus::OK;
 			} else {
 				line[lineLen] = temp;
 				lineLen++;
-				if(lineLen >= 100) return FAIL;
+				if(lineLen >= 100) return ReturnStatus::FAIL;
 			}
 		}
 
-		return OK;
+		return ReturnStatus::OK;
 	}
 
   private:
@@ -622,9 +622,9 @@ class ParallelTextEdgePairListFastReader: public ReaderInterface<EdgePairEntry<n
 	ReturnStatus rewind() {
 		for(int i = 0; i < thread_num_; i++) {
 			current_idx_list_[i] = first_idx_list_[i];
-			if(current_idx_list_[i] > file_size_) return FAIL;
+			if(current_idx_list_[i] > file_size_) return ReturnStatus::FAIL;
 		}
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	/* Get the file size */
@@ -670,7 +670,7 @@ class ParallelTextEdgePairListFastReader: public ReaderInterface<EdgePairEntry<n
 		ALWAYS_ASSERT(thread_num <= thread_num_ - 1);
 		int64_t partition_end = first_idx_list_[thread_num + 1];
 
-		if(current_idx_list_[thread_num] == partition_end) return FAIL;
+		if(current_idx_list_[thread_num] == partition_end) return ReturnStatus::FAIL;
 
 		while(current_idx_list_[thread_num] < partition_end) {
 			char temp = ptr_[current_idx_list_[thread_num]];
@@ -679,18 +679,18 @@ class ParallelTextEdgePairListFastReader: public ReaderInterface<EdgePairEntry<n
 				line[lineLen] = ' ';
 				item.src_vid_ = std::strtoll(line, &pEnd, 10);
 				item.dst_vid_ = std::strtoll(pEnd, NULL, 10);
-				return OK;
+				return ReturnStatus::OK;
 			} else {
 				line[lineLen] = temp;
 				lineLen++;
 				if(lineLen >= 100) {
 					std::cout<<"Wrong format file"<<std::endl;
-					return FAIL;
+					return ReturnStatus::FAIL;
 				}
 			}
 		}
 
-		return OK;
+		return ReturnStatus::OK;
 	}
 
   private:
@@ -743,7 +743,7 @@ class ParallelBinaryFormatEdgePairListReader : public ReaderInterface<Entry_t> {
 	* Get the next edge
 	*/
 	virtual ReturnStatus getNext(Entry_t& item) {
-		return FAIL;
+		return ReturnStatus::FAIL;
 	}
 
 	/*
@@ -755,7 +755,7 @@ class ParallelBinaryFormatEdgePairListReader : public ReaderInterface<Entry_t> {
 				item[i].src_vid_ = -1;
 				item[i].dst_vid_ = -1;
 			}
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
 		if(endian_trfm) {
 			for(auto i = 0; i < total_thread_; i++) {
@@ -765,7 +765,7 @@ class ParallelBinaryFormatEdgePairListReader : public ReaderInterface<Entry_t> {
 		}
 		//XXX
 		//last_entry_ = item;
-		return OK;
+		return ReturnStatus::OK;
 	}
 
 	/*
@@ -774,10 +774,10 @@ class ParallelBinaryFormatEdgePairListReader : public ReaderInterface<Entry_t> {
 	ReturnStatus getCurrent(Entry_t& item) {
 		if (last_entry_.src_vid_ == -1 && last_entry_.dst_vid_ == -1) {
 			item = last_entry_;
-			return FAIL;
+			return ReturnStatus::FAIL;
 		}
 		item = last_entry_;
-		return OK;
+		return ReturnStatus::OK;
 	}
 	
 	/*
