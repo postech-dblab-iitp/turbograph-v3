@@ -42,6 +42,7 @@ set(S62GDB_INSTALLED_LIBS
     ssl
     simdjson
     ${XERCES_LIBRARIES}
+    spdlog
 )
 
 set(S62GDB_LINK_LIBS

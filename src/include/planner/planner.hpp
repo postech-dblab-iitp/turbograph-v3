@@ -204,9 +204,7 @@ public:
 	bool ORCA_COMPILE_ONLY;
 	PlannerConfig::JoinOrderType JOIN_ORDER_TYPE;
 	uint8_t JOIN_ORDER_DP_THRESHOLD_CONFIG;
-
-	int num_iterations = 1;
-
+	
 	PlannerConfig() :
 		DEBUG_PRINT(false),
 		ORCA_DEBUG_PRINT(false),

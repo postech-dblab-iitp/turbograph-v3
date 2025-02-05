@@ -1,13 +1,13 @@
 #include "planner/planner.hpp"
 #include "optimizer/mdprovider/MDProviderTBGPP.h"
+#include "common/scoped_timer.hpp"
 
 #include <limits>
 #include <map>
 #include <string>
+#include <spdlog/spdlog.h>
 
 namespace s62 {
-
-// #define BREAKDOWN_COMPILE_TIME
 
 Planner::Planner(PlannerConfig config, MDProviderType mdp_type,
                  duckdb::ClientContext *context, std::string memory_mdp_path)
@@ -395,12 +395,10 @@ void Planner::_orcaSetOptCtxt(CMemoryPool *mp, CMDAccessor *mda,
 
 void *Planner::_orcaExec(void *planner_ptr)
 {
+    SCOPED_TIMER_SIMPLE(_orcaExec, spdlog::level::debug, spdlog::level::debug);
     boost::timer::cpu_timer orca_compile_timer;
     orca_compile_timer.start();
-#ifdef BREAKDOWN_COMPILE_TIME
-    boost::timer::cpu_timer orca_other_time;
-    orca_other_time.start();
-#endif
+    SUBTIMER_START(_orcaExec, "Other");
     Planner *planner = (Planner *)planner_ptr;
     CMemoryPool *mp = planner->memory_pool;
 
@@ -425,21 +423,13 @@ void *Planner::_orcaExec(void *planner_ptr)
                         provider);
         gpdbcost::CCostModelGPDB *pcm = planner->_orcaGetCostModel(mp);
         planner->_orcaSetOptCtxt(mp, &mda, pcm);
-#ifdef BREAKDOWN_COMPILE_TIME
-        orca_other_time.stop();
-#endif
+        SUBTIMER_STOP(_orcaExec, "Other");
 
         /* Optimize */
-#ifdef BREAKDOWN_COMPILE_TIME
-        boost::timer::cpu_timer logical_transform_timer;
-        logical_transform_timer.start();
-#endif
+        SUBTIMER_START(_orcaExec, "Logical Transform");
         LogicalPlan *logical_plan = planner->lGetLogicalPlan();
         CExpression *orca_logical_plan = logical_plan->getPlanExpr();
-#ifdef BREAKDOWN_COMPILE_TIME
-        auto logical_transform_timer_ms =
-            logical_transform_timer.elapsed().wall / 1000000.0;
-#endif
+        SUBTIMER_STOP(_orcaExec, "Logical Transform");
 
         {
             if (planner->config.DEBUG_PRINT) {
@@ -451,23 +441,14 @@ void *Planner::_orcaExec(void *planner_ptr)
             }
         }
 
-#ifdef BREAKDOWN_COMPILE_TIME
-        // orca_other_time.resume();
-        boost::timer::cpu_timer orca_preprocessing_timer;
-        orca_preprocessing_timer.start();
-#endif
+        SUBTIMER_START(_orcaExec, "Preprocessing");
         CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();  // temp
         CEngine eng(mp);
         CQueryContext *pqc = planner->_orcaGenQueryCtxt(mp, orca_logical_plan);
-#ifdef BREAKDOWN_COMPILE_TIME
-        // orca_other_time.resume();
-        auto orca_preprocessing_timer_ms =
-            orca_preprocessing_timer.elapsed().wall / 1000000.0;
-        boost::timer::cpu_timer orca_other_time2;
-        orca_other_time2.start();
-#endif
+        SUBTIMER_STOP(_orcaExec, "Preprocessing");
 
         /* Register logical column colrefs / names */
+        SUBTIMER_START(_orcaExec, "Other 2");
         std::vector<CColRef *> output_columns;
         std::vector<std::string> output_names;
         logical_plan->getSchema()->getOutputColumns(output_columns);
@@ -508,64 +489,15 @@ void *Planner::_orcaExec(void *planner_ptr)
                 GPOS_TRACE(str.GetBuffer());
             }
         }
-#ifdef BREAKDOWN_COMPILE_TIME
-        orca_other_time2.stop();
-#endif
+        SUBTIMER_STOP(_orcaExec, "Other 2");
 
 		// exploration, implementation, optimization
-#ifdef BREAKDOWN_COMPILE_TIME
-        boost::timer::cpu_timer orca_optimize_time;
-        orca_optimize_time.start();
-#endif
+        SUBTIMER_START(_orcaExec, "Optimize");
         eng.Init(pqc, NULL /*search_stage_array*/);
         eng.Optimize();
-#ifdef BREAKDOWN_COMPILE_TIME
-        auto orca_optimize_time_ms =
-            orca_optimize_time.elapsed().wall / 1000000.0;
-#endif
+        SUBTIMER_STOP(_orcaExec, "Optimize");
 
-		// iterate possible plans
-        // if (planner->config.ORCA_DEBUG_PRINT) {
-        //     while (true) {
-        //         bool search_plan;
-        //         while (true) {
-        //             string user_input;
-        //             std::cout << "[ORCA DEBUG] Search Possible Plans? [y/n]: ";
-        //             std::getline(std::cin, user_input);
-        //             std::for_each(user_input.begin(), user_input.end(),
-        //                           [](auto &c) { c = std::tolower(c); });
-        //             if (user_input == "y") {
-        //                 search_plan = true;
-        //                 break;
-        //             }
-        //             else if (user_input == "n") {
-        //                 search_plan = false;
-        //                 break;
-        //             }
-        //             else {
-        //                 printf("Please Enter Either Y or N\n");
-        //             }
-        //         }
-
-		// 		if (search_plan) {
-		// 			CExpression *pexpr = eng.PexprExtractPlanInteractively();
-        //             if (pexpr != NULL) {
-        //                 CWStringDynamic str(mp, L"\n");
-        //                 COstreamString oss(&str);
-        //                 pexpr->OsPrint(oss);
-        //                 GPOS_TRACE(str.GetBuffer());
-        //             }
-		// 		}
-		// 		else {
-		// 			break;
-		// 		}
-        //     }
-        // }
-
-#ifdef BREAKDOWN_COMPILE_TIME
-        boost::timer::cpu_timer orca_extract_plan_timer;
-        orca_extract_plan_timer.start();
-#endif
+        SUBTIMER_START(_orcaExec, "Extract");
         CExpression *orca_physical_plan = eng.PexprExtractPlan();  // best plan
         (void)orca_physical_plan->PrppCompute(mp, pqc->Prpp());
         {
@@ -577,28 +509,15 @@ void *Planner::_orcaExec(void *planner_ptr)
                 GPOS_TRACE(str.GetBuffer());
             }
         }
-#ifdef BREAKDOWN_COMPILE_TIME
-        auto orca_extract_plan_time_ms =
-            orca_extract_plan_timer.elapsed().wall / 1000000.0;
-#endif
+        SUBTIMER_STOP(_orcaExec, "Extract");
 
-#ifdef BREAKDOWN_COMPILE_TIME  
-        boost::timer::cpu_timer physical_transform_timer;
-        physical_transform_timer.start();
-#endif
+        SUBTIMER_START(_orcaExec, "Physical Transform");
         if (!planner->config.ORCA_COMPILE_ONLY) {
             planner->pGenPhysicalPlan(orca_physical_plan);  // convert to our plan
         }
-#ifdef BREAKDOWN_COMPILE_TIME
-        auto physical_transform_timer_ms =
-            physical_transform_timer.elapsed().wall / 1000000.0;
-#endif
+        SUBTIMER_STOP(_orcaExec, "Physical Transform");
 
-#ifdef BREAKDOWN_COMPILE_TIME
-        // orca_other_time.resume();
-        boost::timer::cpu_timer orca_other_time3;
-        orca_other_time3.start();
-#endif
+        SUBTIMER_START(_orcaExec, "Other 3");
         orca_logical_plan->Release();
         orca_physical_plan->Release();
         GPOS_DELETE(pqc);
@@ -608,26 +527,7 @@ void *Planner::_orcaExec(void *planner_ptr)
             ITask::Self()->GetTls().Get(CTaskLocalStorage::EtlsidxOptCtxt);
         ITask::Self()->GetTls().Remove(ptlsobj);
         GPOS_DELETE(ptlsobj);
-#ifdef BREAKDOWN_COMPILE_TIME
-        orca_other_time3.stop();
-        auto orca_other_time_ms = orca_other_time.elapsed().wall / 1000000.0;
-        auto orca_other_time2_ms = orca_other_time2.elapsed().wall / 1000000.0;
-        auto orca_other_time3_ms = orca_other_time3.elapsed().wall / 1000000.0;
-#endif
-        auto orca_compile_time_ms =
-            orca_compile_timer.elapsed().wall / 1000000.0;
-        
-        std::cout << "ORCA Compile Time: " << orca_compile_time_ms << " ms" << std::endl;
-#ifdef BREAKDOWN_COMPILE_TIME
-        std::cout << "ORCA Optimize Time: " << orca_optimize_time_ms << " ms" << std::endl;
-        std::cout << "ORCA Preprocessing Time: " << orca_preprocessing_timer_ms << " ms" << std::endl;
-        std::cout << "ORCA Other Time: " << orca_other_time_ms << " ms" << std::endl;
-        std::cout << "ORCA Other Time2: " << orca_other_time2_ms << " ms" << std::endl;
-        std::cout << "ORCA Other Time3: " << orca_other_time3_ms << " ms" << std::endl;
-        std::cout << "ORCA Extract Plan Time: " << orca_extract_plan_time_ms << " ms" << std::endl;
-        std::cout << "Logical Transform Time: " << logical_transform_timer_ms << " ms" << std::endl;
-        std::cout << "Physical Transform Time: " << physical_transform_timer_ms << " ms" << std::endl;
-#endif
+        SUBTIMER_STOP(_orcaExec, "Other 3");
     }
 
     // CRefCount::SafeRelease(provider);
