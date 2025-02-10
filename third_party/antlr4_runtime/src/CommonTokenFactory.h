@@ -22,7 +22,7 @@ namespace antlr4 {
      * This token factory does not explicitly copy token text when constructing
      * tokens.</p>
      */
-    static const std::unique_ptr<TokenFactory<CommonToken>> DEFAULT;
+    static const std::shared_ptr<TokenFactory<CommonToken>> DEFAULT;
 
   protected:
     /**

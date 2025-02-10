@@ -261,7 +261,6 @@ include_directories(src/optimizer/kuzu/include) # Temporal
 include_directories(SYSTEM third_party/velox)
 include_directories(third_party/antlr4_cypher/antlr4)
 include_directories(third_party/antlr4_runtime/src)
-include_directories(third_party/antlr4_runtime/src)
 include_directories(third_party/fastpforlib)
 include_directories(third_party/simdcsv/src)
 include_directories(third_party/icecream-cpp/include)
