@@ -2,10 +2,8 @@
 #include <boost/date_time.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
 #include "nlohmann/json.hpp"	// TODO remove json and use that of boost
-#include "common/scoped_timer.hpp"
+#include "common/logger.hpp"
 #include "execution/cypher_pipeline.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
 #include "main/database.hpp"
@@ -44,27 +42,6 @@ struct ClientOptions {
 };
 
 enum class ProcessQueryMode { SINGLE_QUERY, INTERACTIVE };
-enum class LogLevel { TRACE, DEBUG, INFO, WARN, ERROR, UNKNOWN };
-
-LogLevel getLogLevel(const std::string& level_str) {
-    static const std::unordered_map<std::string, LogLevel> log_levels = {
-        {"trace", LogLevel::TRACE}, {"debug", LogLevel::DEBUG},
-        {"info", LogLevel::INFO}, {"warn", LogLevel::WARN}, {"error", LogLevel::ERROR}
-    };
-    auto it = log_levels.find(level_str);
-    return it != log_levels.end() ? it->second : LogLevel::UNKNOWN;
-}
-
-void setLogLevel(LogLevel level) {
-    switch (level) {
-        case LogLevel::TRACE: spdlog::set_level(spdlog::level::trace); break;
-        case LogLevel::DEBUG: spdlog::set_level(spdlog::level::debug); break;
-        case LogLevel::INFO: spdlog::set_level(spdlog::level::info); break;
-        case LogLevel::WARN: spdlog::set_level(spdlog::level::warn); break;
-        case LogLevel::ERROR: spdlog::set_level(spdlog::level::err); break;
-        default: spdlog::warn("Invalid log level provided. Using default INFO level.");
-    }
-}
 
 ProcessQueryMode getQueryMode(const ClientOptions& options) {
     return options.query.empty() ? ProcessQueryMode::INTERACTIVE : ProcessQueryMode::SINGLE_QUERY;
@@ -173,14 +150,6 @@ void ParseConfig(int argc, char** argv, ClientOptions& options) {
     }
 }
 
-void SetupLogger() {
-    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    console_sink->set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] %v");
-
-    auto logger = std::make_shared<spdlog::logger>("console", console_sink);
-    spdlog::set_default_logger(logger);
-}
-
 std::string GetQueryString(std::string &prompt) {
 	std::string full_input;
     std::string current_input;
@@ -242,7 +211,7 @@ void CompileQuery(const string& query, s62::Planner& planner, kuzu::binder::Bind
 
 void ExecuteQuery(const string& query, std::shared_ptr<ClientContext> client, ClientOptions& options, vector<duckdb::CypherPipelineExecutor *>& executors, double &exec_elapsed_time) {	
 	if (executors.size() == 0) {
-		spdlog::error("Plan Empty");
+		spdlog::error("[ExecuteQuery] Plan Empty");
 		return; 
 	}
 
@@ -254,11 +223,11 @@ void ExecuteQuery(const string& query, std::shared_ptr<ClientContext> client, Cl
 		SCOPED_TIMER(ExecuteQuery, spdlog::level::info, spdlog::level::info, exec_elapsed_time);
 		for (int i = 0; i < executors.size(); i++) {
 			auto exec = executors[i];
-            spdlog::trace("[Pipeline Start] ID: {:02d}", i);
+            spdlog::debug("[ExecuteQuery] Pipeline ID {:02d} Started", i);
 			SUBTIMER_START(ExecuteQuery, "Pipeline " + std::to_string(i));
 			exec->ExecutePipeline();
 			SUBTIMER_STOP(ExecuteQuery, "Pipeline " + std::to_string(i));
-            spdlog::trace("[Pipeline End] ID: {:02d}", i);
+            spdlog::debug("[ExecuteQuery] Pipeline ID {:02d} Finished", i);
 		}
 	}
 
@@ -270,7 +239,7 @@ void PrintOutputToFile(PropertyKeys col_names,
 							duckdb::Schema &schema,
                             std::string &file_path) {
 	if (!query_results_ptr) {
-        spdlog::error("Query Results Empty");
+        spdlog::error("[PrintOutputToFile] Query Results Empty");
         return;
     }
 
@@ -282,11 +251,11 @@ void PrintOutputToFile(PropertyKeys col_names,
 
     std::ofstream dump_file(file_path, std::ios::trunc);
     if (!dump_file) {
-        spdlog::error("Failed to open dump file: {}", file_path);
+        spdlog::error("[PrintOutputToFile] Failed to open dump file: {}", file_path);
         return;
     }
 
-	spdlog::info("Dumping Output File. Path: {}", file_path);
+	spdlog::info("[PrintOutputToFile] Dumping Output File. Path: {}", file_path);
 
     for (size_t i = 0; i < col_names.size(); i++) {
         dump_file << col_names[i] << (i != col_names.size() - 1 ? "|" : "\n");
@@ -303,14 +272,14 @@ void PrintOutputToFile(PropertyKeys col_names,
         }
     }
 
-	spdlog::info("Dump Done");
+	spdlog::info("[PrintOutputToFile] Dump Done");
 }
 
 void PrintOutputConsole(const PropertyKeys &col_names, 
                  std::vector<std::unique_ptr<duckdb::DataChunk>> *query_results_ptr, 
                  duckdb::Schema &schema) {
     if (!query_results_ptr) {
-        spdlog::error("Query Results Empty");
+        spdlog::error("[PrintOutputConsole] Query Results Empty");
         return;
     }
 
@@ -368,10 +337,10 @@ void CompileExecuteQuery(const std::string &query_str,
     
     if (options.warmup) options.iterations += 1;
     for (int i = 0; i < options.iterations; ++i) {
-        spdlog::trace("[Query Execution Start] Iteration: {}", i + 1);
+        spdlog::info("[CompileExecuteQuery] Iteration {} Started", i + 1);
         CompileAndExecuteIteration(query_str, client, options, planner, binder,
                                    compile_times, execution_times);
-        spdlog::trace("[Query Execution End] Iteration: {}", i + 1);
+        spdlog::info("[CompileExecuteQuery] Iteration {} Finished", i + 1);
     }
 
     if (options.warmup && !execution_times.empty()) {

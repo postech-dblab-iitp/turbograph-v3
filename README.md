@@ -95,11 +95,7 @@ Executing is comprised of three steps, loading dataset, executing client, buildi
     cd build
     ./storage/store <storage size (e.g., 10GB, 100gb)>
 
-    # Terminal 2 (runs catalog server)
-    cd build
-    ./storage/catalog_test_catalog_server <db_dir>
-
-    # Terminal 3 (runs bulkloading process)
+    # Terminal 2 (runs bulkloading process)
     cp scripts/bulkload/run-ldbc-bulkload.sh build
     cd build
     bash run-ldbc-bulkload.sh <db_dir> <data_dir>

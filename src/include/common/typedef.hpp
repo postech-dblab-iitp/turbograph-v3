@@ -22,6 +22,9 @@ enum class LoadAdjListOption { NONE, OUTGOING, INCOMING, BOTH };
 
 enum class ExpandDirection { OUTGOING, INCOMING, BOTH };
 
+typedef std::string Label;
+typedef std::string Labels;
+
 class LabelSet {
 
    public:

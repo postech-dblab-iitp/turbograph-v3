@@ -9,7 +9,6 @@
 #include <simdjson.h>
 
 #include "common/vector.hpp"
-#include "common/enums/json_file_type.hpp"
 #include "common/clustering/dbscan.h"
 #include "common/clustering/optics.hpp"
 #include "icecream.hpp"
@@ -95,15 +94,7 @@ public:
 
         sch_HT.resize(1000); // TODO appropriate size
     }
-
-    GraphSIMDJSONFileParser(std::shared_ptr<ClientContext> client_, ExtentManager *ext_mng_, Catalog *cat_instance_, double set_sim_threshold) {
-        client = client_;
-        ext_mng = ext_mng_;
-        cat_instance = cat_instance_;
-
-        sch_HT.resize(1000); // TODO appropriate size
-    }
-
+    
     void SetLidToPidMap (vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> *lid_to_pid_map_) {
         load_edge = true;
         lid_to_pid_map = lid_to_pid_map_;
@@ -127,139 +118,113 @@ public:
         }
     }
 
-    size_t InitJsonFile(const char *json_file_path, JsonFileType jftype) {
+    size_t InitJsonFile(const char *json_file_path) {
         input_json_file_path = std::string(json_file_path);
-        json_file_type = jftype;
-
-        if (jftype == JsonFileType::JSON) {
-            // Load & Parse JSON File
-            json = padded_string::load(input_json_file_path);
-            // docs = parser.iterate_many(json);
-            doc = parser.iterate(json);
-        } else if (jftype == JsonFileType::JSONL) {
-            json = padded_string::load(input_json_file_path);
-            docs = parser.iterate_many(json);
-        }
+        json = padded_string::load(input_json_file_path);
+        docs = parser.iterate_many(json);
         return 0;
     }
 
-    size_t InitJsonFile() {
-        if (json_file_type == JsonFileType::JSON) {
-            // Load & Parse JSON File
-            json = padded_string::load(input_json_file_path);
-            // docs = parser.iterate_many(json);
-            doc = parser.iterate(json);
-        } else if (json_file_type == JsonFileType::JSONL) {
-            json = padded_string::load(input_json_file_path);
-            docs = parser.iterate_many(json);
-        }
-        return 0;
-    }
-
-    void LoadJson(string &label_name, vector<string> &label_set, const char *json_key, DataChunk &data, JsonFileType jftype, GraphCatalogEntry *graph_cat, PartitionCatalogEntry *partition_cat, GraphComponentType gctype = GraphComponentType::INVALID) {
+    void LoadJson(string &label_name, vector<string> &label_set, const char *json_key, DataChunk &data, GraphCatalogEntry *graph_cat, PartitionCatalogEntry *partition_cat, GraphComponentType gctype = GraphComponentType::INVALID) {
         boost::timer::cpu_timer clustering_timer;
-        if (jftype == JsonFileType::JSON) {
-            // _IterateJson(label_name, json_key, data, graph_cat, partition_cat);
-        } else if (jftype == JsonFileType::JSONL) {
-            switch (cluster_algo_type) {
-            case ClusterAlgorithmType::DBSCAN: {
-                // Extract Schema (bag semantic) & Preprocessing (calculate distance matrix)
-                _ExtractSchema(gctype);
-                _PreprocessSchemaForClustering(false);
+        switch (cluster_algo_type) {
+        case ClusterAlgorithmType::DBSCAN: {
+            // Extract Schema (bag semantic) & Preprocessing (calculate distance matrix)
+            _ExtractSchema(gctype);
+            _PreprocessSchemaForClustering(false);
 
-                clustering_timer.start();
-                // Clustering
-                _ClusterSchemaDBScan();
-                clustering_timer.stop();
+            clustering_timer.start();
+            // Clustering
+            _ClusterSchemaDBScan();
+            clustering_timer.stop();
 
-                // Create Extents
-                _CreateExtents(gctype, graph_cat, label_name, label_set);
-                break;
-            }
-            case ClusterAlgorithmType::OPTICS: {
-                _ExtractSchema(gctype);
-                _PreprocessSchemaForClustering(false);
-
-                clustering_timer.start();
-                // Clustering
-                _ClusterSchemaOptics();
-                clustering_timer.stop();
-
-                // Create Extents
-                _CreateExtents(gctype, graph_cat, label_name, label_set);
-                break;
-            }
-            case ClusterAlgorithmType::AGGLOMERATIVE: {
-                _ExtractSchema(gctype);
-                _PreprocessSchemaForClustering(false);
-
-                clustering_timer.start();
-                // Clustering
-                _ClusterSchemaAgglomerative();
-                clustering_timer.stop();
-
-                // Create Extents
-                _CreateExtents(gctype, graph_cat, label_name, label_set);
-                break;
-            }
-            case ClusterAlgorithmType::PGSE: {
-                _ExtractSchema(gctype);
-                _PreprocessSchemaForClustering(false);
-
-                clustering_timer.start();
-                // Clustering
-                _ClusterSchemaPGSE();
-                clustering_timer.stop();
-
-                // Create Extents
-                _CreateExtents(gctype, graph_cat, label_name, label_set);
-                break;
-            }
-            case ClusterAlgorithmType::GMM: {
-                _ExtractSchema(gctype);
-                _PreprocessSchemaForClustering(false);
-
-                clustering_timer.start();
-                // Clustering
-                _ClusterSchemaGMM();
-                clustering_timer.stop();
-
-                // Create Extents
-                _CreateExtents(gctype, graph_cat, label_name, label_set);
-                break;
-            }
-            case ClusterAlgorithmType::SINGLECLUSTER: {
-                _ExtractSchema(gctype);
-                _PreprocessSchemaForClustering(false);
-
-                clustering_timer.start();
-                // Clustering
-                _ClusterAllSchemas();
-                clustering_timer.stop();
-
-                // Create Extents
-                _CreateExtents(gctype, graph_cat, label_name, label_set);
-                break;
-            }
-            case ClusterAlgorithmType::SEPERATECLUSTERS: {
-                _ExtractSchema(gctype);
-                _PreprocessSchemaForClustering(false);
-
-                clustering_timer.start();
-                // Clustering
-                _ClusterEachSchemaSeparately();
-                clustering_timer.stop();
-
-                // Create Extents
-                _CreateExtents(gctype, graph_cat, label_name, label_set);
-                break;
-            }
-            default:
-                break;
-            }
-            auto cluster_time_ms = clustering_timer.elapsed().wall / 1000000.0;
-            std::cout << "\nCluster Time: "  << cluster_time_ms << " ms" << std::endl;
+            // Create Extents
+            _CreateExtents(gctype, graph_cat, label_name, label_set);
+            break;
         }
+        case ClusterAlgorithmType::OPTICS: {
+            _ExtractSchema(gctype);
+            _PreprocessSchemaForClustering(false);
+
+            clustering_timer.start();
+            // Clustering
+            _ClusterSchemaOptics();
+            clustering_timer.stop();
+
+            // Create Extents
+            _CreateExtents(gctype, graph_cat, label_name, label_set);
+            break;
+        }
+        case ClusterAlgorithmType::AGGLOMERATIVE: {
+            _ExtractSchema(gctype);
+            _PreprocessSchemaForClustering(false);
+
+            clustering_timer.start();
+            // Clustering
+            _ClusterSchemaAgglomerative();
+            clustering_timer.stop();
+
+            // Create Extents
+            _CreateExtents(gctype, graph_cat, label_name, label_set);
+            break;
+        }
+        case ClusterAlgorithmType::PGSE: {
+            _ExtractSchema(gctype);
+            _PreprocessSchemaForClustering(false);
+
+            clustering_timer.start();
+            // Clustering
+            _ClusterSchemaPGSE();
+            clustering_timer.stop();
+
+            // Create Extents
+            _CreateExtents(gctype, graph_cat, label_name, label_set);
+            break;
+        }
+        case ClusterAlgorithmType::GMM: {
+            _ExtractSchema(gctype);
+            _PreprocessSchemaForClustering(false);
+
+            clustering_timer.start();
+            // Clustering
+            _ClusterSchemaGMM();
+            clustering_timer.stop();
+
+            // Create Extents
+            _CreateExtents(gctype, graph_cat, label_name, label_set);
+            break;
+        }
+        case ClusterAlgorithmType::SINGLECLUSTER: {
+            _ExtractSchema(gctype);
+            _PreprocessSchemaForClustering(false);
+
+            clustering_timer.start();
+            // Clustering
+            _ClusterAllSchemas();
+            clustering_timer.stop();
+
+            // Create Extents
+            _CreateExtents(gctype, graph_cat, label_name, label_set);
+            break;
+        }
+        case ClusterAlgorithmType::SEPERATECLUSTERS: {
+            _ExtractSchema(gctype);
+            _PreprocessSchemaForClustering(false);
+
+            clustering_timer.start();
+            // Clustering
+            _ClusterEachSchemaSeparately();
+            clustering_timer.stop();
+
+            // Create Extents
+            _CreateExtents(gctype, graph_cat, label_name, label_set);
+            break;
+        }
+        default:
+            break;
+        }
+        auto cluster_time_ms = clustering_timer.elapsed().wall / 1000000.0;
+        std::cout << "\nCluster Time: "  << cluster_time_ms << " ms" << std::endl;
     }
 
     void _ExtractSchema(GraphComponentType gctype) {
@@ -2902,7 +2867,6 @@ private:
     ondemand::value val;
     simdjson::padded_string json;
     std::string input_json_file_path;
-    JsonFileType json_file_type;
 
     vector<uint64_t> corresponding_schemaID;
     // vector<vector<uint64_t>> schema_groups;

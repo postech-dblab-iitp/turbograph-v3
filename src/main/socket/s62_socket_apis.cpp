@@ -19,8 +19,6 @@ namespace duckdb {
 typedef vector<idx_t> PartitionIndexes;
 typedef vector<idx_t> PropertySchemaIDs;
 typedef vector<PartitionIndexes> PartitionIndexesList;
-typedef vector<std::string> Labels;
-typedef vector<std::string> Types;
 
 S62SocketAPIs::S62SocketAPIs(std::string& workspace) {
     SetupDefaultConfig();

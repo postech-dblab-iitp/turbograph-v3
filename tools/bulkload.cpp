@@ -1,47 +1,19 @@
 #include <iostream>
-#include <tuple>
-#include <iterator>
-#include <cassert> 
 #include <filesystem>
-#include <string>
-#include <chrono>
-#include <cstring>
-#include <fcntl.h>
-#include <iostream>
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <sys/shm.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
-#include <thread>
-#include <vector>
-#include <memory>
-#include <string>
 #include <boost/timer/timer.hpp>
 #include <boost/date_time.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
 #include <Python.h>
-
-#include "nlohmann/json.hpp"	// TODO remove json and use that of boost
-using json = nlohmann::json;
-
-#include <icecream.hpp>
-
-#include "storage/graph_storage_wrapper.hpp"
-
-#include "execution/cypher_pipeline.hpp"
-#include "execution/cypher_pipeline_executor.hpp"
-
+#include "nlohmann/json.hpp"
 #include "main/database.hpp"
 #include "main/client_context.hpp"
+#include "storage/graph_storage_wrapper.hpp"
 #include "storage/extent/extent_manager.hpp"
 #include "storage/extent/extent_iterator.hpp"
-#include "storage/index/index.hpp"
 #include "storage/cache/chunk_cache_manager.h"
 #include "catalog/catalog.hpp"
+#include "catalog/catalog_server.hpp"
 #include "parser/parsed_data/create_schema_info.hpp"
 #include "parser/parsed_data/create_graph_info.hpp"
 #include "parser/parsed_data/create_partition_info.hpp"
@@ -49,65 +21,79 @@ using json = nlohmann::json;
 #include "parser/parsed_data/create_extent_info.hpp"
 #include "parser/parsed_data/create_chunkdefinition_info.hpp"
 #include "catalog/catalog_entry/list.hpp"
+#include "common/typedef.hpp"
 #include "common/range.hpp"
+#include "common/logger.hpp"
 #include "common/graph_csv_reader.hpp"
 #include "common/graph_simdcsv_parser.hpp"
 #include "common/graph_simdjson_parser.hpp"
 #include "storage/statistics/histogram_generator.hpp"
 
-#define BULKLOAD_DEBUG_PRINT
-
 using namespace duckdb;
+using json = nlohmann::json;
+namespace po = boost::program_options;
+namespace fs = std::filesystem;
 
-vector<std::pair<string, string>> json_files;
-vector<JsonFileType> json_file_types;
-vector<vector<std::pair<string, string>>> json_file_vertices;
-vector<vector<std::pair<string, string>>> json_file_edges;
-vector<std::tuple<string, string, size_t>> vertex_files;
-vector<std::tuple<string, string, size_t>> edge_files;
-vector<std::tuple<string, string, size_t>> edge_files_backward;
-string output_dir;
-double set_sim_threshold = 0.99;
-size_t max_extent_id = 0;
-
-bool load_edge;
-bool load_backward_edge;
-
+typedef size_t FileLength;
+typedef string FilePath;
+typedef std::tuple<Labels, FilePath, FileLength> LabeledFile;
 typedef std::pair<idx_t, idx_t> LidPair;
 
-void helper_deallocate_objects_in_shared_memory () {
-  string server_socket = "/tmp/catalog_server";
-  // setup unix domain socket with storage
-  int server_conn_ = socket(AF_UNIX, SOCK_STREAM, 0);
-  if (server_conn_ < 0) {
-    perror("cannot socket");
-    exit(-1);
-  }
+struct InputOptions {
+	vector<LabeledFile> vertex_files;
+	vector<LabeledFile> edge_files;
+	vector<LabeledFile> edge_files_backward;
+    std::string output_dir;
+    bool load_edge = false;
+    bool load_backward_edge = false;
+};
 
-  struct sockaddr_un addr;
-  memset(&addr, 0, sizeof(addr));
-  strncpy(addr.sun_path, server_socket.c_str(), server_socket.size());
-  addr.sun_family = AF_UNIX;
-  int status = connect(server_conn_, (struct sockaddr *)&addr, sizeof(addr));
-  if (status < 0) {
-    perror("cannot connect to the store");
-    exit(-1);
-  }
+struct BulkloadContext {
+    InputOptions input_options;
+    std::shared_ptr<ClientContext> client;
+    Catalog &catalog;
+    GraphCatalogEntry *graph_cat;
+    ExtentManager ext_mng;
+    vector<
+        std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>>
+        lid_to_pid_map;  // For Forward & Backward AdjList
+    vector<
+        std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>>
+        lid_pair_to_epid_map;  // For Backward AdjLis
 
-  bool reinitialize_done = false;
+    BulkloadContext(InputOptions input_options,
+                    std::shared_ptr<ClientContext> client, Catalog &catalog,
+                    CreateGraphInfo &graph_info)
+        : input_options(std::move(input_options)),
+          client(std::move(client)),
+          catalog(catalog)
+    {
+        graph_cat = (GraphCatalogEntry *)catalog.CreateGraph(*(this->client.get()),
+                                                             &graph_info);
+    }
+};
 
-  int nbytes_recv = recv(server_conn_, &reinitialize_done, sizeof(bool), 0);
-  if (nbytes_recv != sizeof(bool)) {
-    perror("error receiving the reinitialize_done bit");
-    exit(-1);
-  }
+/**
+ * UTIL FUNCTIONS
+ */
 
-  if (!reinitialize_done) {
-    std::cerr << "Re-initialize failure!" << std::endl;
-    exit(-1);
-  }
 
-  fprintf(stdout, "Re-initialize shared memory\n");
+inline bool isJSONFile(const std::string &file_path_str) {
+    boost::filesystem::path file_path(file_path_str);
+    std::string ext = file_path.extension().string();
+	return ext == ".json";
+}
+
+void SeperateFilesByExtension(vector<LabeledFile>& files,
+							  vector<LabeledFile>& json_files,
+							  vector<LabeledFile>& csv_files) {
+	for (auto &file: files) {
+		if (isJSONFile(std::get<1>(file))) {
+			json_files.push_back(file);
+		} else {
+			csv_files.push_back(file);
+		}
+	}
 }
 
 void ParseLabelSet(string &labelset, vector<string> &parsed_labelset) {
@@ -119,58 +105,91 @@ void ParseLabelSet(string &labelset, vector<string> &parsed_labelset) {
 	}
 }
 
-void InitializeDiskAio() {
-	fprintf(stdout, "\nInitialize Disk Aio Parameters\n"); // TODO use debug options
-	// Initialize System Parameters
-	DiskAioParameters::NUM_THREADS = 1;
-	DiskAioParameters::NUM_TOTAL_CPU_CORES = 1;
-	DiskAioParameters::NUM_CPU_SOCKETS = 1;
+void InitializeDiskAio(string& workspace) {
+	DiskAioParameters::NUM_THREADS = 32;
+	DiskAioParameters::NUM_TOTAL_CPU_CORES = 32;
+	DiskAioParameters::NUM_CPU_SOCKETS = 2;
 	DiskAioParameters::NUM_DISK_AIO_THREADS = DiskAioParameters::NUM_CPU_SOCKETS * 2;
-	DiskAioParameters::WORKSPACE = output_dir;
-	
+	DiskAioParameters::WORKSPACE = workspace;
+
 	int res;
 	DiskAioFactory* disk_aio_factory = new DiskAioFactory(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);
 	core_id::set_core_ids(DiskAioParameters::NUM_THREADS);
+
+	spdlog::info("DiskAioParameters::NUM_DISK_AIO_THREADS: {}", DiskAioParameters::NUM_DISK_AIO_THREADS);
+	spdlog::info("DiskAioParameters::WORKSPACE: {}", DiskAioParameters::WORKSPACE);	
 }
 
-void CreateVertexCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
-							  std::string &vertex_labelset_name, vector<string> &vertex_labels, vector<string> &key_names,
-							  vector<LogicalType> &types, PartitionCatalogEntry *&partition_cat, PropertySchemaCatalogEntry *&property_schema_cat) {
+void ClearAdjListBuffers(
+    unordered_map<ExtentID, std::pair<std::pair<uint64_t, uint64_t>,
+                                      vector<vector<idx_t>>>> &adj_list_buffers)
+{
+    // Collect iterators into a vector
+    vector<unordered_map<ExtentID, std::pair<std::pair<uint64_t, uint64_t>,
+                                             vector<vector<idx_t>>>>::iterator>
+        iterators;
+    iterators.reserve(adj_list_buffers.size());
+    for (auto it = adj_list_buffers.begin(); it != adj_list_buffers.end();
+         ++it) {
+        iterators.push_back(it);
+    }
+
+	// Parallelize over the collected iterators
+	#pragma omp parallel for num_threads(32)
+    for (size_t i = 0; i < iterators.size(); i++) {
+        auto &buffers = iterators[i]->second.second;
+        for (auto &inner_vector : buffers) {
+            inner_vector.clear();
+        }
+        iterators[i]->second.first.first = 0;   // Reset num_adj_list
+        iterators[i]->second.first.second = 0;  // Reset adj_len_total
+    }
+}
+
+/**
+ * MAIN FUNCTIONS
+*/
+
+void CreateVertexCatalogInfos(BulkloadContext& bulkload_ctx, std::string &vertex_labelset_name, vector<string> &vertex_labels, vector<string> &key_names,
+							  vector<LogicalType> &types, PartitionCatalogEntry *&partition_cat, PropertySchemaCatalogEntry *&property_schema_cat) {	
 	string partition_name = DEFAULT_VERTEX_PARTITION_PREFIX + vertex_labelset_name;
 	string property_schema_name = DEFAULT_VERTEX_PROPERTYSCHEMA_PREFIX + vertex_labelset_name;
 	vector<PropertyKeyID> property_key_ids;
 
-	// Create Partition Catalog Entry
+    spdlog::trace("[CreateVertexCatalogInfos] vertex_labelset_name: {}, vertex_labels: [{}], key_names: [{}], partition_name: {}, property_schema_name: {}",
+                  vertex_labelset_name, join_vector(vertex_labels), join_vector(key_names), partition_name, property_schema_name);
+
+	spdlog::debug("[CreateVertexCatalogInfos] CreatePartitionInfo");
 	CreatePartitionInfo partition_info(DEFAULT_SCHEMA, partition_name.c_str());
 	partition_cat = 
-		(PartitionCatalogEntry *)cat_instance.CreatePartition(*client.get(), &partition_info);
-	PartitionID new_pid = graph_cat->GetNewPartitionID();
+		(PartitionCatalogEntry *)bulkload_ctx.catalog.CreatePartition(*(bulkload_ctx.client.get()), &partition_info);
+	PartitionID new_pid = bulkload_ctx.graph_cat->GetNewPartitionID();
+	spdlog::trace("[CreateVertexCatalogInfos] new_pid: {}", new_pid);
 
-	// Create Property Schema Catalog Entry
+	spdlog::debug("[CreateVertexCatalogInfos] CreatePropertySchemaInfo");
 	CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(),
 												 new_pid, partition_cat->GetOid());
-	property_schema_cat = (PropertySchemaCatalogEntry *)cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
+	property_schema_cat = (PropertySchemaCatalogEntry *)bulkload_ctx.catalog.CreatePropertySchema(*(bulkload_ctx.client.get()), &propertyschema_info);
 	
-	// Create Physical ID Index Catalog & Add to PartitionCatalogEntry
+	spdlog::debug("[CreateVertexCatalogInfos] CreateIndexInfo");
 	CreateIndexInfo idx_info(DEFAULT_SCHEMA, vertex_labelset_name + "_id", IndexType::PHYSICAL_ID, 
 							 partition_cat->GetOid(), property_schema_cat->GetOid(), 0, {-1});
-	IndexCatalogEntry *index_cat = (IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &idx_info);
+	IndexCatalogEntry *index_cat = (IndexCatalogEntry *)bulkload_ctx.catalog.CreateIndex(*(bulkload_ctx.client.get()), &idx_info);
 	
-	// Set up catalog informations
-	graph_cat->AddVertexPartition(*client.get(), new_pid, partition_cat->GetOid(), vertex_labels);
-	graph_cat->GetPropertyKeyIDs(*client.get(), key_names, types, property_key_ids);
+	spdlog::debug("[CreateVertexCatalogInfos] Set up catalog informations");
+	bulkload_ctx.graph_cat->AddVertexPartition(*(bulkload_ctx.client.get()), new_pid, partition_cat->GetOid(), vertex_labels);
+	bulkload_ctx.graph_cat->GetPropertyKeyIDs(*(bulkload_ctx.client.get()), key_names, types, property_key_ids);
 
-	partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
-	partition_cat->SetSchema(*client.get(), key_names, types, property_key_ids);
+	partition_cat->AddPropertySchema(*(bulkload_ctx.client.get()), property_schema_cat->GetOid(), property_key_ids);
+	partition_cat->SetSchema(*(bulkload_ctx.client.get()), key_names, types, property_key_ids);
 	partition_cat->SetPhysicalIDIndex(index_cat->GetOid());
 	partition_cat->SetPartitionID(new_pid);
 
-	property_schema_cat->SetSchema(*client.get(), key_names, types, property_key_ids);
+	property_schema_cat->SetSchema(*(bulkload_ctx.client.get()), key_names, types, property_key_ids);
 	property_schema_cat->SetPhysicalIDIndex(index_cat->GetOid());
 }
 
-void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext> client, GraphCatalogEntry *graph_cat,
-							  std::string &edge_type, vector<string> &key_names, vector<LogicalType> &types, string &src_column_name,
+void CreateEdgeCatalogInfos(BulkloadContext& bulkload_ctx, std::string &edge_type, vector<string> &key_names, vector<LogicalType> &types, string &src_column_name,
 							  string &dst_column_name, PartitionCatalogEntry *&partition_cat, PropertySchemaCatalogEntry *&property_schema_cat,
 							  LogicalType edge_direction_type, idx_t num_src_columns) {
 	string partition_name = DEFAULT_EDGE_PARTITION_PREFIX + edge_type;
@@ -183,67 +202,60 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 		// Create Partition Catalog Entry
 		CreatePartitionInfo partition_info(DEFAULT_SCHEMA, partition_name.c_str());
 		partition_cat = 
-			(PartitionCatalogEntry *)cat_instance.CreatePartition(*client.get(), &partition_info);
-		PartitionID new_pid = graph_cat->GetNewPartitionID();
+			(PartitionCatalogEntry *)bulkload_ctx.catalog.CreatePartition(*(bulkload_ctx.client.get()), &partition_info);
+		PartitionID new_pid = bulkload_ctx.graph_cat->GetNewPartitionID();
 
 		// Create Property Schema Catalog Entry
 		CreatePropertySchemaInfo propertyschema_info(DEFAULT_SCHEMA, property_schema_name.c_str(), new_pid, partition_cat->GetOid());
-		property_schema_cat = (PropertySchemaCatalogEntry *)cat_instance.CreatePropertySchema(*client.get(), &propertyschema_info);
+		property_schema_cat = (PropertySchemaCatalogEntry *)bulkload_ctx.catalog.CreatePropertySchema(*(bulkload_ctx.client.get()), &propertyschema_info);
 
 		// Create Physical ID Index Catalog & Add to PartitionCatalogEntry
 		CreateIndexInfo id_idx_info(DEFAULT_SCHEMA, edge_type + "_id", IndexType::PHYSICAL_ID,
 									partition_cat->GetOid(), property_schema_cat->GetOid(), 0, {-1});
 		IndexCatalogEntry *id_index_cat = 
-			(IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &id_idx_info);
+			(IndexCatalogEntry *)bulkload_ctx.catalog.CreateIndex(*(bulkload_ctx.client.get()), &id_idx_info);
 		
 		// Set up catalog informations
-		graph_cat->AddEdgePartition(*client.get(), new_pid, partition_cat->GetOid(), edge_type);
-		graph_cat->GetPropertyKeyIDs(*client.get(), key_names, types, property_key_ids);
+		bulkload_ctx.graph_cat->AddEdgePartition(*(bulkload_ctx.client.get()), new_pid, partition_cat->GetOid(), edge_type);
+		bulkload_ctx.graph_cat->GetPropertyKeyIDs(*(bulkload_ctx.client.get()), key_names, types, property_key_ids);
 
-		partition_cat->AddPropertySchema(*client.get(), property_schema_cat->GetOid(), property_key_ids);
-		partition_cat->SetSchema(*client.get(), key_names, types, property_key_ids);
+		partition_cat->AddPropertySchema(*(bulkload_ctx.client.get()), property_schema_cat->GetOid(), property_key_ids);
+		partition_cat->SetSchema(*(bulkload_ctx.client.get()), key_names, types, property_key_ids);
 		partition_cat->SetPhysicalIDIndex(id_index_cat->GetOid());
 		partition_cat->SetPartitionID(new_pid);
 
-		property_schema_cat->SetSchema(*client.get(), key_names, types, property_key_ids);
+		property_schema_cat->SetSchema(*(bulkload_ctx.client.get()), key_names, types, property_key_ids);
 		property_schema_cat->SetPhysicalIDIndex(id_index_cat->GetOid());
 
 		// Get Src Vertex PS Catalog Entry
 		vector<idx_t> src_vertex_part_cat_oids = 
-			graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
+			bulkload_ctx.graph_cat->LookupPartition(*(bulkload_ctx.client.get()), { src_column_name }, GraphComponentType::VERTEX);
 		if (src_vertex_part_cat_oids.size() != 1) throw InvalidInputException("The input src key corresponds to multiple vertex partitions.");
 		PartitionCatalogEntry *src_vertex_part_cat_entry = 
-			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, src_vertex_part_cat_oids[0]);
+			(PartitionCatalogEntry *)bulkload_ctx.catalog.GetEntry(*(bulkload_ctx.client.get()), DEFAULT_SCHEMA, src_vertex_part_cat_oids[0]);
 
 		vector<idx_t> dst_vertex_part_cat_oids = 
-			graph_cat->LookupPartition(*client.get(), { dst_column_name }, GraphComponentType::VERTEX);
+			bulkload_ctx.graph_cat->LookupPartition(*(bulkload_ctx.client.get()), { dst_column_name }, GraphComponentType::VERTEX);
 		if (dst_vertex_part_cat_oids.size() != 1) throw InvalidInputException("The input dst key corresponds to multiple vertex partitions.");
 		PartitionCatalogEntry *dst_vertex_part_cat_entry = 
-			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, dst_vertex_part_cat_oids[0]);
+			(PartitionCatalogEntry *)bulkload_ctx.catalog.GetEntry(*(bulkload_ctx.client.get()), DEFAULT_SCHEMA, dst_vertex_part_cat_oids[0]);
 		src_vertex_part_cat_entry->GetPropertySchemaIDs(vertex_ps_cat_oids);
-		graph_cat->AddEdgeConnectionInfo(*client.get(), src_vertex_part_cat_entry->GetOid(), partition_cat->GetOid());
+		bulkload_ctx.graph_cat->AddEdgeConnectionInfo(*(bulkload_ctx.client.get()), src_vertex_part_cat_entry->GetOid(), partition_cat->GetOid());
 		partition_cat->SetSrcDstPartOid(src_vertex_part_cat_entry->GetOid(), dst_vertex_part_cat_entry->GetOid());
 	} else if (edge_direction_type == LogicalType::BACKWARD_ADJLIST) {
 		partition_cat = 
-			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, partition_name);
+			(PartitionCatalogEntry *)bulkload_ctx.catalog.GetEntry(*(bulkload_ctx.client.get()), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, partition_name);
 		property_schema_cat = 
-			(PropertySchemaCatalogEntry *)cat_instance.GetEntry(*client.get(), CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, property_schema_name);
+			(PropertySchemaCatalogEntry *)bulkload_ctx.catalog.GetEntry(*(bulkload_ctx.client.get()), CatalogType::PROPERTY_SCHEMA_ENTRY, DEFAULT_SCHEMA, property_schema_name);
 		
 		// Get Src Vertex PS Catalog Entry
 		vector<idx_t> src_vertex_part_cat_oids = 
-			graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
+			bulkload_ctx.graph_cat->LookupPartition(*(bulkload_ctx.client.get()), { src_column_name }, GraphComponentType::VERTEX);
 		if (src_vertex_part_cat_oids.size() != 1) throw InvalidInputException("The input src key corresponds to multiple vertex partitions.");
 		PartitionCatalogEntry *src_vertex_part_cat_entry = 
-			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, src_vertex_part_cat_oids[0]);
+			(PartitionCatalogEntry *)bulkload_ctx.catalog.GetEntry(*(bulkload_ctx.client.get()), DEFAULT_SCHEMA, src_vertex_part_cat_oids[0]);
 
-		// vector<idx_t> dst_vertex_part_cat_oids = 
-		// 	graph_cat->LookupPartition(*client.get(), { dst_column_name }, GraphComponentType::VERTEX);
-		// if (dst_vertex_part_cat_oids.size() != 1) throw InvalidInputException("The input dst key corresponds to multiple vertex partitions.");
-		// PartitionCatalogEntry *dst_vertex_part_cat_entry = 
-		// 	(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, dst_vertex_part_cat_oids[0]);
 		src_vertex_part_cat_entry->GetPropertySchemaIDs(vertex_ps_cat_oids);
-		// graph_cat->AddEdgeConnectionInfo(*client.get(), src_vertex_part_cat_entry->GetOid(), partition_cat->GetOid());
-		// partition_cat->SetSrcDstPartOid(src_vertex_part_cat_entry->GetOid(), dst_vertex_part_cat_entry->GetOid());
 	} else {
 		D_ASSERT(false);
 	}
@@ -251,10 +263,10 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 	idx_t adj_col_idx; // TODO bug fix
 	for (auto i = 0; i < vertex_ps_cat_oids.size(); i++) {
 		PropertySchemaCatalogEntry *vertex_ps_cat_entry = 
-			(PropertySchemaCatalogEntry*)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, vertex_ps_cat_oids[i]);
+			(PropertySchemaCatalogEntry*)bulkload_ctx.catalog.GetEntry(*(bulkload_ctx.client.get()), DEFAULT_SCHEMA, vertex_ps_cat_oids[i]);
 		// Add Adjacency Index Info to Vertex PS Catalog Entry
 		vertex_ps_cat_entry->AppendAdjListType({ edge_direction_type });
-		adj_col_idx = vertex_ps_cat_entry->AppendAdjListKey(*client.get(), { edge_type });
+		adj_col_idx = vertex_ps_cat_entry->AppendAdjListKey(*(bulkload_ctx.client.get()), { edge_type });
 	}
 
 	// Create Adjacency Index Catalog
@@ -269,15 +281,16 @@ void CreateEdgeCatalogInfos(Catalog &cat_instance, std::shared_ptr<ClientContext
 	CreateIndexInfo adj_idx_info(DEFAULT_SCHEMA, adj_idx_name, index_type,
 								partition_cat->GetOid(), property_schema_cat->GetOid(), adj_col_idx, adj_key_col_idxs);
 	IndexCatalogEntry *adj_index_cat =
-		(IndexCatalogEntry *)cat_instance.CreateIndex(*client.get(), &adj_idx_info);
+		(IndexCatalogEntry *)bulkload_ctx.catalog.CreateIndex(*(bulkload_ctx.client.get()), &adj_idx_info);
 
 	partition_cat->AddAdjIndex(adj_index_cat->GetOid());
 }
 
-void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, 
-	LogicalType edge_direction_type, PartitionID part_id, ExtentID max_extent_id, 
+void AppendAdjListChunk(BulkloadContext& bulkload_ctx, LogicalType edge_direction_type, PartitionID part_id, ExtentID max_extent_id, 
 	unordered_map<ExtentID, std::pair<std::pair<uint64_t, uint64_t>, vector<vector<idx_t>>>> &adj_list_buffers) {
 	vector<vector<idx_t>> empty_adj_list;
+
+	spdlog::trace("[AppendAdjListChunk] edge_direction_type: {}, part_id: {}, max_extent_id: {}", edge_direction_type.ToString(), part_id, max_extent_id);
 
 	for (auto idx = 0; idx < max_extent_id; idx++) {
 		ExtentID cur_vertex_localextentID = idx;
@@ -325,7 +338,7 @@ void AppendAdjListChunk(ExtentManager &ext_mng, std::shared_ptr<ClientContext> c
 		adj_list_chunk.Initialize(adj_list_chunk_types, adj_list_datas, STORAGE_STANDARD_VECTOR_SIZE);
 
 		ExtentID cur_vertex_extentID = cur_vertex_localextentID | (((uint32_t)part_id) << 16);
-		ext_mng.AppendChunkToExistingExtent(*client.get(), adj_list_chunk, cur_vertex_extentID);
+		bulkload_ctx.ext_mng.AppendChunkToExistingExtent(*(bulkload_ctx.client.get()), adj_list_chunk, cur_vertex_extentID);
 		adj_list_chunk.Destroy();
 	}
 }
@@ -503,304 +516,228 @@ inline void FillBwdAdjListBuffer(bool load_backward_edge, idx_t &begin_idx, idx_
 	}
 }
 
-void BuildIndex() {
-	// auto index_build_start = std::chrono::high_resolution_clock::now();
-	// Vector row_ids(LogicalType::ROW_TYPE, true, false, data.size());
-	// int64_t *row_ids_data = (int64_t *)row_ids.GetData();
-	// for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-	// 	row_ids_data[seqno] = (int64_t)(pid_base + seqno);
-	// 	// IC(seqno, row_ids_data[seqno]);
-	// }
-	// DataChunk tmp_chunk;
-	// vector<LogicalType> tmp_types;
-	// tmp_types.resize(1);
-	// if (key_column_idxs.size() == 1) {
-	// 	tmp_types[0] = LogicalType::UBIGINT;
-	// 	tmp_chunk.Initialize(tmp_types, data.size());
-	// 	tmp_chunk.data[0].Reference(data.data[key_column_idxs[0]]);
-	// 	tmp_chunk.SetCardinality(data.size());
-	// } else if (key_column_idxs.size() == 2) {
-	// 	tmp_types[0] = LogicalType::HUGEINT;
-	// 	tmp_chunk.Initialize(tmp_types, data.size());
-	// 	hugeint_t *tmp_chunk_data = (hugeint_t *)tmp_chunk.data[0].GetData();
-	// 	for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-	// 		hugeint_t key_val;
-	// 		key_val.upper = data.GetValue(key_column_idxs[0], seqno).GetValue<int64_t>();
-	// 		key_val.lower = data.GetValue(key_column_idxs[1], seqno).GetValue<uint64_t>();
-	// 		tmp_chunk_data[seqno] = key_val;
-	// 		// IC(key_val.upper, key_val.lower);
-	// 		// tmp_chunk.SetValue(0, seqno, Value::HUGEINT(key_val));
-	// 	}
-	// 	tmp_chunk.SetCardinality(data.size());
-	// } else {
-	// 	throw InvalidInputException("Do not support # of compound keys >= 3 currently");
-	// }
-	// // tmp_types.resize(key_column_idxs.size());
-	// // for (size_t i = 0; i < tmp_types.size(); i++) tmp_types[i] = LogicalType::UBIGINT;
-	// // tmp_chunk.Initialize(tmp_types);
-	// // for (size_t i = 0; i < tmp_types.size(); i++) tmp_chunk.data[i].Reference(data.data[key_column_idxs[i]]);
-	// // IC(tmp_chunk.size());
-	// IndexLock lock;
-	// index->Insert(lock, tmp_chunk, row_ids);
-	// auto index_build_end = std::chrono::high_resolution_clock::now();
-	// std::chrono::duration<double> index_build_duration = index_build_end - index_build_start;
-	// fprintf(stdout, "Index Build Elapsed: %.3f\n", index_build_duration.count());
+void PopulateLidToPidMap(unordered_map<LidPair, idx_t, boost::hash<LidPair>> *lid_to_pid_map_instance, const vector<int64_t> &key_column_idxs, DataChunk &data, ExtentID new_eid) {
+    idx_t pid_base = static_cast<idx_t>(new_eid) << 32;
+    
+    if (key_column_idxs.empty()) return;
+    
+    LidPair lid_key{0, 0};
+    if (key_column_idxs.size() == 1) {
+        auto key_column = reinterpret_cast<idx_t *>(data.data[key_column_idxs[0]].GetData());
+        for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+            lid_key.first = key_column[seqno];
+            lid_to_pid_map_instance->emplace(lid_key, pid_base + seqno);
+        }
+    } else if (key_column_idxs.size() == 2) {
+        auto key_column_1 = reinterpret_cast<idx_t *>(data.data[key_column_idxs[0]].GetData());
+        auto key_column_2 = reinterpret_cast<idx_t *>(data.data[key_column_idxs[1]].GetData());
+        
+        for (idx_t seqno = 0; seqno < data.size(); seqno++) {
+            lid_key.first = key_column_1[seqno];
+            lid_key.second = key_column_2[seqno];
+            lid_to_pid_map_instance->emplace(lid_key, pid_base + seqno);
+        }
+    } else {
+        throw InvalidInputException("Do not support # of compound keys >= 3 currently");
+    }
 }
 
-void ReadVertexCSVFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
-											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map) {
-	for (auto &vertex_file: vertex_files) {
-		auto vertex_file_start = std::chrono::high_resolution_clock::now();
+void ReadVertexCSVFileAndCreateVertexExtents(vector<LabeledFile> &csv_vertex_files, BulkloadContext &bulkload_ctx) {
+	SCOPED_TIMER_SIMPLE(ReadVertexCSVFileAndCreateVertexExtents, spdlog::level::info, spdlog::level::debug);
+	for (auto &vertex_file: csv_vertex_files) {
+		SCOPED_TIMER_SIMPLE(ReadSingleVertexCSVFile, spdlog::level::info, spdlog::level::debug);
 
 		string &vertex_labelset = std::get<0>(vertex_file);
 		string &vertex_file_path = std::get<1>(vertex_file);
+
+		spdlog::info("[ReadVertexCSVFileAndCreateVertexExtents] Start to load {} with label set {}", vertex_file_path, vertex_labelset);
+
 		vector<string> vertex_labels;
 		vector<string> key_names;
 		vector<int64_t> key_column_idxs;
 		vector<LogicalType> types;
+		ParseLabelSet(vertex_labelset, vertex_labels);
+
+		spdlog::debug("[ReadVertexCSVFileAndCreateVertexExtents] InitCSVFile");
+		SUBTIMER_START(ReadSingleVertexCSVFile, "InitCSVFile");
 		GraphSIMDCSVFileParser reader;
+		size_t approximated_num_rows = reader.InitCSVFile(vertex_file_path.c_str(), GraphComponentType::VERTEX, '|', std::get<2>(vertex_file));
+
+		if (!reader.GetSchemaFromHeader(key_names, types)) { throw InvalidInputException("Invalid Schema Information"); }
+		key_column_idxs = reader.GetKeyColumnIndexFromHeader();
+		SUBTIMER_STOP(ReadSingleVertexCSVFile, "InitCSVFile");
+
+		spdlog::debug("[ReadVertexCSVFileAndCreateVertexExtents] CreateVertexCatalogInfos");
 		PartitionCatalogEntry *partition_cat;
 		PropertySchemaCatalogEntry *property_schema_cat;
+		CreateVertexCatalogInfos(bulkload_ctx, vertex_labelset, vertex_labels, key_names, types, partition_cat, property_schema_cat);
 
-		fprintf(stdout, "\nStart to load %s, %s\n", vertex_labelset.c_str(), vertex_file_path.c_str());
-
-		// Create Partition for each vertex (partitioned by labelset)
-		ParseLabelSet(vertex_labelset, vertex_labels);
-		
-		// Read & Parse Vertex CSV File
-		auto init_csv_start = std::chrono::high_resolution_clock::now();
-		size_t approximated_num_rows = reader.InitCSVFile(vertex_file_path.c_str(), GraphComponentType::VERTEX, '|', std::get<2>(vertex_file));
-		auto init_csv_end = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> init_csv_duration = init_csv_end - init_csv_start;
-		fprintf(stdout, "InitCSV Elapsed: %.3f\n", init_csv_duration.count());
-
-		// Get Schema Information From the CSV Header
-		if (!reader.GetSchemaFromHeader(key_names, types)) {
-			throw InvalidInputException("Invalid Schema Information");
+		spdlog::debug("[ReadVertexCSVFileAndCreateVertexExtents] Initialize LID_TO_PID_MAP");
+		SUBTIMER_START(ReadSingleVertexCSVFile, "InitLIDToPIDMap");
+		unordered_map<LidPair, idx_t, boost::hash<LidPair>> *lid_to_pid_map_instance;
+		if (bulkload_ctx.input_options.load_edge) {
+			bulkload_ctx.lid_to_pid_map.emplace_back(vertex_labelset, unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
+			lid_to_pid_map_instance = &bulkload_ctx.lid_to_pid_map.back().second;
+			lid_to_pid_map_instance->reserve(approximated_num_rows);
 		}
-		key_column_idxs = reader.GetKeyColumnIndexFromHeader();
+		SUBTIMER_STOP(ReadSingleVertexCSVFile, "InitLIDToPIDMap");
 
-		// Create Catalog Infos for Vertex
-		CreateVertexCatalogInfos(cat_instance, client, graph_cat, vertex_labelset, vertex_labels, key_names, types, partition_cat, property_schema_cat);
-		
-		// Initialize DataChunk
 		DataChunk data;
 		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
 
-		// Initialize LID_TO_PID_MAP
-		unordered_map<LidPair, idx_t, boost::hash<LidPair>> *lid_to_pid_map_instance;
-		if (load_edge) {
-			lid_to_pid_map.emplace_back(vertex_labelset, unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
-			lid_to_pid_map_instance = &lid_to_pid_map.back().second;
-			lid_to_pid_map_instance->reserve(approximated_num_rows);
-		}
+		spdlog::debug("[ReadVertexCSVFileAndCreateVertexExtents] Start to read and create vertex extents");
+		SUBTIMER_START(ReadSingleVertexCSVFile, "ReadCSVFile and CreateVertexExtents");
+		while (true) {
+			SCOPED_TIMER_SIMPLE(ReadCSVFileAndCreateExtents, spdlog::level::debug, spdlog::level::trace);
 
-		// Read CSV File into DataChunk & CreateVertexExtent
-		auto read_chunk_start = std::chrono::high_resolution_clock::now();
-		while (!reader.ReadCSVFile(key_names, types, data)) {
-			auto read_chunk_end = std::chrono::high_resolution_clock::now();
-			std::chrono::duration<double> read_chunk_duration = read_chunk_end - read_chunk_start;
+			SUBTIMER_START(ReadCSVFileAndCreateExtents, "ReadCSVFile");
+			spdlog::trace("[ReadVertexCSVFileAndCreateVertexExtents] ReadCSVFile");
+			bool eof = reader.ReadCSVFile(key_names, types, data);
+			SUBTIMER_STOP(ReadCSVFileAndCreateExtents, "ReadCSVFile");
+			if (eof) break;
 
-			// Create Vertex Extent by Extent Manager
-			auto create_extent_start = std::chrono::high_resolution_clock::now();
-			ExtentID new_eid = ext_mng.CreateExtent(*client.get(), data, *partition_cat, *property_schema_cat);
-			auto create_extent_end = std::chrono::high_resolution_clock::now();
-			std::chrono::duration<double> extent_duration = create_extent_end - create_extent_start;
-			// fprintf(stdout, "\tCreateExtent Elapsed: %.3f\n", extent_duration.count());
+			SUBTIMER_START(ReadCSVFileAndCreateExtents, "CreateExtent");
+			spdlog::trace("[ReadVertexCSVFileAndCreateVertexExtents] CreateExtent");
+			ExtentID new_eid = bulkload_ctx.ext_mng.CreateExtent(*(bulkload_ctx.client.get()), data, *partition_cat, *property_schema_cat);
 			property_schema_cat->AddExtent(new_eid, data.size());
+			SUBTIMER_STOP(ReadCSVFileAndCreateExtents, "CreateExtent");
 			
-			if (load_edge) {
-				// Initialize pid base
-				idx_t pid_base = (idx_t) new_eid;
-				pid_base = pid_base << 32;
-
-				// Build Logical id To Physical id Mapping (= LID_TO_PID_MAP)
-				if (key_column_idxs.size() == 0) continue;
-				auto map_build_start = std::chrono::high_resolution_clock::now();
-
-				LidPair lid_key{0, 0};
-				if (key_column_idxs.size() == 1) {
-					idx_t *key_column = (idx_t *)data.data[key_column_idxs[0]].GetData();
-
-					for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-						lid_key.first = key_column[seqno];
-						lid_to_pid_map_instance->emplace(lid_key, pid_base + seqno);
-					}
-				} else if (key_column_idxs.size() == 2) {
-					idx_t *key_column_1 = (idx_t *)data.data[key_column_idxs[0]].GetData();
-					idx_t *key_column_2 = (idx_t *)data.data[key_column_idxs[1]].GetData();
-
-					for (idx_t seqno = 0; seqno < data.size(); seqno++) {
-						lid_key.first = key_column_1[seqno];
-						lid_key.second = key_column_2[seqno];
-						lid_to_pid_map_instance->emplace(lid_key, pid_base + seqno);
-					}
-				} else {
-					throw InvalidInputException("Do not support # of compound keys >= 3 currently");
-				}
-
-				auto map_build_end = std::chrono::high_resolution_clock::now();
-				std::chrono::duration<double> map_build_duration = map_build_end - map_build_start;
-				// fprintf(stdout, "Map Build Elapsed: %.3f\n", map_build_duration.count());
-			}
-			read_chunk_start = std::chrono::high_resolution_clock::now();
-		}
-		auto vertex_file_end = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> duration = vertex_file_end - vertex_file_start;
-
-		fprintf(stdout, "\nLoad %s, %s Done! Elapsed: %.3f\n", std::get<0>(vertex_file).c_str(), std::get<1>(vertex_file).c_str(), duration.count());
-
-		if (max_extent_id < partition_cat->GetLocalExtentID()) max_extent_id = partition_cat->GetLocalExtentID();
-	}
-	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
-	fprintf(stdout, "\nLoad CSV Vertex Files Done!\n");
-}
-
-void ReadVertexJSONFileAndCreateVertexExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
-											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map) {
-	// Read JSON File (Assume Normal JSON File Format)
-	for (unsigned idx : util::lang::indices(json_files)) {
-		auto json_start = std::chrono::high_resolution_clock::now();
-		fprintf(stdout, "\nStart to load %s, %s\n\n", json_files[idx].first.c_str(), json_files[idx].second.c_str());
-
-		// Load & Parse JSON File
-		GraphSIMDJSONFileParser reader(client, &ext_mng, &cat_instance, set_sim_threshold);
-		if (load_edge) {
-			reader.SetLidToPidMap(&lid_to_pid_map);
-		}
-
-		// CreateExtent For Each Vertex
-		if (json_file_types[idx] == JsonFileType::JSON) {
-			D_ASSERT(false); // deactivate temporarily
-		} else if (json_file_types[idx] == JsonFileType::JSONL) { // assume Neo4J format
-			reader.InitJsonFile(json_files[idx].second.c_str(), JsonFileType::JSONL);
-			DataChunk data;
-			vector<string> label_set;
-			if (json_file_vertices[idx].size() == 1 && json_file_edges[idx].size() == 0) {
-				ParseLabelSet(json_file_vertices[idx][0].first, label_set);
-				reader.LoadJson(json_file_vertices[idx][0].first, label_set, "", data, JsonFileType::JSONL, 
-					graph_cat, nullptr, GraphComponentType::VERTEX);
-			} else if (json_file_vertices[idx].size() == 0 && json_file_edges[idx].size() == 1) {
-				ParseLabelSet(json_file_vertices[idx][0].first, label_set);
-				reader.LoadJson(json_file_edges[idx][0].first, label_set, "", data, JsonFileType::JSONL,
-					graph_cat, nullptr, GraphComponentType::EDGE);
-			} else {
-				D_ASSERT(false);
-				// reader.LoadJson("", "", data, JsonFileType::JSONL, graph_cat, nullptr);
+			if (bulkload_ctx.input_options.load_edge) {
+				SUBTIMER_START(ReadCSVFileAndCreateExtents, "PopulateLidToPidMap");
+				spdlog::trace("[ReadVertexCSVFileAndCreateVertexExtents] PopulateLidToPidMap");
+				PopulateLidToPidMap(lid_to_pid_map_instance, key_column_idxs, data, new_eid);
+				SUBTIMER_STOP(ReadCSVFileAndCreateExtents, "PopulateLidToPidMap");
 			}
 		}
-		auto json_end = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> load_json_duration = json_end - json_start;
-		fprintf(stdout, "\nLoad %s, %s Done! Elapsed: %.3f\n", json_files[idx].first.c_str(), json_files[idx].second.c_str(), load_json_duration.count());
+		SUBTIMER_STOP(ReadSingleVertexCSVFile, "ReadCSVFile and CreateVertexExtents");
+		spdlog::info("[ReadVertexCSVFileAndCreateVertexExtents] Load {} Done", vertex_file_path);
 	}
+	spdlog::debug("[ReadVertexCSVFileAndCreateVertexExtents] Flush Dirty Segments and Delete From Cache");
 	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
-	fprintf(stdout, "\nLoad Vertex CSV Files Done!\n");
+	spdlog::info("[ReadVertexCSVFileAndCreateVertexExtents] Load CSV Vertex Files Done");
 }
 
-void ClearAdjListBuffers(
-    unordered_map<ExtentID, std::pair<std::pair<uint64_t, uint64_t>,
-                                      vector<vector<idx_t>>>> &adj_list_buffers)
-{
-    // Collect iterators into a vector
-    vector<unordered_map<ExtentID, std::pair<std::pair<uint64_t, uint64_t>,
-                                             vector<vector<idx_t>>>>::iterator>
-        iterators;
-    iterators.reserve(adj_list_buffers.size());
-    for (auto it = adj_list_buffers.begin(); it != adj_list_buffers.end();
-         ++it) {
-        iterators.push_back(it);
-    }
+void ReadVertexJSONFileAndCreateVertexExtents(vector<LabeledFile> &json_vertex_files, BulkloadContext &bulkload_ctx) {
+	SCOPED_TIMER_SIMPLE(ReadVertexJSONFiles, spdlog::level::info, spdlog::level::debug);
+	spdlog::info("[ReadVertexJSONFileAndCreateVertexExtents] Start to load {} JSON Vertex Files", json_vertex_files.size());
+	for (auto &vertex_file: json_vertex_files) {
+		SCOPED_TIMER_SIMPLE(ReadSingleVertexJSONFile, spdlog::level::info, spdlog::level::debug);
 
-	// Parallelize over the collected iterators
-#pragma omp parallel for num_threads(32)
-    for (size_t i = 0; i < iterators.size(); i++) {
-        auto &buffers = iterators[i]->second.second;
-        for (auto &inner_vector : buffers) {
-            inner_vector.clear();
-        }
-        iterators[i]->second.first.first = 0;   // Reset num_adj_list
-        iterators[i]->second.first.second = 0;  // Reset adj_len_total
-    }
+		string &vertex_labelset = std::get<0>(vertex_file);
+		string &vertex_file_path = std::get<1>(vertex_file);
+		spdlog::info("[ReadVertexJSONFileAndCreateVertexExtents] Start to load {} with label set {}", vertex_file_path, vertex_labelset);
+
+		SUBTIMER_START(ReadSingleVertexJSONFile, "GraphSIMDJSONFileParser Init");
+		GraphSIMDJSONFileParser reader(bulkload_ctx.client, &bulkload_ctx.ext_mng, &bulkload_ctx.catalog);
+		if(bulkload_ctx.input_options.load_edge) reader.SetLidToPidMap(&bulkload_ctx.lid_to_pid_map);
+		reader.InitJsonFile(vertex_file_path.c_str());
+		SUBTIMER_STOP(ReadSingleVertexJSONFile, "GraphSIMDJSONFileParser Init");
+
+		SUBTIMER_START(ReadSingleVertexJSONFile, "GraphSIMDJSONFileParser LoadJSON");
+		DataChunk data;
+		vector<string> label_set;
+		ParseLabelSet(vertex_labelset, label_set);
+		reader.LoadJson(vertex_labelset, label_set, "", data, bulkload_ctx.graph_cat, nullptr, GraphComponentType::VERTEX);
+		SUBTIMER_STOP(ReadSingleVertexJSONFile, "GraphSIMDJSONFileParser LoadJSON");
+
+		spdlog::info("[ReadVertexJSONFileAndCreateVertexExtents] Load {} Done", vertex_file_path);
+	}
+	spdlog::debug("[ReadVertexJSONFileAndCreateVertexExtents] Flush Dirty Segments and Delete From Cache");
+	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
+	spdlog::info("[ReadVertexJSONFileAndCreateVertexExtents] Load JSON Vertex Files Done");
+}
+
+void ReadVertexFilesAndCreateVertexExtents(BulkloadContext &bulkload_ctx) {
+	vector<LabeledFile> json_vertex_files;
+	vector<LabeledFile> csv_vertex_files;
+	SeperateFilesByExtension(bulkload_ctx.input_options.vertex_files, json_vertex_files, csv_vertex_files);
+	spdlog::info("[ReadVertexFileAndCreateVertexExtents] {} JSON Vertex Files and {} CSV Vertex Files", json_vertex_files.size(), csv_vertex_files.size());
+
+	if (json_vertex_files.size() > 0) ReadVertexJSONFileAndCreateVertexExtents(json_vertex_files, bulkload_ctx);
+	if (csv_vertex_files.size() > 0) ReadVertexCSVFileAndCreateVertexExtents(csv_vertex_files, bulkload_ctx);
 }
 
 // For multi-threaded version, please see 6fdb44c724faf1a3bd4218a32c54e5daf6c8aeae
-void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
-											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map,
-											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_pair_to_epid_map) {
+void ReadFwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files, BulkloadContext &bulkload_ctx) {
+	SCOPED_TIMER_SIMPLE(ReadFwdEdgeCSVFilesAndCreateEdgeExtents, spdlog::level::info, spdlog::level::debug);
 	unordered_map<ExtentID, std::pair<std::pair<uint64_t, uint64_t>, vector<vector<idx_t>>>> adj_list_buffers;
-	for (auto &edge_file: edge_files) {
-		auto edge_file_start = std::chrono::high_resolution_clock::now();
+	spdlog::info("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] Start to load {} CSV Edge Files", csv_edge_files.size());
+	for (auto &edge_file: csv_edge_files) {
+		SCOPED_TIMER_SIMPLE(ReadSingleEdgeCSVFile, spdlog::level::info, spdlog::level::debug);
 
 		string &edge_type = std::get<0>(edge_file);
 		string &edge_file_path = std::get<1>(edge_file);
+
+		spdlog::info("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] Start to load {} with edge type {}", edge_file_path, edge_type);
+		
+		GraphSIMDCSVFileParser reader;
 		string src_column_name;
 		string dst_column_name;
-		vector<string> key_names;
 		vector<int64_t> src_column_idx;
 		vector<int64_t> dst_column_idx;
+		vector<string> key_names;
 		vector<LogicalType> types;
-		GraphSIMDCSVFileParser reader;
-		PartitionCatalogEntry *partition_cat;
-		PropertySchemaCatalogEntry *property_schema_cat;
 
-#ifdef BULKLOAD_DEBUG_PRINT
-		fprintf(stdout, "\nStart to load %s, %s\n", edge_type.c_str(), edge_file_path.c_str());
-#endif
-
-		// Read & Parse Edge CSV File
+		spdlog::debug("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] InitCSVFile");
+		SUBTIMER_START(ReadSingleEdgeCSVFile, "InitCSVFile");
 		size_t approximated_num_rows = reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|', std::get<2>(edge_file));
-
-		// Get Schema Information From the CSV Header
-		if (!reader.GetSchemaFromHeader(key_names, types)) {
-			throw InvalidInputException("Invalid Schema Information");
-		}
+		if (!reader.GetSchemaFromHeader(key_names, types)) { throw InvalidInputException("Invalid Schema Information"); }
 		reader.GetSrcColumnIndexFromHeader(src_column_idx, src_column_name);
 		reader.GetDstColumnIndexFromHeader(dst_column_idx, dst_column_name);
 		if (src_column_idx.size() == 0 || dst_column_idx.size() == 0) {
 			throw InvalidInputException("Invalid Edge File Format");
 		}
+		SUBTIMER_STOP(ReadSingleEdgeCSVFile, "InitCSVFile");
 
-#ifdef BULKLOAD_DEBUG_PRINT
-		fprintf(stdout, "Src column name = %s (idx =", src_column_name.c_str());
-		for (size_t i = 0; i < src_column_idx.size(); i++) fprintf(stdout, " %ld", src_column_idx[i]);
-		fprintf(stdout, "), Dst column name = %s (idx =", dst_column_name.c_str());
-		for (size_t i = 0; i < dst_column_idx.size(); i++) fprintf(stdout, " %ld", dst_column_idx[i]);
-		fprintf(stdout, ")\n");
-#endif
+		spdlog::trace("Src column name = {} (idxs = [{}])", 
+					src_column_name, 
+					join_vector(src_column_idx));
 
-		// Initialize LID_TO_PID_MAP
-		auto src_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
+		spdlog::trace("Dst column name = {} (idxs = [{}])", 
+					dst_column_name, 
+					join_vector(dst_column_idx));
+
+		spdlog::debug("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] InitLIDToPIDMap");
+		SUBTIMER_START(ReadSingleEdgeCSVFile, "InitLIDToPIDMap");
+		auto src_it = std::find_if(bulkload_ctx.lid_to_pid_map.begin(), bulkload_ctx.lid_to_pid_map.end(),
 			[&src_column_name](const std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>> &element) {
 				return element.first.find(src_column_name) != string::npos;
 			});
-		if (src_it == lid_to_pid_map.end()) throw InvalidInputException("Corresponding src vertex file was not loaded");
+		if (src_it == bulkload_ctx.lid_to_pid_map.end()) throw InvalidInputException("Corresponding src vertex file was not loaded");
 		unordered_map<LidPair, idx_t, boost::hash<LidPair>> &src_lid_to_pid_map_instance = src_it->second;
 
-		auto dst_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
+		auto dst_it = std::find_if(bulkload_ctx.lid_to_pid_map.begin(), bulkload_ctx.lid_to_pid_map.end(),
 			[&dst_column_name](const std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>> &element) {
 				return element.first.find(dst_column_name) != string::npos;
 			});
-		if (dst_it == lid_to_pid_map.end()) throw InvalidInputException("Corresponding dst vertex file was not loaded");
+		if (dst_it == bulkload_ctx.lid_to_pid_map.end()) throw InvalidInputException("Corresponding dst vertex file was not loaded");
 		unordered_map<LidPair, idx_t, boost::hash<LidPair>> &dst_lid_to_pid_map_instance = dst_it->second;
+		SUBTIMER_STOP(ReadSingleEdgeCSVFile, "InitLIDToPIDMap");
 
-		// Initialize LID_PAIR_TO_EPID_MAP
+		spdlog::debug("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] InitLIDPairToEPIDMap");
+		SUBTIMER_START(ReadSingleEdgeCSVFile, "InitLIDPairToEPIDMap");
 		unordered_map<LidPair, idx_t, boost::hash<LidPair>> *lid_pair_to_epid_map_instance;
-		if (load_backward_edge) {
-			lid_pair_to_epid_map.emplace_back(std::get<0>(edge_file), unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
-			lid_pair_to_epid_map_instance = &lid_pair_to_epid_map.back().second;
+		if (bulkload_ctx.input_options.load_backward_edge) {
+			bulkload_ctx.lid_pair_to_epid_map.emplace_back(std::get<0>(edge_file), unordered_map<LidPair, idx_t, boost::hash<LidPair>>());
+			lid_pair_to_epid_map_instance = &bulkload_ctx.lid_pair_to_epid_map.back().second;
 			lid_pair_to_epid_map_instance->reserve(approximated_num_rows);
 		}
-		LidPair lid_pair;
+		SUBTIMER_STOP(ReadSingleEdgeCSVFile, "InitLIDPairToEPIDMap");
 
-		// Initialize 
 		DataChunk data;
 		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
 
-		// Create Edge Catalog Infos & Get Src vertex Catalog Entry
-		CreateEdgeCatalogInfos(cat_instance, client, graph_cat, edge_type, key_names, types, src_column_name, dst_column_name,
+		spdlog::debug("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] CreateEdgeCatalogInfos");
+		PartitionCatalogEntry *partition_cat;
+		PropertySchemaCatalogEntry *property_schema_cat;
+		CreateEdgeCatalogInfos(bulkload_ctx, edge_type, key_names, types, src_column_name, dst_column_name,
 			partition_cat, property_schema_cat, LogicalType::FORWARD_ADJLIST, src_column_idx.size());
 			
-		// Initialize variables related to vertex extent
+		spdlog::debug("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] ClearAdjListBuffers");
+		SUBTIMER_START(ReadSingleEdgeCSVFile, "ClearAdjListBuffers");
+		ClearAdjListBuffers(adj_list_buffers);
+		SUBTIMER_STOP(ReadSingleEdgeCSVFile, "ClearAdjListBuffers");
+		
 		LidPair prev_id {0, 0};
 		idx_t cur_src_pid, prev_src_pid;
 		ExtentID cur_vertex_extentID;
@@ -809,15 +746,20 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		bool is_first_tuple_processed = false;
 		PartitionID cur_part_id;
 
-		ClearAdjListBuffers(adj_list_buffers);
-		
-		// Read CSV File into DataChunk & CreateEdgeExtent
+		spdlog::debug("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] Start to read and create edge extents");
+		SUBTIMER_START(ReadSingleEdgeCSVFile, "ReadCSVFile and CreateEdgeExtents");
 		while (true) {
+			SCOPED_TIMER_SIMPLE(ReadCSVFileAndCreateEdgeExtents, spdlog::level::debug, spdlog::level::trace);
+
+			SUBTIMER_START(ReadCSVFileAndCreateEdgeExtents, "ReadCSVFile");
+			spdlog::trace("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] ReadCSVFile");
 			bool eof = reader.ReadCSVFile(key_names, types, data);
+			SUBTIMER_STOP(ReadCSVFileAndCreateEdgeExtents, "ReadCSVFile");
 			if (eof) break;
 
 			// Get New ExtentID for this chunk
 			ExtentID new_eid = partition_cat->GetNewExtentID();
+			spdlog::trace("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] New Extent ID = {}", new_eid);
 
 			// Initialize epid base
 			idx_t epid_base = (idx_t) new_eid;
@@ -854,6 +796,8 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 				is_first_tuple_processed = true;
 			}
 
+			SUBTIMER_START(ReadSingleEdgeCSVFile, "FillAdjListBuffer");
+			bool load_backward_edge = bulkload_ctx.input_options.load_backward_edge;
 			if (src_column_idx.size() == 1) {
 				while (src_seqno < max_seqno) {
 					src_key.first = src_key_columns[0][src_seqno];
@@ -900,51 +844,61 @@ void ReadFwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 			} else {
 				throw InvalidInputException("Do not support # of compound keys >= 3 currently");
 			}
+			SUBTIMER_STOP(ReadSingleEdgeCSVFile, "FillAdjListBuffer");
 			
-			// Process remaining dst vertices
+			SUBTIMER_START(ReadSingleEdgeCSVFile, "FillAdjListBuffer for Remaining");
 			end_idx = src_seqno;
-
 			FillAdjListBuffer(load_backward_edge, begin_idx, end_idx, src_seqno, cur_src_pid, vertex_seqno,
 							  dst_column_idx, dst_key_columns, dst_lid_to_pid_map_instance,
 							  lid_pair_to_epid_map_instance, adj_list_buffers, epid_base);
+			SUBTIMER_STOP(ReadSingleEdgeCSVFile, "FillAdjListBuffer for Remaining");
 			
-			// Create Edge Extent by Extent Manager
-			#pragma omp critical
-			{
-				ext_mng.CreateExtent(*client.get(), data, *partition_cat, *property_schema_cat, new_eid);
-				property_schema_cat->AddExtent(new_eid, data.size());
-			}
+			SUBTIMER_START(ReadSingleEdgeCSVFile, "CreateExtent and AddExtent");
+			spdlog::trace("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] CreateExtent and AddExtent");
+			bulkload_ctx.ext_mng.CreateExtent(*(bulkload_ctx.client.get()), data, *partition_cat, *property_schema_cat, new_eid);
+			property_schema_cat->AddExtent(new_eid, data.size());
+			SUBTIMER_STOP(ReadSingleEdgeCSVFile, "CreateExtent and AddExtent");
 		}
+		SUBTIMER_STOP(ReadSingleEdgeCSVFile, "ReadCSVFile and CreateEdgeExtents");
 		
-		// Process remaining adjlist
-		vector<idx_t> src_part_oids = graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
+		spdlog::debug("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] Process Remaining AdjList");
+		SUBTIMER_START(ReadSingleEdgeCSVFile, "Remaining AppendAdjListChunk");
+		vector<idx_t> src_part_oids = bulkload_ctx.graph_cat->LookupPartition(*(bulkload_ctx.client.get()), {  src_column_name }, GraphComponentType::VERTEX);
 		PartitionCatalogEntry *src_part_cat_entry = 
-			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, src_part_oids[0]);
-
-		AppendAdjListChunk(ext_mng, client, LogicalType::FORWARD_ADJLIST, cur_part_id, src_part_cat_entry->GetLocalExtentID(), adj_list_buffers);
-		
-		auto edge_file_end = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> duration = edge_file_end - edge_file_start;
-#ifdef BULKLOAD_DEBUG_PRINT
-		fprintf(stdout, "\nLoad %s, %s Done! Elapsed: %.3f\n", edge_type.c_str(), edge_file_path.c_str(), duration.count());
-#endif
+			(PartitionCatalogEntry *)bulkload_ctx.catalog.GetEntry(*(bulkload_ctx.client.get()), DEFAULT_SCHEMA, src_part_oids[0]);
+		AppendAdjListChunk(bulkload_ctx, LogicalType::FORWARD_ADJLIST, cur_part_id, src_part_cat_entry->GetLocalExtentID(), adj_list_buffers);
+		SUBTIMER_STOP(ReadSingleEdgeCSVFile, "Remaining AppendAdjListChunk");
 	}
+	spdlog::debug("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] Flush Dirty Segments and Delete From Cache");
 	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
+	spdlog::info("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] Load CSV Edge Files Done");
 }
 
-void ReadFwdEdgeJSONFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
-											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map) {
+void ReadFwdEdgeFilesAndCreateEdgeExtents(BulkloadContext &bulkload_ctx) {
+	vector<LabeledFile> json_edge_files;
+	vector<LabeledFile> csv_edge_files;
+	SeperateFilesByExtension(bulkload_ctx.input_options.edge_files, json_edge_files, csv_edge_files);
+	spdlog::info("[ReadEdgeFilesAndCreateEdgeExtents] {} JSON Edge Files and {} CSV Edge Files", json_edge_files.size(), csv_edge_files.size());
+
+	if(json_edge_files.size() > 0) {
+		throw NotImplementedException("JSON Edge File is not supported yet");
+	}
+
+	ReadFwdEdgeCSVFilesAndCreateEdgeExtents(csv_edge_files, bulkload_ctx);
 }
 
-void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
-											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map,
-											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_pair_to_epid_map) {
+void ReadBwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files, BulkloadContext &bulkload_ctx) {
+	SCOPED_TIMER_SIMPLE(ReadBwdEdgesCSVFileAndCreateEdgeExtents, spdlog::level::info, spdlog::level::debug);
 	unordered_map<ExtentID, std::pair<std::pair<uint64_t, uint64_t>, vector<vector<idx_t>>>> adj_list_buffers;
-	for (auto &edge_file: edge_files_backward) {
-		auto edge_file_start = std::chrono::high_resolution_clock::now();
+	spdlog::info("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] Start to load {} CSV Edge Files", csv_edge_files.size());
+	for (auto &edge_file: csv_edge_files) {
+		SCOPED_TIMER_SIMPLE(ReadSingleEdgeCSVFile, spdlog::level::info, spdlog::level::debug);
 
 		string &edge_type = std::get<0>(edge_file);
 		string &edge_file_path = std::get<1>(edge_file);
+
+		spdlog::info("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] Start to load {} with edge type {}", edge_file_path, edge_type);
+
 		string src_column_name;
 		string dst_column_name;
 		vector<string> key_names;
@@ -952,65 +906,65 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		vector<int64_t> dst_column_idx;
 		vector<LogicalType> types;
 		GraphSIMDCSVFileParser reader;
-		PartitionCatalogEntry *partition_cat;
-		PropertySchemaCatalogEntry *property_schema_cat;
 
-#ifdef BULKLOAD_DEBUG_PRINT
-		fprintf(stdout, "\nStart to load %s, %s\n", std::get<0>(edge_file).c_str(), std::get<1>(edge_file).c_str());
-#endif
-
-		// Read & Parse Edge CSV File
+		spdlog::debug("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] InitCSVFile");
+		SUBTIMER_START(ReadSingleEdgeCSVFile, "InitCSVFile");
 		reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|', std::get<2>(edge_file));
-
-		// Get Schema Information From the CSV Header
-		if (!reader.GetSchemaFromHeader(key_names, types)) {
-			throw InvalidInputException("Invalid Schema Information");
-		}
+		if (!reader.GetSchemaFromHeader(key_names, types)) { throw InvalidInputException("Invalid Schema Information"); }
 		reader.GetDstColumnIndexFromHeader(src_column_idx, src_column_name); // Reverse
 		reader.GetSrcColumnIndexFromHeader(dst_column_idx, dst_column_name); // Reverse
 		if (src_column_idx.size() == 0 || dst_column_idx.size() == 0) {
 			throw InvalidInputException("Invalid Edge File Format");
 		}
+		SUBTIMER_STOP(ReadSingleEdgeCSVFile, "InitCSVFile");
 
-#ifdef BULKLOAD_DEBUG_PRINT
-		fprintf(stdout, "Src column name = %s (idx =", src_column_name.c_str());
-		for (size_t i = 0; i < src_column_idx.size(); i++) fprintf(stdout, " %ld", src_column_idx[i]);
-		fprintf(stdout, "), Dst column name = %s (idx =", dst_column_name.c_str());
-		for (size_t i = 0; i < dst_column_idx.size(); i++) fprintf(stdout, " %ld", dst_column_idx[i]);
-		fprintf(stdout, ")\n");
-#endif
+		spdlog::trace("Src column name = {} (idxs = [{}])", 
+					src_column_name, 
+					join_vector(src_column_idx));
 
-		// Initialize LID_TO_PID_MAP
-		auto src_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
+		spdlog::trace("Dst column name = {} (idxs = [{}])", 
+					dst_column_name, 
+					join_vector(dst_column_idx));
+
+		spdlog::debug("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] InitLIDToPIDMap");
+		SUBTIMER_START(ReadSingleEdgeCSVFile, "InitLIDToPIDMap");
+		auto src_it = std::find_if(bulkload_ctx.lid_to_pid_map.begin(), bulkload_ctx.lid_to_pid_map.end(),
 			[&src_column_name](const std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>> &element) {
 				return element.first.find(src_column_name) != string::npos;
 			});
-		if (src_it == lid_to_pid_map.end()) throw InvalidInputException("Corresponding src vertex file was not loaded");
+		if (src_it == bulkload_ctx.lid_to_pid_map.end()) throw InvalidInputException("Corresponding src vertex file was not loaded");
 		unordered_map<LidPair, idx_t, boost::hash<LidPair>> &src_lid_to_pid_map_instance = src_it->second;
 
-		auto dst_it = std::find_if(lid_to_pid_map.begin(), lid_to_pid_map.end(),
+		auto dst_it = std::find_if(bulkload_ctx.lid_to_pid_map.begin(), bulkload_ctx.lid_to_pid_map.end(),
 			[&dst_column_name](const std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>> &element) {
 				return element.first.find(dst_column_name) != string::npos;
 			});
-		if (dst_it == lid_to_pid_map.end()) throw InvalidInputException("Corresponding dst vertex file was not loaded");
+		if (dst_it == bulkload_ctx.lid_to_pid_map.end()) throw InvalidInputException("Corresponding dst vertex file was not loaded");
 		unordered_map<LidPair, idx_t, boost::hash<LidPair>> &dst_lid_to_pid_map_instance = dst_it->second;
-
-		// Initialize LID_PAIR_TO_EPID_MAP
-		auto edge_it = std::find_if(lid_pair_to_epid_map.begin(), lid_pair_to_epid_map.end(),
+		SUBTIMER_STOP(ReadSingleEdgeCSVFile, "InitLIDToPIDMap");
+		
+		spdlog::debug("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] InitLIDPairToEPIDMap");
+		SUBTIMER_START(ReadSingleEdgeCSVFile, "InitLIDPairToEPIDMap");
+		auto edge_it = std::find_if(bulkload_ctx.lid_pair_to_epid_map.begin(), bulkload_ctx.lid_pair_to_epid_map.end(),
 			[&edge_type](const std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>> &element) { return element.first == edge_type; });
-		if (edge_it == lid_pair_to_epid_map.end()) throw InvalidInputException("[Error] Lid Pair to EPid Map does not exists");
+		if (edge_it == bulkload_ctx.lid_pair_to_epid_map.end()) throw InvalidInputException("[Error] Lid Pair to EPid Map does not exists");
 		unordered_map<LidPair, idx_t, boost::hash<LidPair>> &lid_pair_to_epid_map_instance = edge_it->second;
-		LidPair lid_pair;
+		SUBTIMER_STOP(ReadSingleEdgeCSVFile, "InitLIDPairToEPIDMap");
 
-		// Initialize DataChunk
 		DataChunk data;
 		data.Initialize(types, STORAGE_STANDARD_VECTOR_SIZE);
 
-		// Create Edge Catalog Infos & Get Src vertex Catalog Entry
-		CreateEdgeCatalogInfos(cat_instance, client, graph_cat, edge_type, key_names, types, src_column_name, dst_column_name,
+		spdlog::debug("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] CreateEdgeCatalogInfos");
+		PartitionCatalogEntry *partition_cat;
+		PropertySchemaCatalogEntry *property_schema_cat;
+		CreateEdgeCatalogInfos(bulkload_ctx, edge_type, key_names, types, src_column_name, dst_column_name,
 			partition_cat, property_schema_cat, LogicalType::BACKWARD_ADJLIST, dst_column_idx.size());
 		
-		// Initialize variables related to vertex extent
+		spdlog::debug("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] ClearAdjListBuffers");
+		SUBTIMER_START(ReadSingleEdgeCSVFile, "ClearAdjListBuffers");
+		ClearAdjListBuffers(adj_list_buffers);
+		SUBTIMER_STOP(ReadSingleEdgeCSVFile, "ClearAdjListBuffers");
+
 		LidPair prev_id {0, 0};
 		idx_t cur_src_pid, prev_src_pid;
 		ExtentID cur_vertex_extentID;
@@ -1020,9 +974,17 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 		PartitionID cur_part_id;
 		ClearAdjListBuffers(adj_list_buffers);
 
-		// Read CSV File into DataChunk & CreateEdgeExtent
-		while (!reader.ReadCSVFile(key_names, types, data)) {
-			// Convert lid to pid using LID_TO_PID_MAP
+		spdlog::debug("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] Start to read and create edge extents");
+		SUBTIMER_START(ReadSingleEdgeCSVFile, "ReadCSVFile and CreateEdgeExtents");
+		while (true) {
+			SCOPED_TIMER_SIMPLE(ReadCSVFileAndCreateEdgeExtents, spdlog::level::debug, spdlog::level::trace);
+
+			SUBTIMER_START(ReadCSVFileAndCreateEdgeExtents, "ReadCSVFile");
+			spdlog::trace("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] ReadCSVFile");
+			bool eof = reader.ReadCSVFile(key_names, types, data);
+			SUBTIMER_STOP(ReadCSVFileAndCreateEdgeExtents, "ReadCSVFile");
+			if (eof) break;
+
 			vector<idx_t *> src_key_columns, dst_key_columns;
 			src_key_columns.resize(src_column_idx.size());
 			dst_key_columns.resize(dst_column_idx.size());
@@ -1049,6 +1011,8 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 				is_first_tuple_processed = true;
 			}
 
+			SUBTIMER_START(ReadSingleEdgeCSVFile, "FillBwdAdjListBuffer");
+			bool load_backward_edge = bulkload_ctx.input_options.load_backward_edge;
 			if (src_column_idx.size() == 1) {
 				while (src_seqno < max_seqno) {
 					src_key.first = src_key_columns[0][src_seqno];
@@ -1091,309 +1055,177 @@ void ReadBwdEdgeCSVFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager
 			} else {
 				throw InvalidInputException("Do not support # of compound keys >= 3 currently");
 			}
+			SUBTIMER_STOP(ReadSingleEdgeCSVFile, "FillBwdAdjListBuffer");
 
-			// Process remaining dst vertices
+			SUBTIMER_START(ReadSingleEdgeCSVFile, "FillBwdAdjListBuffer for Remaining");
+			spdlog::trace("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] FillBwdAdjListBuffer for Remaining");
 			end_idx = src_seqno;
-			
 			FillBwdAdjListBuffer(load_backward_edge, begin_idx, end_idx, src_seqno, cur_src_pid, vertex_seqno,
 										  dst_column_idx, dst_key_columns, dst_lid_to_pid_map_instance,
 										  lid_pair_to_epid_map_instance, adj_list_buffers);
+			SUBTIMER_STOP(ReadSingleEdgeCSVFile, "FillBwdAdjListBuffer for Remaining");
 		}
+		SUBTIMER_STOP(ReadSingleEdgeCSVFile, "ReadCSVFile and CreateEdgeExtents");
 
-		// Process remaining adjlist
-		vector<idx_t> src_part_oids = graph_cat->LookupPartition(*client.get(), { src_column_name }, GraphComponentType::VERTEX);
+		spdlog::debug("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] Process Remaining AdjList");
+		SUBTIMER_START(ReadSingleEdgeCSVFile, "Remaining AppendAdjListChunk");
+		vector<idx_t> src_part_oids = bulkload_ctx.graph_cat->LookupPartition(*(bulkload_ctx.client.get()), { src_column_name }, GraphComponentType::VERTEX);
 		PartitionCatalogEntry *src_part_cat_entry = 
-			(PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, src_part_oids[0]);
-		AppendAdjListChunk(ext_mng, client, LogicalType::BACKWARD_ADJLIST, cur_part_id, src_part_cat_entry->GetLocalExtentID(), adj_list_buffers);
-
-		auto edge_file_end = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> duration = edge_file_end - edge_file_start;
-#ifdef BULKLOAD_DEBUG_PRINT
-		fprintf(stdout, "\nLoad %s, %s Done! Elapsed: %.3f\n", std::get<0>(edge_file).c_str(), std::get<1>(edge_file).c_str(), duration.count());
-#endif
+			(PartitionCatalogEntry *)bulkload_ctx.catalog.GetEntry(*(bulkload_ctx.client.get()), DEFAULT_SCHEMA, src_part_oids[0]);
+		AppendAdjListChunk(bulkload_ctx, LogicalType::BACKWARD_ADJLIST, cur_part_id, src_part_cat_entry->GetLocalExtentID(), adj_list_buffers);
+		SUBTIMER_STOP(ReadSingleEdgeCSVFile, "Remaining AppendAdjListChunk");
 	}
+	spdlog::debug("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] Flush Dirty Segments and Delete From Cache");
 	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
+	spdlog::info("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] Load CSV Edge Files Done");
 }
 
-void ReadBwdEdgeJSONFileAndCreateEdgeExtents(Catalog &cat_instance, ExtentManager &ext_mng, std::shared_ptr<ClientContext> client, GraphCatalogEntry *&graph_cat,
-											 vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> &lid_to_pid_map) {
+void ReadBwdEdgeFilesAndCreateEdgeExtents(BulkloadContext &bulkload_ctx) {
+	vector<LabeledFile> json_edge_files;
+	vector<LabeledFile> csv_edge_files;
+	SeperateFilesByExtension(bulkload_ctx.input_options.edge_files, json_edge_files, csv_edge_files);
+	spdlog::info("[ReadEdgeFilesAndCreateEdgeExtents] {} JSON Edge Files and {} CSV Edge Files", json_edge_files.size(), csv_edge_files.size());
+
+	if(json_edge_files.size() > 0) {
+		throw NotImplementedException("JSON Edge File is not supported yet");
+	}
+
+	ReadBwdEdgeCSVFilesAndCreateEdgeExtents(csv_edge_files, bulkload_ctx);
 }
 
-class InputParser{ // TODO use boost options
-  public:
-    InputParser (int &argc, char **argv){
-    	for (int i=1; i < argc; ++i) {
-			this->tokens.push_back(std::string(argv[i]));
-    	}
+void ParseConfig(int argc, char** argv, InputOptions& options) {
+    po::options_description desc("Allowed Options");
+    desc.add_options()
+        ("help,h", "Show help message")
+        ("nodes", po::value<std::vector<std::string>>()->multitoken()->composing(), "Nodes input: <label> <file>")
+        ("relationships", po::value<std::vector<std::string>>()->multitoken()->composing(), "Relationships input: <label> <file>")
+        ("relationships_backward", po::value<std::vector<std::string>>()->multitoken()->composing(), "Backward relationships input: <label> <file>")
+        ("output_dir", po::value<std::string>(), "Output directory")
+        ("log-level", po::value<std::string>(), "Set logging level (trace/debug/info/warn/error)");
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+
+    if (vm.count("help")) {
+        std::cout << desc << std::endl;
+        exit(0);
     }
-    void ParseCmdOption() const {
-    	std::vector<std::string>::const_iterator itr;
-    	for (itr = this->tokens.begin(); itr != this->tokens.end(); itr++) {
-    		std::string current_str = *itr;
-    		if (std::strncmp(current_str.c_str(), "--nodes:", 8) == 0) {
-				std::tuple<std::string, std::string, size_t> tuple_to_insert;
-				std::get<0>(tuple_to_insert) = std::string(*itr).substr(8);
-				itr++;
-				std::get<1>(tuple_to_insert) = *itr;
-				// itr++;
-				// std::get<2>(tuple_to_insert) = std::stoi(*itr);
-				std::get<2>(tuple_to_insert) = 0;
-				vertex_files.push_back(tuple_to_insert);
-			} else if (std::strncmp(current_str.c_str(), "--relationships:", 16) == 0) {
-				std::tuple<std::string, std::string, size_t> tuple_to_insert;
-				std::get<0>(tuple_to_insert) = std::string(*itr).substr(16);
-				itr++;
-				std::get<1>(tuple_to_insert) = *itr;
-				// itr++;
-				// std::get<2>(tuple_to_insert) = std::stoi(*itr);
-				std::get<2>(tuple_to_insert) = 0;
-				edge_files.push_back(tuple_to_insert);
-				load_edge = true;
-			} else if (std::strncmp(current_str.c_str(), "--relationships_backward:", 25) == 0) {
-				// TODO check if a corresponding forward edge exists
-				std::tuple<std::string, std::string, size_t> tuple_to_insert;
-				std::get<0>(tuple_to_insert) = std::string(*itr).substr(25);
-				itr++;
-				std::get<1>(tuple_to_insert) = *itr;
-				// itr++;
-				// std::get<2>(tuple_to_insert) = std::stoi(*itr);
-				std::get<2>(tuple_to_insert) = 0;
-				edge_files_backward.push_back(tuple_to_insert);
-				load_backward_edge = true;
-			} else if (std::strncmp(current_str.c_str(), "--json:", 7) == 0) {
-				bool is_file_path_exist = false;
-				std::pair<std::string, std::string> pair_to_insert;
-				pair_to_insert.first = "JSON";
-				std::string json_file_path_and_input_parameters = std::string(*itr).substr(7);
 
-				size_t pos;
-				std::string token;
-				vector<std::string> input_parameters;
-
-				while ((pos = json_file_path_and_input_parameters.find(' ')) != std::string::npos) {
-					token = json_file_path_and_input_parameters.substr(0, pos);
-					input_parameters.push_back(token);
-					json_file_path_and_input_parameters.erase(0, pos + 1);
-				}
-				input_parameters.push_back(json_file_path_and_input_parameters);
-
-				std::vector<std::string>::const_iterator parameter_itr;
-				vector<std::pair<std::string, std::string>> vertex_label_json_expression_pairs;
-				vector<std::pair<std::string, std::string>> edge_label_json_expression_pairs;
-				for (parameter_itr = input_parameters.begin(); parameter_itr != input_parameters.end(); parameter_itr++) {
-					std::string current_parameter = *parameter_itr;
-					if (std::strncmp(current_parameter.c_str(), "--nodes:", 8) == 0) {
-						std::pair<std::string, std::string> node_info;
-						node_info.first = std::string(*parameter_itr).substr(8);
-						parameter_itr++;
-						node_info.second = *parameter_itr;
-						vertex_label_json_expression_pairs.push_back(node_info);
-					} else if (std::strncmp(current_parameter.c_str(), "--file_path:", 12) == 0) {
-						std::string json_file_path = std::string(*parameter_itr).substr(12);
-						pair_to_insert.second = json_file_path;
-						json_files.push_back(pair_to_insert);
-						is_file_path_exist = true;
-					} else if (std::strncmp(current_parameter.c_str(), "--relationships:", 16) == 0) {
-						// std::pair<std::string, std::string> pair_to_insert;
-						// pair_to_insert.first = std::string(*label_itr).substr(16);
-						// label_itr++;
-						// pair_to_insert.second = *label_itr;
-						// edge_label_json_expression_pairs.push_back(pair_to_insert);
-						// load_edge = true;
-					}
-				}
-
-				if (!is_file_path_exist) {
-					throw InvalidInputException("There is no given input json file path");
-				}
-
-				json_file_types.push_back(JsonFileType::JSON);
-				json_file_vertices.push_back(vertex_label_json_expression_pairs);
-				json_file_edges.push_back(edge_label_json_expression_pairs);
-
-				// size_t space_pos = json_file_path_and_input_parameters.find(' ');
-				// if (space_pos != std::string::npos) {
-				// 	// The input parameter contains label_info
-				// 	std::string label_info = json_file_path_and_label_info.substr(space_pos + 1);
-					
-				// 	size_t pos;
-				// 	std::string token;
-				// 	vector<std::string> labels;
-					
-					
-				// 	while ((pos = label_info.find(' ')) != std::string::npos) {
-				// 		token = label_info.substr(0, pos);
-				// 		labels.push_back(token);
-				// 		label_info.erase(0, pos + 1);
-				// 	}
-				// 	labels.push_back(label_info);
-
-				// 	std::vector<std::string>::const_iterator label_itr;
-				// 	for (label_itr = labels.begin(); label_itr != labels.end(); label_itr++) {
-				// 		std::string current_label = *label_itr;
-				// 		if (std::strncmp(current_label.c_str(), "--nodes:", 8) == 0) {
-				// 			std::pair<std::string, std::string> pair_to_insert;
-				// 			pair_to_insert.first = std::string(*label_itr).substr(8);
-				// 			label_itr++;
-				// 			pair_to_insert.second = *label_itr;
-				// 			vertex_label_json_expression_pairs.push_back(pair_to_insert);
-				// 		} else if (std::strncmp(current_label.c_str(), "--relationships:", 16) == 0) {
-				// 			std::pair<std::string, std::string> pair_to_insert;
-				// 			pair_to_insert.first = std::string(*label_itr).substr(16);
-				// 			label_itr++;
-				// 			pair_to_insert.second = *label_itr;
-				// 			edge_label_json_expression_pairs.push_back(pair_to_insert);
-				// 			load_edge = true;
-				// 		}
-				// 	}
-				// 	json_file_vertices.push_back(vertex_label_json_expression_pairs);
-				// 	json_file_edges.push_back(edge_label_json_expression_pairs);
-				// } else {
-				// 	vector<std::pair<std::string, std::string>> vertex_label_json_expression_pairs;
-				// 	vector<std::pair<std::string, std::string>> edge_label_json_expression_pairs;
-				// 	json_file_vertices.push_back(vertex_label_json_expression_pairs);
-				// 	json_file_edges.push_back(edge_label_json_expression_pairs);
-				// }
-				// std::string json_file_path = json_file_path_and_label_info.substr(0, space_pos);
-				// pair_to_insert.second = json_file_path;
-				// json_files.push_back(pair_to_insert);
-			} else if (std::strncmp(current_str.c_str(), "--jsonl:", 8) == 0) {
-				bool is_file_path_exist = false;
-				std::pair<std::string, std::string> pair_to_insert;
-				pair_to_insert.first = "JSONL";
-				std::string json_file_path_and_input_parameters = std::string(*itr).substr(8);
-
-				size_t pos;
-				std::string token;
-				vector<std::string> input_parameters;
-
-				while ((pos = json_file_path_and_input_parameters.find(' ')) != std::string::npos) {
-					token = json_file_path_and_input_parameters.substr(0, pos);
-					input_parameters.push_back(token);
-					json_file_path_and_input_parameters.erase(0, pos + 1);
-				}
-				input_parameters.push_back(json_file_path_and_input_parameters);
-
-				std::vector<std::string>::const_iterator parameter_itr;
-				vector<std::pair<std::string, std::string>> vertex_label_json_expression_pairs;
-				vector<std::pair<std::string, std::string>> edge_label_json_expression_pairs;
-				for (parameter_itr = input_parameters.begin(); parameter_itr != input_parameters.end(); parameter_itr++) {
-					std::string current_parameter = *parameter_itr;
-					if (std::strncmp(current_parameter.c_str(), "--nodes:", 8) == 0) {
-						std::pair<std::string, std::string> node_info;
-						node_info.first = std::string(*parameter_itr).substr(8);
-						vertex_label_json_expression_pairs.push_back(node_info);
-					} else if (std::strncmp(current_parameter.c_str(), "--file_path:", 12) == 0) {
-						std::string json_file_path = std::string(*parameter_itr).substr(12);
-						pair_to_insert.second = json_file_path;
-						json_files.push_back(pair_to_insert);
-						is_file_path_exist = true;
-					} else if (std::strncmp(current_parameter.c_str(), "--relationships:", 16) == 0) {
-						std::pair<std::string, std::string> pair_to_insert;
-						pair_to_insert.first = std::string(*parameter_itr).substr(16);
-						edge_label_json_expression_pairs.push_back(pair_to_insert);
-						load_edge = true;
-					}
-				}
-
-				if (!is_file_path_exist) {
-					throw InvalidInputException("There is no given input json file path");
-				}
-				json_file_types.push_back(JsonFileType::JSONL);
-				json_file_vertices.push_back(vertex_label_json_expression_pairs);
-				json_file_edges.push_back(edge_label_json_expression_pairs);
-			} else if (std::strncmp(current_str.c_str(), "--output_dir:", 13) == 0) {
-				output_dir = std::string(*itr).substr(13);
-			} else if (std::strncmp(current_str.c_str(), "--sim_thr:", 10) == 0) {
-				set_sim_threshold = std::stod(std::string(*itr).substr(10));
-			}
-    	}
-
-		// Print Bulkloading Informations
-		fprintf(stdout, "\nLoad Following Nodes\n");
-		for (int i = 0; i < vertex_files.size(); i++) {
-			fprintf(stdout, "\t%s : %s\n", std::get<0>(vertex_files[i]).c_str(), std::get<1>(vertex_files[i]).c_str());
-		}
-		for (unsigned idx : util::lang::indices(json_files)) {
-			for (int vertex_idx = 0; vertex_idx < json_file_vertices[idx].size(); vertex_idx++) {
-				fprintf(stdout, "\t%s : %s\n", json_file_vertices[idx][vertex_idx].first.c_str(), json_files[idx].second.c_str());
-			}
-		}
-		fprintf(stdout, "\nLoad Following Relationships\n");
-		for (int i = 0; i < edge_files.size(); i++)
-			fprintf(stdout, "\t%s : %s\n", std::get<0>(edge_files[i]).c_str(), std::get<1>(edge_files[i]).c_str());
-		fprintf(stdout, "\nLoad Following Backward Relationships\n");
-		for (int i = 0; i < edge_files_backward.size(); i++)
-			fprintf(stdout, "\t%s : %s\n", std::get<0>(edge_files_backward[i]).c_str(), std::get<1>(edge_files_backward[i]).c_str());
+    if (vm.count("nodes")) {
+        auto nodes = vm["nodes"].as<std::vector<std::string>>();
+        for (size_t i = 0; i + 1 < nodes.size(); i += 2) {
+            options.vertex_files.emplace_back(nodes[i], nodes[i + 1], 0);
+        }
     }
-  private:
-    std::vector <std::string> tokens;
-};
+
+    if (vm.count("relationships")) {
+        auto relationships = vm["relationships"].as<std::vector<std::string>>();
+        for (size_t i = 0; i + 1 < relationships.size(); i += 2) {
+            options.edge_files.emplace_back(relationships[i], relationships[i + 1], 0);
+        }
+        options.load_edge = true;
+    }
+
+    if (vm.count("relationships_backward")) {
+        auto relationships_backward = vm["relationships_backward"].as<std::vector<std::string>>();
+        for (size_t i = 0; i + 1 < relationships_backward.size(); i += 2) {
+            options.edge_files_backward.emplace_back(relationships_backward[i], relationships_backward[i + 1], 0);
+        }
+        options.load_backward_edge = true;
+    }
+
+    if (vm.count("output_dir")) {
+        options.output_dir = vm["output_dir"].as<std::string>();
+    }
+
+    if (vm.count("log-level")) {
+        LogLevel level = getLogLevel(vm["log-level"].as<std::string>());
+        setLogLevel(level);
+    }
+
+	spdlog::info("[ParseConfig] Load Edge: {}", options.load_edge);
+	spdlog::info("[ParseConfig] Load Backward Edge: {}", options.load_backward_edge);
+
+    spdlog::info("[ParseConfig] Load Following Nodes");
+    for (const auto& file : options.vertex_files) {
+        spdlog::info("\t{} : {}", std::get<0>(file), std::get<1>(file));
+    }
+
+    spdlog::info("[ParseConfig] Load Following Relationships");
+    for (const auto& file : options.edge_files) {
+        spdlog::info("\t{} : {}", std::get<0>(file), std::get<1>(file));
+    }
+
+    spdlog::info("[ParseConfig] Load Following Backward Relationships");
+    for (const auto& file : options.edge_files_backward) {
+        spdlog::info("\t{} : {}", std::get<0>(file), std::get<1>(file));
+    }
+}
 
 int main(int argc, char** argv) {
-	// Intialize Python
+	SCOPED_TIMER_SIMPLE(main, spdlog::level::info, spdlog::level::debug);
+    SetupLogger();
+
+	spdlog::debug("[Main] Parse Command Line Options");
+	SUBTIMER_START(main, "Initialization");
 	Py_Initialize();
+	InputOptions options;
+	ParseConfig(argc, argv, options);
 
-	// Parse Command Option
-	InputParser input(argc, argv);
-	input.ParseCmdOption();
+	InitializeDiskAio(options.output_dir);
 
-	// Initialize DiskAio Parameters
-	InitializeDiskAio();
+	spdlog::debug("[Main] Initialize ChunkCacheManager");
+	ChunkCacheManager::ccm = new ChunkCacheManager(options.output_dir.c_str());
 
-	// Initialize ChunkCacheManager
-	fprintf(stdout, "\nInitialize ChunkCacheManager\n");
-	ChunkCacheManager::ccm = new ChunkCacheManager(DiskAioParameters::WORKSPACE.c_str());
-
-	// Initialize Database
-	helper_deallocate_objects_in_shared_memory(); // Initialize shared memory for Catalog
+	spdlog::debug("[Main] Initialize Database");
 	std::unique_ptr<DuckDB> database;
-	database = make_unique<DuckDB>(DiskAioParameters::WORKSPACE.c_str());
+	database = make_unique<DuckDB>(options.output_dir.c_str());
 	
-	// Initialize ClientContext
-	std::shared_ptr<ClientContext> client = 
-		std::make_shared<ClientContext>(database->instance->shared_from_this());
-
-	Catalog& cat_instance = database->instance->GetCatalog();
-	ExtentManager ext_mng; // TODO put this into database
-	vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_to_pid_map; // For Forward & Backward AdjList
-	vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> lid_pair_to_epid_map; // For Backward AdjList
-
-	// Initialize Graph Catalog Informations
+	spdlog::debug("[Main] Initialize Bulkload Context");
 	CreateGraphInfo graph_info(DEFAULT_SCHEMA, DEFAULT_GRAPH);
-	GraphCatalogEntry *graph_cat = (GraphCatalogEntry*) cat_instance.CreateGraph(*client.get(), &graph_info);
+	BulkloadContext bulkload_context {
+		options,
+		std::make_shared<ClientContext>(database->instance->shared_from_this()),
+		database->instance->GetCatalog(),
+		graph_info
+	};
+	SUBTIMER_STOP(main, "Initialization");
 
+	spdlog::info("[Main] Run Bulkload");
+	SUBTIMER_START(main, "Bulkload");
 	try {
-		// Read Vertex CSV File & CreateVertexExtents
-		ReadVertexCSVFileAndCreateVertexExtents(cat_instance, ext_mng, client, graph_cat, lid_to_pid_map);
-		// Read Vertex JSON File & CreateVertexExtents
-		ReadVertexJSONFileAndCreateVertexExtents(cat_instance, ext_mng, client, graph_cat, lid_to_pid_map);
-		fprintf(stdout, "Vertex File Loading Done\n\n");
+		SCOPED_TIMER_SIMPLE(Bulkload, spdlog::level::info, spdlog::level::debug);
+		SUBTIMER_START(Bulkload, "Vertex Files");
+		ReadVertexFilesAndCreateVertexExtents(bulkload_context);
+		SUBTIMER_STOP(Bulkload, "Vertex Files");
 
-		// Read Fwd Edge CSV File & CreateEdgeExtents & Append Adj.List to VertexExtents
-		ReadFwdEdgeCSVFileAndCreateEdgeExtents(cat_instance, ext_mng, client, graph_cat, lid_to_pid_map, lid_pair_to_epid_map);
-		// Read Fwd Edge JSON File & CreateEdgeExtents & Append Adj.List to VertexExtents
-		ReadFwdEdgeJSONFileAndCreateEdgeExtents(cat_instance, ext_mng, client, graph_cat, lid_to_pid_map);
-		fprintf(stdout, "Fwd Edge File Loading Done\n\n");
+		SUBTIMER_START(Bulkload, "Edge Fwd Files");
+		ReadFwdEdgeFilesAndCreateEdgeExtents(bulkload_context);
+		SUBTIMER_STOP(Bulkload, "Edge Fwd Files");
 
-		// Read Bwd Edge CSV File & Append Adj.List to VertexExtents
-		ReadBwdEdgeCSVFileAndCreateEdgeExtents(cat_instance, ext_mng, client, graph_cat, lid_to_pid_map, lid_pair_to_epid_map);
-		// Read Bwd Edge JSON File & Append Adj.List to VertexExtents
-		ReadBwdEdgeJSONFileAndCreateEdgeExtents(cat_instance, ext_mng, client, graph_cat, lid_to_pid_map);
-		fprintf(stdout, "Bwd Edge File Loading Done\n\n");
+		SUBTIMER_START(Bulkload, "Edge Bwd Files");
+		ReadBwdEdgeFilesAndCreateEdgeExtents(bulkload_context);
+		SUBTIMER_STOP(Bulkload, "Edge Bwd Files");
 	} catch(const std::system_error& e) {
-        std::cout << "Caught system_error with code "
-                     "[" << e.code() << "] meaning "
-                     "[" << e.what() << "]\n";
+		spdlog::error("[Main] Caught system_error with code [{}] meaing [{}]", e.code().value(), e.what());
     }
+	SUBTIMER_STOP(main, "Bulkload");
 	
+	spdlog::info("[Main] Create Histogram");
+	SUBTIMER_START(main, "CreateHistogram");
 	HistogramGenerator hist_gen;
-	hist_gen.CreateHistogram(client);
+	hist_gen.CreateHistogram(bulkload_context.client);
+	SUBTIMER_STOP(main, "CreateHistogram");
 
-	ChunkCacheManager::ccm->FlushMetaInfo(DiskAioParameters::WORKSPACE.c_str());
+	spdlog::info("[Main] Flush Meta Info");
+	SUBTIMER_START(main, "FlushMetaInfo");
+	ChunkCacheManager::ccm->FlushMetaInfo(bulkload_context.input_options.output_dir.c_str());
+	SUBTIMER_STOP(main, "FlushMetaInfo");
 
-	// Destruct ChunkCacheManager
+	spdlog::info("[Main] Destruct ChunkCacheManager");
   	delete ChunkCacheManager::ccm;
+
 	Py_Finalize();
 	return 0;
 }
