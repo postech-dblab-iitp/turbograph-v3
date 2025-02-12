@@ -6,9 +6,9 @@
 
 #include "main/client_context.hpp"
 #include "main/database.hpp"
-#include <spdlog/spdlog.h>
 
 #include "common/types/data_chunk.hpp"
+#include "common/logger.hpp"
 
 #include "storage/statistics/histogram_generator.hpp"
 #include "storage/statistics/clustering/clique.hpp"
@@ -19,7 +19,7 @@ namespace duckdb {
 
 void HistogramGenerator::CreateHistogram(std::shared_ptr<ClientContext> client)
 {
-    // spdlog::debug("[CreateHistogram] Start creating histograms for all partitions");
+    spdlog::debug("[CreateHistogram] Start creating histograms for all partitions");
 
     Catalog &cat_instance = client->db->GetCatalog();
     SchemaCatalogEntry *schema_cat = cat_instance.GetSchema(*client.get());
@@ -45,7 +45,7 @@ void HistogramGenerator::CreateHistogram(std::shared_ptr<ClientContext> client, 
     PartitionCatalogEntry *partition_cat =
         (PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, part_name);
     
-    // spdlog::debug("[CreateHistogram] Create Histogram for partition {}", partition_cat->GetName());
+    spdlog::debug("[CreateHistogram] Create Histogram for partition {}", partition_cat->GetName());
     
     _create_histogram(client, partition_cat);
 }
@@ -58,7 +58,7 @@ void HistogramGenerator::CreateHistogram(std::shared_ptr<ClientContext> client, 
     PartitionCatalogEntry *partition_cat =
         (PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, partition_oid);
     
-    // spdlog::debug("[CreateHistogram] Create Histogram for partition {}", partition_cat->GetName());
+    spdlog::debug("[CreateHistogram] Create Histogram for partition {}", partition_cat->GetName());
     
     _create_histogram(client, partition_cat);
 }

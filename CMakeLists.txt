@@ -181,6 +181,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
       CACHE STRING "Choose the type of build." FORCE)
 endif()
 
+add_definitions(-DSPDLOG_FMT_EXTERNAL) # Prevent spdlog and velox fmt conflicts
 add_definitions(-DDUCKDB_SOURCE_ID="\""1"\"")
 add_definitions(-DDUCKDB_VERSION="\""1"\"")
 

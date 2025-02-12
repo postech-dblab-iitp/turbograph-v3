@@ -7,21 +7,20 @@
 #include "storage/cache/chunk_cache_manager.h"
 #include "storage/cache/disk_aio/Turbo_bin_io_handler.hpp"
 #include "storage/cache/disk_aio/Turbo_bin_aio_handler.hpp"
+#include "storage/cache/cache_data_transformer.h"
+
 #include "common/exception.hpp"
 #include "common/string_util.hpp"
-#include "icecream.hpp"
+#include "common/logger.hpp"
 #include "common/types/string_type.hpp"
-#include "storage/cache/cache_data_transformer.h"
 
 namespace duckdb {
 
 ChunkCacheManager* ChunkCacheManager::ccm;
 
 ChunkCacheManager::ChunkCacheManager(const char *path) {
-  // Init LightningClient
+  spdlog::debug("[ChunkCacheManager] Start to construct ChunkCacheManager");
   client = new LightningClient("/tmp/lightning", "password");
-
-  // Initialize file handlers
   if (std::filesystem::exists(std::string(path) + "/" + file_meta_info_name)) {
     InitializeFileHandlersUsingMetaInfo(path);
   } else {
@@ -30,7 +29,7 @@ ChunkCacheManager::ChunkCacheManager(const char *path) {
 }
 
 ChunkCacheManager::~ChunkCacheManager() {
-  fprintf(stdout, "Deconstruct ChunkCacheManager\n");
+  spdlog::debug("[~ChunkCacheManager] Start to deconstruct ChunkCacheManager");
   for (auto &file_handler: file_handlers) {
     if (file_handler.second == nullptr) continue;
 
@@ -38,7 +37,8 @@ ChunkCacheManager::~ChunkCacheManager() {
     client->GetDirty(file_handler.first, is_dirty);
     if (!is_dirty) continue;
 
-    // std::cout << "Flush file: " << file_handler.second->GetFilePath() << ", size: " << file_handler.second->file_size() << std::endl;
+    spdlog::trace("[~ChunkCacheManager] Flush file: {} with size {}", file_handler.second->GetFilePath(), file_handler.second->file_size());
+
     // TODO we need a write lock
     UnswizzleFlushSwizzle(file_handler.first, file_handler.second);
     client->ClearDirty(file_handler.first);
@@ -148,6 +148,8 @@ void ChunkCacheManager::InitializeFileHandlersUsingMetaInfo(const char *path)
 
 void ChunkCacheManager::FlushMetaInfo(const char *path)
 {
+  spdlog::debug("[FlushMetaInfo] Start to flush meta info");
+
   uint64_t *meta_info;
   int64_t num_total_files = file_handlers.size();
   meta_info = new uint64_t[num_total_files * 2];
@@ -292,7 +294,8 @@ ReturnStatus ChunkCacheManager::FinalizeIO(ChunkID cid, bool read, bool write) {
 }
 
 ReturnStatus ChunkCacheManager::FlushDirtySegmentsAndDeleteFromcache(bool destroy_segment) {
-  std::cout << "Start to flush file! Total # files = " << file_handlers.size() << std::endl;
+  spdlog::debug("[FlushDirtySegmentsAndDeleteFromcache] Start to {} flush dirty segments and delete from cache", file_handlers.size());
+
     // Collect iterators into a vector
     vector<unordered_map<ChunkID, Turbo_bin_aio_handler*>::iterator> iterators;
     iterators.reserve(file_handlers.size());
@@ -309,7 +312,8 @@ ReturnStatus ChunkCacheManager::FlushDirtySegmentsAndDeleteFromcache(bool destro
     client->GetDirty(file_handler.first, is_dirty);
     if (!is_dirty) continue;
 
-    // std::cout << "Flush file: " << file_handler.second->GetFilePath() << ", size: " << file_handler.second->file_size() << std::endl;
+    spdlog::trace("[FlushDirtySegmentsAndDeleteFromcache] Flush file: {} with size {}", file_handler.second->GetFilePath(), file_handler.second->file_size());
+
     // TODO we need a write lock
     UnswizzleFlushSwizzle(file_handler.first, file_handler.second, false);
     client->ClearDirty(file_handler.first);
