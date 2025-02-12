@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <spdlog/spdlog.h>
+#include "spdlog/spdlog.h"
 
 class ScopedTimer {
 public:

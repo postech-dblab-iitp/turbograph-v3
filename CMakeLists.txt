@@ -279,6 +279,7 @@ include_directories(third_party/fast_float)
 include_directories(third_party/utf8proc/include)
 include_directories(third_party/yyjson/include)
 include_directories(third_party/csv-parser)
+include_directories(third_party/spdlog)
 
 add_subdirectory(third_party)
 add_subdirectory(src)

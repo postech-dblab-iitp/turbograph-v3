@@ -1,10 +1,10 @@
-
 #ifndef S62_LOGGER_HPP
 #define S62_LOGGER_HPP
 
+#include <cstdio>
 #include <sstream>
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 #include "common/scoped_timer.hpp"
 
 /**

@@ -1,22 +1,26 @@
-#include "storage/statistics/histogram_generator.hpp"
-#include "storage/statistics/clustering/clique.hpp"
-#include "storage/statistics/clustering/dummy.hpp"
-
-#include "main/client_context.hpp"
-#include "main/database.hpp"
-#include "common/types/data_chunk.hpp"
-
 #include <boost/array.hpp>
 #include <boost/histogram.hpp>
 #include <numeric>
 #include <random>
 #include <ctime>
 
+#include "main/client_context.hpp"
+#include "main/database.hpp"
+#include <spdlog/spdlog.h>
+
+#include "common/types/data_chunk.hpp"
+
+#include "storage/statistics/histogram_generator.hpp"
+#include "storage/statistics/clustering/clique.hpp"
+#include "storage/statistics/clustering/dummy.hpp"
+
 using namespace boost::accumulators;
 namespace duckdb {
 
 void HistogramGenerator::CreateHistogram(std::shared_ptr<ClientContext> client)
 {
+    // spdlog::debug("[CreateHistogram] Start creating histograms for all partitions");
+
     Catalog &cat_instance = client->db->GetCatalog();
     SchemaCatalogEntry *schema_cat = cat_instance.GetSchema(*client.get());
 
@@ -41,7 +45,7 @@ void HistogramGenerator::CreateHistogram(std::shared_ptr<ClientContext> client, 
     PartitionCatalogEntry *partition_cat =
         (PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, part_name);
     
-    std::cout << "Create Histogram for partition " << partition_cat->GetName() << std::endl;
+    // spdlog::debug("[CreateHistogram] Create Histogram for partition {}", partition_cat->GetName());
     
     _create_histogram(client, partition_cat);
 }
@@ -54,7 +58,7 @@ void HistogramGenerator::CreateHistogram(std::shared_ptr<ClientContext> client, 
     PartitionCatalogEntry *partition_cat =
         (PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, partition_oid);
     
-    std::cout << "Create Histogram for partition " << partition_cat->GetName() << std::endl;
+    // spdlog::debug("[CreateHistogram] Create Histogram for partition {}", partition_cat->GetName());
     
     _create_histogram(client, partition_cat);
 }

@@ -46,7 +46,6 @@ set(S62GDB_INSTALLED_LIBS
     ssl
     simdjson
     ${XERCES_LIBRARIES}
-    spdlog
 )
 
 if(NOT ${ENABLE_SANITIZER} AND NOT ${ENABLE_UBSAN})

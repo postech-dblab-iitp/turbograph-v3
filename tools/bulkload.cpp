@@ -1318,20 +1318,15 @@ int main(int argc, char** argv) {
 	SCOPED_TIMER_SIMPLE(main, spdlog::level::info, spdlog::level::debug);
     SetupLogger();
 
-	spdlog::debug("[Main] Parse Command Line Options");
+	spdlog::info("[Main] Initialization");
+	
 	SUBTIMER_START(main, "Initialization");
 	InputOptions options;
 	ParseConfig(argc, argv, options);
-
 	InitializeDiskAio(options.output_dir);
 
-	spdlog::debug("[Main] Initialize ChunkCacheManager");
 	ChunkCacheManager::ccm = new ChunkCacheManager(options.output_dir.c_str());
-
-	spdlog::debug("[Main] Initialize Database");
 	std::unique_ptr<DuckDB> database = make_unique<DuckDB>(options.output_dir.c_str());
-	
-	spdlog::debug("[Main] Initialize Bulkload Context");
 	CreateGraphInfo graph_info(DEFAULT_SCHEMA, DEFAULT_GRAPH);
 	BulkloadContext bulkload_context {
 		options,
@@ -1343,6 +1338,7 @@ int main(int argc, char** argv) {
 	SUBTIMER_STOP(main, "Initialization");
 
 	spdlog::info("[Main] Run Bulkload");
+
 	SUBTIMER_START(main, "Bulkload");
 	try {
 		SCOPED_TIMER_SIMPLE(Bulkload, spdlog::level::info, spdlog::level::debug);
@@ -1368,18 +1364,20 @@ int main(int argc, char** argv) {
     }
 	SUBTIMER_STOP(main, "Bulkload");
 	
-	spdlog::info("[Main] Create Histogram");
+	spdlog::info("[Main] Post Processing");
+	
 	SUBTIMER_START(main, "CreateHistogram");
 	HistogramGenerator hist_gen;
 	hist_gen.CreateHistogram(bulkload_context.client);
 	SUBTIMER_STOP(main, "CreateHistogram");
 
-	spdlog::info("[Main] Flush Meta Info");
 	SUBTIMER_START(main, "FlushMetaInfo");
 	ChunkCacheManager::ccm->FlushMetaInfo(bulkload_context.input_options.output_dir.c_str());
 	SUBTIMER_STOP(main, "FlushMetaInfo");
 
-	spdlog::info("[Main] Destruct ChunkCacheManager");
+	SUBTIMER_START(main, "DeleteChunkCacheManager");
   	delete ChunkCacheManager::ccm;
+	SUBTIMER_STOP(main, "DeleteChunkCacheManager");
+
 	return 0;
 }
