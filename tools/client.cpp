@@ -70,7 +70,7 @@ void ParseConfig(int argc, char** argv, ClientOptions& options) {
     po::options_description query_options("Execution Options");
     query_options.add_options()
         ("query", po::value<std::string>(), "Execute a query string")
-		("iterations", "Number of iterations for a query")
+        ("iterations", po::value<int>()->default_value(1), "Number of iterations for a query")
 		("warmup", "Perform a warmup query execution")
 		("profile", "Enable profiling")
         ("explain", "Print the query execution plan");
@@ -180,7 +180,7 @@ std::string GetQueryString(std::string &prompt) {
 	return full_input;
 }
 
-void CompileQuery(const string& query, s62::Planner& planner, kuzu::binder::Binder &binder, double &compile_elapsed_time) {
+void CompileQuery(const string& query, std::shared_ptr<ClientContext> client, s62::Planner& planner, double &compile_elapsed_time) {
 	SCOPED_TIMER(CompileQuery, spdlog::level::info, spdlog::level::debug, compile_elapsed_time);
 	auto inputStream = ANTLRInputStream(query);
 
@@ -200,6 +200,7 @@ void CompileQuery(const string& query, s62::Planner& planner, kuzu::binder::Bind
 	SUBTIMER_STOP(CompileQuery, "Transform");
 	
 	SUBTIMER_START(CompileQuery, "Bind");
+    kuzu::binder::Binder binder(client.get());
 	auto boundStatement = binder.bind(*statement);
 	kuzu::binder::BoundStatement *bst = boundStatement.get();
 	SUBTIMER_STOP(CompileQuery, "Bind");
@@ -223,6 +224,7 @@ void ExecuteQuery(const string& query, std::shared_ptr<ClientContext> client, Cl
 		SCOPED_TIMER(ExecuteQuery, spdlog::level::info, spdlog::level::info, exec_elapsed_time);
 		for (int i = 0; i < executors.size(); i++) {
 			auto exec = executors[i];
+            spdlog::info("[ExecuteQuery] Pipeline {:02d} Plan\n{}", i, exec->pipeline->toString());
             spdlog::debug("[ExecuteQuery] Pipeline ID {:02d} Started", i);
 			SUBTIMER_START(ExecuteQuery, "Pipeline " + std::to_string(i));
 			exec->ExecutePipeline();
@@ -292,13 +294,12 @@ void PrintOutputConsole(const PropertyKeys &col_names,
 void CompileAndExecuteIteration(const std::string &query_str,
                                 std::shared_ptr<ClientContext> client,
                                 ClientOptions &options, s62::Planner &planner,
-                                kuzu::binder::Binder &binder,
                                 std::vector<double> &compile_times,
                                 std::vector<double> &execution_times)
 {
     double compile_time = 0.0, exec_time = 0.0;
 
-    CompileQuery(query_str, planner, binder, compile_time);
+    CompileQuery(query_str, client, planner, compile_time);
 
     if (!options.compile_only) {
         auto executors = planner.genPipelineExecutors();
@@ -330,16 +331,15 @@ double CalculateAverageTime(const std::vector<double> &times)
 
 void CompileExecuteQuery(const std::string &query_str,
                          std::shared_ptr<ClientContext> client,
-                         ClientOptions &options, s62::Planner &planner,
-                         kuzu::binder::Binder &binder)
+                         ClientOptions &options, s62::Planner &planner)
 {
     std::vector<double> compile_times, execution_times;
     
     if (options.warmup) options.iterations += 1;
     for (int i = 0; i < options.iterations; ++i) {
         spdlog::info("[CompileExecuteQuery] Iteration {} Started", i + 1);
-        CompileAndExecuteIteration(query_str, client, options, planner, binder,
-                                   compile_times, execution_times);
+        CompileAndExecuteIteration(query_str, client, options, planner, 
+                                    compile_times, execution_times);
         spdlog::info("[CompileExecuteQuery] Iteration {} Finished", i + 1);
     }
 
@@ -371,18 +371,18 @@ void InitializeClient(std::shared_ptr<ClientContext>& client, ClientOptions& opt
     options.enable_profile ? client->EnableProfiling() : client->DisableProfiling();
 }
 
-void ProcessQuery(const std::string& query, std::shared_ptr<ClientContext>& client, ClientOptions& options, s62::Planner& planner, kuzu::binder::Binder& binder) {
+void ProcessQuery(const std::string& query, std::shared_ptr<ClientContext>& client, ClientOptions& options, s62::Planner& planner) {
     if (query == "analyze") {
         HistogramGenerator hist_gen;
         hist_gen.CreateHistogram(client);
     } else if (query == "flush_file_meta") {
         ChunkCacheManager::ccm->FlushMetaInfo(options.workspace.c_str());
     } else {
-        CompileExecuteQuery(query, client, options, planner, binder);
+        CompileExecuteQuery(query, client, options, planner);
     }
 }
 
-void ProcessQueryInteractive(std::shared_ptr<ClientContext>& client, ClientOptions& options, s62::Planner& planner, kuzu::binder::Binder& binder) {
+void ProcessQueryInteractive(std::shared_ptr<ClientContext>& client, ClientOptions& options, s62::Planner& planner) {
 	std::string shell_prompt = "S62";
 	std::string prev_query_str;
 	std::string query_str;
@@ -400,7 +400,7 @@ void ProcessQueryInteractive(std::shared_ptr<ClientContext>& client, ClientOptio
 
 		try {
 			query_str.pop_back();
-			ProcessQuery(query_str, client, options, planner, binder);
+			ProcessQuery(query_str, client, options, planner);
 		} catch (const duckdb::Exception& e) {
 			spdlog::error("DuckDB Exception: {}", e.what());
 		} catch (const std::exception& e) {
@@ -427,14 +427,13 @@ int main(int argc, char** argv) {
     InitializeClient(client, options);
 	
     s62::Planner planner(options.planner_config, s62::MDProviderType::TBGPP, client.get());
-    kuzu::binder::Binder binder(client.get());
 
     switch (getQueryMode(options)) {
         case ProcessQueryMode::SINGLE_QUERY:
-            ProcessQuery(options.query, client, options, planner, binder);
+            ProcessQuery(options.query, client, options, planner);
             break;
         case ProcessQueryMode::INTERACTIVE:
-            ProcessQueryInteractive(client, options, planner, binder);
+            ProcessQueryInteractive(client, options, planner);
             break;
     }
 

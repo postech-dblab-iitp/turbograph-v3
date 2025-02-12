@@ -10,12 +10,7 @@
 
 
 #include "catalog/standard_entry.hpp"
-
 #include "common/unordered_map.hpp"
-//#include "parser/column_definition.hpp"
-//#include "parser/constraint.hpp"
-//#include "planner/bound_constraint.hpp"
-//#include "planner/expression.hpp"
 #include "common/boost_typedefs.hpp"
 #include "common/case_insensitive_map.hpp"
 #include "catalog/inverted_index.hpp"
@@ -48,8 +43,6 @@ public:
 
 	//! OIDs of property schema catalog entries
 	PropertySchemaID_vector property_schema_array;
-
-	//vector<Constraints> constraints;
 	
 	//! Logical partition ID
 	PartitionID pid;
@@ -83,6 +76,9 @@ public:
 
 	//! universal schema names
 	string_vector global_property_key_names;
+
+	//! id key column idxs
+	idx_t_vector id_key_column_idxs;
 
 	//! universal schema property key ids
 	idx_t_vector global_property_key_ids;
@@ -120,11 +116,11 @@ public:
 public:
 	void AddPropertySchema(ClientContext &context, idx_t ps_oid, vector<PropertyKeyID> &property_schemas);
 	void SetUnivPropertySchema(idx_t psid);
+	void SetIdKeyColumnIdxs(vector<idx_t> &key_column_idxs);
 	void AddAdjIndex(idx_t index_oid);
 	void AddPropertyIndex(idx_t index_oid);
 	void SetPhysicalIDIndex(idx_t index_oid);
 	void SetTypes(vector<LogicalType> &types);
-	void SetKeys(ClientContext &context, vector<string> &key_names);
 
 	//! Set Universal Schema Info
 	void SetSchema(ClientContext &context, vector<string> &key_names, vector<LogicalType> &types, vector<PropertyKeyID> &univ_prop_key_ids);
@@ -192,6 +188,12 @@ public:
 	string_vector *GetUniversalPropertyKeyNames()
 	{
 		return &global_property_key_names;
+	}
+
+	//! Get Id Column Idxs
+	idx_t_vector *GetIdKeyColumnIdxs()
+	{
+		return &id_key_column_idxs;
 	}
 
 	//! Get universal schema key ids

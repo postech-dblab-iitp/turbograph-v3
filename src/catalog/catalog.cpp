@@ -61,6 +61,10 @@ Catalog::Catalog(DatabaseInstance &db, fixed_managed_mapped_file *&catalog_segme
 }
 
 Catalog::~Catalog() {
+	if (ofs) {
+		ofs->close();
+		delete ofs;
+	}
 }
 
 void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<vector<string>> &object_names, string path) {

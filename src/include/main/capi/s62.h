@@ -277,6 +277,8 @@ typedef enum {
 
 s62_state s62_connect(const char *dbname);
 
+s62_state s62_connect_with_client_context(void *client_context);
+
 void s62_disconnect();
 
 s62_conn_state s62_is_connected();

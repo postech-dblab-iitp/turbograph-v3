@@ -157,14 +157,14 @@ public:
 		return key_column;
 	}
 
-	void GetSrcColumnIndexFromHeader(int64_t &src_column_idx, string &src_column_name) {
+	void GetSrcColumnInfo(int64_t &src_column_idx, string &src_column_name) {
 		D_ASSERT(type == GraphComponentType::EDGE);
 		src_column_idx = src_column;
 		src_column_name = src_key_name;
 		return;
 	}
 
-	void GetDstColumnIndexFromHeader(int64_t &dst_column_idx, string &dst_column_name) {
+	void GetDstColumnInfo(int64_t &dst_column_idx, string &dst_column_name) {
 		D_ASSERT(type == GraphComponentType::EDGE);
 		dst_column_idx = dst_column;
 		dst_column_name = dst_key_name;

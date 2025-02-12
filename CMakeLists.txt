@@ -94,12 +94,16 @@ option(BUILD_TOOLS "Build the S62GDB Tools" TRUE)
 option(BUILD_STATIC "Build the S62GDB Static Library" FALSE)
 
 # Settings
-if(${ENABLE_SANITIZER})
-  set(CXX_EXTRA_DEBUG "${CXX_EXTRA_DEBUG} -fsanitize=address")
+if(${ENABLE_SANITIZER} AND ${ENABLE_UBSAN})
+  set(CXX_EXTRA_DEBUG "${CXX_EXTRA_DEBUG} -fsanitize=address,undefined -fno-sanitize=vptr -fno-sanitize-recover=all")
+elseif(${ENABLE_SANITIZER})
+  set(CXX_EXTRA_DEBUG "${CXX_EXTRA_DEBUG} -fsanitize=address -fno-sanitize=vptr")
+elseif(${ENABLE_UBSAN})
+  set(CXX_EXTRA_DEBUG "${CXX_EXTRA_DEBUG} -fsanitize=undefined -fno-sanitize-recover=all")
 endif()
 
-if(${ENABLE_UBSAN})
-  set(CXX_EXTRA_DEBUG "${CXX_EXTRA_DEBUG} -fsanitize=undefined -fno-sanitize-recover=all")
+if(${ENABLE_SANITIZER} OR ${ENABLE_UBSAN})
+  add_definitions(-DENABLE_SANITIZER_FLAG)
 endif()
 
 if(${EXPLICIT_EXCEPTIONS})

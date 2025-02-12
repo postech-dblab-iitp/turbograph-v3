@@ -22,6 +22,7 @@ PartitionCatalogEntry::PartitionCatalogEntry(Catalog *catalog,
       property_indexes(void_alloc),
       global_property_typesid(void_alloc),
       global_property_key_names(void_alloc),
+      id_key_column_idxs(void_alloc),
 	  global_property_key_ids(void_alloc),
       extra_typeinfo_vec(void_alloc),
       offset_infos(void_alloc),
@@ -68,6 +69,13 @@ void PartitionCatalogEntry::AddPropertySchema(
 void PartitionCatalogEntry::SetUnivPropertySchema(idx_t psid)
 {
     univ_ps_oid = psid;
+}
+
+void PartitionCatalogEntry::SetIdKeyColumnIdxs(vector<idx_t> &key_column_idxs)
+{
+    for (auto &it : key_column_idxs) {
+        id_key_column_idxs.push_back(it);
+    }
 }
 
 unique_ptr<CatalogEntry> PartitionCatalogEntry::Copy(ClientContext &context)
@@ -222,20 +230,6 @@ vector<LogicalType> PartitionCatalogEntry::GetTypes()
     }
 
     return universal_schema;
-}
-
-void PartitionCatalogEntry::SetKeys(ClientContext &context,
-                                    vector<string> &key_names)
-{
-    // TODO add logic to generate global schema (ex. if size = 0, just insert, not, insert only new things
-    char_allocator temp_charallocator(
-        context.GetCatalogSHM()->get_segment_manager());
-    D_ASSERT(global_property_key_names.empty());
-    for (auto &it : key_names) {
-        char_string key_(temp_charallocator);
-        key_ = it.c_str();
-        global_property_key_names.push_back(move(key_));
-    }
 }
 
 uint64_t PartitionCatalogEntry::GetNumberOfColumns() const

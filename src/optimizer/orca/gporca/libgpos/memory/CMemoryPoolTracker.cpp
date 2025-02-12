@@ -23,7 +23,9 @@
 #include "gpos/types.h"
 #include "gpos/utils.h"
 
-#include <gperftools/tcmalloc.h>
+#ifndef ENABLE_SANITIZER_FLAG
+	#include <gperftools/tcmalloc.h>
+#endif
 
 using namespace gpos;
 
@@ -81,8 +83,11 @@ CMemoryPoolTracker::NewImpl(const ULONG bytes, const CHAR *file,
 
 	ULONG alloc_size = GPOS_MEM_BYTES_TOTAL(bytes);
 
-	// void *ptr = clib::Malloc(alloc_size);
+#ifdef ENABLE_SANITIZER_FLAG
+	void *ptr = clib::Malloc(alloc_size);
+#else
 	void *ptr = tc_malloc(alloc_size);
+#endif
 
 	// check if allocation failed
 	if (NULL == ptr)
@@ -141,8 +146,11 @@ CMemoryPoolTracker::DeleteImpl(void *ptr, EAllocationType eat)
 	clib::Memset(ptr, GPOS_MEM_FREED_PATTERN_CHAR, user_size);
 #endif	// GPOS_DEBUG
 
-	// clib::Free(header);
+#ifdef ENABLE_SANITIZER_FLAG
+	clib::Free(header);
+#else
 	tc_free(header);
+#endif
 }
 
 // get user requested size of allocation

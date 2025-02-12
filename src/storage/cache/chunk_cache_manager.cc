@@ -43,6 +43,11 @@ ChunkCacheManager::~ChunkCacheManager() {
     UnswizzleFlushSwizzle(file_handler.first, file_handler.second);
     client->ClearDirty(file_handler.first);
   }
+
+  for (auto &file_handler: file_handlers) {
+    if (file_handler.second == nullptr) continue;
+    delete file_handler.second;
+  }
 }
 
 void ChunkCacheManager::UnswizzleFlushSwizzle(ChunkID cid, Turbo_bin_aio_handler* file_handler, bool close_file) {

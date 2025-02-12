@@ -28,6 +28,7 @@ static std::unique_ptr<DuckDB> database;
 static std::shared_ptr<ClientContext> client;
 static std::unique_ptr<s62::Planner> planner;
 static std::unique_ptr<DiskAioFactory> disk_aio_factory;
+static bool connected_via_client_context = false;
 
 // Error Handling
 static s62_error_code last_error_code = S62_NO_ERROR;
@@ -48,44 +49,44 @@ static const std::string INVALID_RESULT_SET_MSG = "Invalid result set";
 // Default values
 s62_resultset empty_result_set = {0, NULL, NULL};
 
+void initialize_disk_aio(const char* workspace) {
+	DiskAioParameters config;
+	config.WORKSPACE = workspace;
+	config.NUM_THREADS = 32;
+	config.NUM_TOTAL_CPU_CORES = 32;
+	config.NUM_CPU_SOCKETS = 2;
+	config.NUM_DISK_AIO_THREADS = config.NUM_CPU_SOCKETS * 2;
+
+	int res;
+	disk_aio_factory = std::make_unique<DiskAioFactory>(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);
+	core_id::set_core_ids(config.NUM_THREADS);
+}
+
+void initialize_planner() {
+	if (planner == nullptr) {
+		auto planner_config = s62::PlannerConfig();
+		planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_EXHAUSTIVE_SEARCH;
+		planner_config.DEBUG_PRINT = false;
+		planner_config.DISABLE_MERGE_JOIN = true; 
+		planner = std::make_unique<s62::Planner>(planner_config, s62::MDProviderType::TBGPP, client.get());
+	}
+}
+
 s62_state s62_connect(const char *dbname) {
     try
     {
-        // Setup configurations
-        DiskAioParameters config;
-        config.WORKSPACE = dbname;
-        config.NUM_THREADS = 1;
-        config.NUM_TOTAL_CPU_CORES = 1;
-        config.NUM_CPU_SOCKETS = 1;
-        config.NUM_DISK_AIO_THREADS = config.NUM_CPU_SOCKETS * 2;
+		initialize_disk_aio(dbname);
 
-        // create disk aio factory
-        int res;
-        disk_aio_factory = std::make_unique<DiskAioFactory>(res, DiskAioParameters::NUM_DISK_AIO_THREADS, 128);
-        core_id::set_core_ids(config.NUM_THREADS);
-
-        // create db
-        database = std::make_unique<DuckDB>(config.WORKSPACE.c_str());
-
-        // create cache manager
-        ChunkCacheManager::ccm = new ChunkCacheManager(config.WORKSPACE.c_str());
-
-        // create client
+        database = std::make_unique<DuckDB>(dbname);
+		ChunkCacheManager::ccm = new ChunkCacheManager(dbname);
         client = std::make_shared<ClientContext>(database->instance->shared_from_this());
         duckdb::SetClientWrapper(client, make_shared<CatalogWrapper>( database->instance->GetCatalogWrapper()));
 
-        // create planner
-        auto planner_config = s62::PlannerConfig();
-		planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_EXHAUSTIVE_SEARCH;
-		planner_config.DEBUG_PRINT = false;
-		if (planner == nullptr) {
-			// reuse the planner
-			planner = std::make_unique<s62::Planner>(planner_config, s62::MDProviderType::TBGPP, client.get());
-		}
+		initialize_planner();
 
-        // Print done
         std::cout << "Database Connected" << std::endl;
-        
+
+		connected_via_client_context = false;
         return S62_SUCCESS;
     }
     catch(const std::exception& e)
@@ -98,17 +99,31 @@ s62_state s62_connect(const char *dbname) {
     }
 }
 
+s62_state s62_connect_with_client_context(void *client_context) {
+	if (client_context == NULL) {
+		last_error_message = INVALID_PARAMETER;
+		last_error_code = S62_ERROR_INVALID_PARAMETER;
+		return S62_ERROR;
+	}
+
+    client = *reinterpret_cast<std::shared_ptr<ClientContext>*>(client_context); 
+	initialize_planner();
+	connected_via_client_context = true;
+}
+
 void s62_disconnect() {
-	duckdb::ReleaseClientWrapper();
-    client.reset();
-    delete ChunkCacheManager::ccm;
-    database.reset();
-	disk_aio_factory.reset();
+	if (!connected_via_client_context) {
+		duckdb::ReleaseClientWrapper();
+		client.reset();
+		delete ChunkCacheManager::ccm;
+		database.reset();
+		disk_aio_factory.reset();
+	}
     std::cout << "Database Disconnected" << std::endl;
 }
 
 s62_conn_state s62_is_connected() {
-    if (database != NULL) {
+    if (database != NULL || connected_via_client_context) {
         return S62_CONNECTED;
     } else {
         return S62_NOT_CONNECTED;
@@ -657,7 +672,6 @@ static void s62_register_resultset(s62_prepared_statement* prepared_statement, s
 
 s62_num_rows s62_execute(s62_prepared_statement* prepared_statement, s62_resultset_wrapper** result_set_wrp) {
 	auto cypher_prep_stmt = reinterpret_cast<CypherPreparedStatement *>(prepared_statement->__internal_prepared_statement);
-	std::cout << cypher_prep_stmt->getBoundQuery() << std::endl;
 	s62_compile_query(cypher_prep_stmt->getBoundQuery());
 	auto executors = planner->genPipelineExecutors();
     if (executors.size() == 0) { 
@@ -672,6 +686,7 @@ s62_num_rows s62_execute(s62_prepared_statement* prepared_statement, s62_results
 		}
 		cypher_prep_stmt->copyResults(*(executors.back()->context->query_results));
 		s62_register_resultset(prepared_statement, result_set_wrp);
+		if (prepared_statement->plan != NULL) free(prepared_statement->plan);
 		prepared_statement->plan = strdup(generatePostgresStylePlan(executors, true).c_str());
     	return cypher_prep_stmt->getNumRows();
     }

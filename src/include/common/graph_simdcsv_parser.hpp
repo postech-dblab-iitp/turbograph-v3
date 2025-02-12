@@ -648,22 +648,22 @@ public:
 		return true;
 	}
 
-	vector<int64_t> GetKeyColumnIndexFromHeader() {
+	vector<idx_t> GetKeyColumnIndexFromHeader() {
 		D_ASSERT(type == GraphComponentType::VERTEX);
-		return key_columns;
+    return vector<idx_t>(key_columns.begin(), key_columns.end());
 	}
 
-	void GetSrcColumnIndexFromHeader(vector<int64_t> &src_column_idxs, string &src_column_name) {
+	void GetSrcColumnInfo(vector<int64_t> &src_column_idxs, string &src_vertex_label) {
 		D_ASSERT(type == GraphComponentType::EDGE);
 		src_column_idxs = src_columns;
-		src_column_name = src_key_name;
+		src_vertex_label = src_key_name;
 		return;
 	}
 
-	void GetDstColumnIndexFromHeader(vector<int64_t> &dst_column_idxs, string &dst_column_name) {
+	void GetDstColumnInfo(vector<int64_t> &dst_column_idxs, string &dst_vertex_label) {
 		D_ASSERT(type == GraphComponentType::EDGE);
 		dst_column_idxs = dst_columns;
-		dst_column_name = dst_key_name;
+		dst_vertex_label = dst_key_name;
 		return;
 	}
 

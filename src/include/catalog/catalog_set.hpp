@@ -50,7 +50,13 @@ EntriesUnorderedMap;
 struct MappingValue {
 	typedef boost::interprocess::managed_unique_ptr<MappingValue, boost::interprocess::managed_shared_memory>::type MappingValue_unique_ptr_type;
 	
-	explicit MappingValue(idx_t index_) : index(index_), timestamp(0), deleted(false), parent(nullptr) {
+	explicit MappingValue(idx_t index_) : index(index_), timestamp(0), deleted(false), parent(nullptr), child(nullptr) {
+	}
+
+	~MappingValue() {
+		if (child) {
+			delete child;
+		}
 	}
 
 	idx_t index;
@@ -190,6 +196,7 @@ class CatalogSetInMem : public CatalogSet {
 
 public:
 	DUCKDB_API explicit CatalogSetInMem(Catalog &catalog, unique_ptr<DefaultGenerator> defaults = nullptr);
+	DUCKDB_API ~CatalogSetInMem();
 
 	//! Create an entry in the catalog set. Returns whether or not it was
 	//! successful.
@@ -200,7 +207,6 @@ public:
 	DUCKDB_API CatalogEntry *GetEntry(ClientContext &context, const string &name);
 
 private:
-
 	MappingValue *GetMapping(ClientContext &context, const string &name, bool get_latest = false);
 	void PutMapping(ClientContext &context, const string &name, idx_t entry_index);
 
