@@ -12,6 +12,7 @@
 //#include "function/compression_function.hpp"
 //#include "main/extension_helper.hpp"
 #include "common/boost.hpp"
+#include "common/logger.hpp"
 
 // #include "catalog/catalog_entry/schema_catalog_entry.hpp" 
 #include "parser/parsed_data/create_schema_info.hpp" // TODO remove this..
@@ -112,29 +113,7 @@ bool startsWith(const std::string &str, const std::string &prefix) {
     return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
 }
 
-void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) {
-	/*if (new_config) {
-		// user-supplied configuration
-		Configure(*new_config);
-	} else {
-		// default configuration
-		DBConfig config;
-		Configure(config);
-	}
-	if (config.temporary_directory.empty() && path) {
-		// no directory specified: use default temp path
-		config.temporary_directory = string(path) + ".tmp";
-
-		// special treatment for in-memory mode
-		if (strcmp(path, ":memory:") == 0) {
-			config.temporary_directory = ".tmp";
-		}
-	}
-	if (new_config && !new_config->use_temporary_directory) {
-		// temporary directories explicitly disabled
-		config.temporary_directory = string();
-	}*/
-	
+void DatabaseInstance::Initialize(const char *path) {	
 	storage =
 	    make_unique<StorageManager>(*this, path ? string(path) : string(), false);
 
@@ -177,25 +156,53 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 		}
 		num_objects_in_catalog++;
 	}
-	// fprintf(stdout, "SchemaCatalogEntry\n");
-	// for (idx_t i = 0; i < object_names[0].size(); i++) fprintf(stdout, "\t%s\n", object_names[0][i].c_str());
-	// fprintf(stdout, "GraphCatalogEntry\n");
-	// for (idx_t i = 0; i < object_names[1].size(); i++) fprintf(stdout, "\t%s\n", object_names[1][i].c_str());
-	// fprintf(stdout, "VertexPartitionCatalogEntry\n");
-	// for (idx_t i = 0; i < object_names[2].size(); i++) fprintf(stdout, "\t%s %p\n", object_names[2][i].c_str(), object_ptrs[2][i]);
-	// fprintf(stdout, "EdgePartitionCatalogEntry\n");
-	// for (idx_t i = 0; i < object_names[3].size(); i++) fprintf(stdout, "\t%s\n", object_names[3][i].c_str());
-	// fprintf(stdout, "VertexPropertySchemaCatalogEntry\n");
-	// for (idx_t i = 0; i < object_names[4].size(); i++) fprintf(stdout, "\t%s %p\n", object_names[4][i].c_str(), object_ptrs[4][i]);
-	// fprintf(stdout, "EdgePropertySchemaCatalogEntry\n");
-	// for (idx_t i = 0; i < object_names[5].size(); i++) fprintf(stdout, "\t%s\n", object_names[5][i].c_str());
-	// fprintf(stdout, "ExtentCatalogEntry\n");
-	// for (idx_t i = 0; i < object_names[6].size(); i++) fprintf(stdout, "\t%s\n", object_names[6][i].c_str());
-	// fprintf(stdout, "ChunkDefinitionCatalogEntry\n");
-	// for (idx_t i = 0; i < object_names[7].size(); i++) fprintf(stdout, "\t%s\n", object_names[7][i].c_str());
-	// fprintf(stdout, "Else\n");
-	// for (idx_t i = 0; i < object_names[8].size(); i++) fprintf(stdout, "\t%s\n", object_names[8][i].c_str());
-	// fprintf(stdout, "Num_objects in catalog = %ld\n", num_objects_in_catalog);
+
+    spdlog::trace("SchemaCatalogEntry");
+    for (const auto& name : object_names[0]) {
+        spdlog::trace("\t{}", name);
+    }
+
+    spdlog::trace("GraphCatalogEntry");
+    for (const auto& name : object_names[1]) {
+        spdlog::trace("\t{}", name);
+    }
+
+    spdlog::trace("VertexPartitionCatalogEntry");
+    for (size_t i = 0; i < object_names[2].size(); i++) {
+        spdlog::trace("\t{} {}", object_names[2][i], static_cast<void*>(object_ptrs[2][i]));
+    }
+
+    spdlog::trace("EdgePartitionCatalogEntry");
+    for (const auto& name : object_names[3]) {
+        spdlog::trace("\t{}", name);
+    }
+
+    spdlog::trace("VertexPropertySchemaCatalogEntry");
+    for (size_t i = 0; i < object_names[4].size(); i++) {
+        spdlog::trace("\t{} {}", object_names[4][i], static_cast<void*>(object_ptrs[4][i]));
+    }
+
+    spdlog::trace("EdgePropertySchemaCatalogEntry");
+    for (const auto& name : object_names[5]) {
+        spdlog::trace("\t{}", name);
+    }
+
+    spdlog::trace("ExtentCatalogEntry");
+    for (const auto& name : object_names[6]) {
+        spdlog::trace("\t{}", name);
+    }
+
+    spdlog::trace("ChunkDefinitionCatalogEntry");
+    for (const auto& name : object_names[7]) {
+        spdlog::trace("\t{}", name);
+    }
+
+    spdlog::trace("Else");
+    for (const auto& name : object_names[8]) {
+        spdlog::trace("\t{}", name);
+    }
+
+    spdlog::trace("Num_objects in catalog = {}", num_objects_in_catalog);
 	
 	bool create_new_db = (num_objects_in_catalog == 0); // TODO move this to configuration..
 	if (create_new_db) {
@@ -207,16 +214,9 @@ void DatabaseInstance::Initialize(const char *path) { //, DBConfig *new_config) 
 		catalog->LoadCatalog(catalog_shm, object_names, path);
 	}
 	catalog_wrapper = make_unique<CatalogWrapper>(*this);
-	//transaction_manager = make_unique<TransactionManager>(*this);
-	//scheduler = make_unique<TaskScheduler>(*this);
-	//object_cache = make_unique<ObjectCache>();
-	//connection_manager = make_unique<ConnectionManager>();
 
 	// initialize the database
 	storage->Initialize();
-
-	// only increase thread count after storage init because we get races on catalog otherwise
-	//scheduler->SetThreads(config.maximum_threads);
 }
 /*
 DuckDB::DuckDB(const char *path, DBConfig *new_config) : instance(make_shared<DatabaseInstance>()) {

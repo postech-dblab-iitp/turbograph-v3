@@ -71,8 +71,16 @@ struct BulkloadContext {
           client(std::move(client)),
           catalog(catalog)
     {
-        graph_cat = (GraphCatalogEntry *)catalog.CreateGraph(*(this->client.get()),
-                                                             &graph_info);
+		if (this->input_options.incremental) {
+			spdlog::info("[BulkloadContext] Incremental mode detected; loading existing graph catalog");
+			graph_cat = (GraphCatalogEntry*)catalog.GetEntry(*(this->client.get()), CatalogType::GRAPH_ENTRY, 
+						graph_info.schema, graph_info.graph);
+		}
+		else {
+			spdlog::info("[BulkloadContext] Creating new graph catalog");
+			graph_cat = (GraphCatalogEntry *)catalog.CreateGraph(*(this->client.get()),
+																&graph_info);
+		}
 		duckdb::SetClientWrapper(this->client, make_shared<CatalogWrapper>(catalog_wrapper));
     }
 };
@@ -80,7 +88,6 @@ struct BulkloadContext {
 /**
  * UTIL FUNCTIONS
  */
-
 
 inline bool isJSONFile(const std::string &file_path_str) {
     boost::filesystem::path file_path(file_path_str);

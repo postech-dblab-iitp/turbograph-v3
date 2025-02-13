@@ -25,7 +25,7 @@ enum class LogLevel {
     LOGGER_UNKNOWN 
 };
 
-LogLevel getLogLevel(const std::string& level_str) {
+inline LogLevel getLogLevel(const std::string& level_str) {
     static const std::unordered_map<std::string, LogLevel> log_levels = {
         {"trace", LogLevel::LOGGER_TRACE}, {"debug", LogLevel::LOGGER_DEBUG},
         {"info", LogLevel::LOGGER_INFO}, {"warn", LogLevel::LOGGER_WARN}, {"error", LogLevel::LOGGER_ERROR}
@@ -34,7 +34,7 @@ LogLevel getLogLevel(const std::string& level_str) {
     return it != log_levels.end() ? it->second : LogLevel::LOGGER_UNKNOWN;
 }
 
-void setLogLevel(LogLevel level) {
+inline void setLogLevel(LogLevel level) {
     switch (level) {
         case LogLevel::LOGGER_TRACE: spdlog::set_level(spdlog::level::trace); break;
         case LogLevel::LOGGER_DEBUG: spdlog::set_level(spdlog::level::debug); break;
@@ -45,7 +45,7 @@ void setLogLevel(LogLevel level) {
     }
 }
 
-void SetupLogger() {
+inline void SetupLogger() {
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     console_sink->set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] %v");
 

@@ -805,16 +805,6 @@ CatalogSetInMem::CatalogSetInMem(Catalog &catalog, unique_ptr<DefaultGenerator> 
 	entries = make_unique<unordered_map<idx_t, CatalogEntry *>>();
 }
 
-CatalogSetInMem::~CatalogSetInMem() {
-	for (auto &kv : *entries) {
-		delete kv.second;
-	}
-
-	for (auto &kv : *mapping) {
-		delete kv.second;
-	}
-}
-
 bool CatalogSetInMem::CreateEntry(ClientContext &context, const string &name, CatalogEntry* value,
                              unordered_set<CatalogEntry *> &dependencies) {
 	// first check if the entry exists in the unordered set
@@ -838,8 +828,6 @@ bool CatalogSetInMem::CreateEntry(ClientContext &context, const string &name, Ca
 		dummy_node->deleted = true;
 		dummy_node->set = this;
 
-		auto it = entries->find(entry_index);
-		if (it != entries->end()) delete it->second;
 		entries->insert_or_assign(entry_index, move(dummy_node));
 		PutMapping(context, name, entry_index);
 	} else {
@@ -859,9 +847,7 @@ bool CatalogSetInMem::CreateEntry(ClientContext &context, const string &name, Ca
 	// value->child->parent = value;
 	// push the old entry in the undo buffer for this transaction
 	//transaction.PushCatalogEntry(value->child.get());
-	auto it = entries->find(entry_index);
-	if (it != entries->end()) delete it->second;
-	entries->insert_or_assign(entry_index, move(value));
+	entries->at(entry_index) = move(value);
 	return true;
 }
 

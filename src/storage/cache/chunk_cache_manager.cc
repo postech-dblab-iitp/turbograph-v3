@@ -19,7 +19,7 @@ namespace duckdb {
 ChunkCacheManager* ChunkCacheManager::ccm;
 
 ChunkCacheManager::ChunkCacheManager(const char *path) {
-  spdlog::debug("[ChunkCacheManager] Start to construct ChunkCacheManager");
+  spdlog::debug("[ChunkCacheManager] Construct ChunkCacheManager");
   client = new LightningClient("/tmp/lightning", "password");
   if (std::filesystem::exists(std::string(path) + "/" + file_meta_info_name)) {
     InitializeFileHandlersUsingMetaInfo(path);
@@ -29,7 +29,7 @@ ChunkCacheManager::ChunkCacheManager(const char *path) {
 }
 
 ChunkCacheManager::~ChunkCacheManager() {
-  spdlog::debug("[~ChunkCacheManager] Start to deconstruct ChunkCacheManager");
+  spdlog::debug("[~ChunkCacheManager] Deconstruct ChunkCacheManager");
   for (auto &file_handler: file_handlers) {
     if (file_handler.second == nullptr) continue;
 

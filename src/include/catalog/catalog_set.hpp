@@ -53,12 +53,6 @@ struct MappingValue {
 	explicit MappingValue(idx_t index_) : index(index_), timestamp(0), deleted(false), parent(nullptr), child(nullptr) {
 	}
 
-	~MappingValue() {
-		if (child) {
-			delete child;
-		}
-	}
-
 	idx_t index;
 	transaction_t timestamp;
 	bool deleted;
@@ -196,7 +190,6 @@ class CatalogSetInMem : public CatalogSet {
 
 public:
 	DUCKDB_API explicit CatalogSetInMem(Catalog &catalog, unique_ptr<DefaultGenerator> defaults = nullptr);
-	DUCKDB_API ~CatalogSetInMem();
 
 	//! Create an entry in the catalog set. Returns whether or not it was
 	//! successful.

@@ -61,10 +61,6 @@ Catalog::Catalog(DatabaseInstance &db, fixed_managed_mapped_file *&catalog_segme
 }
 
 Catalog::~Catalog() {
-	if (ofs) {
-		ofs->close();
-		delete ofs;
-	}
 }
 
 void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<vector<string>> &object_names, string path) {
@@ -73,13 +69,12 @@ void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<v
 
 	// Load SchemaCatalogEntry
 	unordered_set<CatalogEntry *> dependencies;
-	string schema_cat_name_in_shm = "schemacatalogentry_main"; // XXX currently, we assume there is only one schema
-	auto entry = this->catalog_segment->find_or_construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str()) (this, "main", false, this->catalog_segment);
-	// entry->SetCatalog(this);
+	string schema_cat_name_in_shm = "schemacatalogentry_main"; // currently, we assume there is only one schema
+	auto entry = this->catalog_segment->find_or_construct<SchemaCatalogEntry>(schema_cat_name_in_shm.c_str()) (this, DEFAULT_SCHEMA, false, this->catalog_segment);
 
 	std::shared_ptr<ClientContext> client = 
 		std::make_shared<ClientContext>(db.shared_from_this());
-	if (!schemas->CreateEntry(*client.get(), "main", move(entry), dependencies)) {
+	if (!schemas->CreateEntry(*client.get(), DEFAULT_SCHEMA, move(entry), dependencies)) {
 		throw CatalogException("Schema with name main already exists!");
 	}
 
@@ -404,7 +399,6 @@ CatalogEntry *Catalog::AddFunction(ClientContext &context, SchemaCatalogEntry *s
 }
 
 SchemaCatalogEntry *Catalog::GetSchema(ClientContext &context, const string &schema_name, bool if_exists) {
-                                       //QueryErrorContext error_context) {
 	D_ASSERT(!schema_name.empty());
 	if (schema_name == TEMP_SCHEMA) {
 		D_ASSERT(false);
