@@ -35,7 +35,9 @@ public:
     HistogramGenerator() {}
 
     //! dtor
-    ~HistogramGenerator() {}
+    ~HistogramGenerator() {
+        _clear_accms();
+    }
 
     //! Create histogram for all partitions in the database
     void CreateHistogram(std::shared_ptr<ClientContext> client);
@@ -88,6 +90,16 @@ private:
 
     //! calculate NDV
     void _store_ndv(PropertySchemaCatalogEntry *ps_cat, vector<LogicalType> types, std::vector<std::unordered_set<uint64_t>>& ndv_counters, size_t& num_total_tuples);
+
+    //! clear accms
+    void _clear_accms() {
+        for (auto &accm : accms) {
+            if (accm != nullptr) {
+                delete accm;
+            }
+        }
+        accms.clear();
+    }
 };
 
 } // namespace duckdb

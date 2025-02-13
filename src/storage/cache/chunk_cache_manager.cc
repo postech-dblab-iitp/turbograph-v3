@@ -48,6 +48,8 @@ ChunkCacheManager::~ChunkCacheManager() {
     if (file_handler.second == nullptr) continue;
     delete file_handler.second;
   }
+
+  delete client;
 }
 
 void ChunkCacheManager::UnswizzleFlushSwizzle(ChunkID cid, Turbo_bin_aio_handler* file_handler, bool close_file) {

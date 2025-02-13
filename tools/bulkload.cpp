@@ -688,9 +688,9 @@ void ReadVertexFilesAndCreateVertexExtents(BulkloadContext &bulkload_ctx) {
 	if (json_vertex_files.size() > 0) {
 		// Note: we should prevent calling Py_Initialize multple times
 		// Also, note that Py_Initialize can affect disk AIO, leading to unexpected error
-	    Py_Initialize();
+	    // Py_Initialize();
 		ReadVertexJSONFileAndCreateVertexExtents(json_vertex_files, bulkload_ctx);
-		Py_Finalize();
+		// Py_Finalize();
 	}
 	if (csv_vertex_files.size() > 0) ReadVertexCSVFileAndCreateVertexExtents(csv_vertex_files, bulkload_ctx);
 }

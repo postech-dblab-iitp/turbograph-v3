@@ -14,6 +14,8 @@ class LightningClient {
 public:
   LightningClient(const std::string &store_socket, const std::string &password);
 
+  ~LightningClient();
+
   int MultiPut(uint64_t object_id, std::vector<std::string> fields,
                std::vector<int64_t> subobject_sizes,
                std::vector<uint8_t *> subobjects);

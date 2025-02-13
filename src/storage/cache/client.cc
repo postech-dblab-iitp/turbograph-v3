@@ -178,7 +178,6 @@ LightningClient::LightningClient(const std::string &store_socket,
 
   disk_ = new UndoLogDisk(1024 * 1024 * 1024, base_, size_ + object_log_size);
   object_log_ = new ObjectLog(object_log_base_, size_, disk_);
-
   allocator_ = new MemAllocator(header_, disk_);
 
   // page alignment check
@@ -193,6 +192,34 @@ LightningClient::LightningClient(const std::string &store_socket,
 #endif
 
   // std::cout << "header_ = " << (unsigned long)base_ << std::endl;
+}
+
+LightningClient::~LightningClient() {
+  delete allocator_;
+  delete object_log_;
+  delete disk_;
+
+  if (object_log_base_ != MAP_FAILED) {
+    munmap(object_log_base_, sizeof(LogObjectEntry) * OBJECT_LOG_SIZE);
+  }
+  
+  if (header_ != MAP_FAILED) {
+    munmap(header_, size_);
+  }
+
+  if (object_log_fd_ >= 0) {
+    close(object_log_fd_);
+    std::string pid_str = "object-log-" + std::to_string(pid_);
+    shm_unlink(pid_str.c_str());
+  }
+
+  if (store_fd_ >= 0) {
+    close(store_fd_);
+  }
+
+  if (store_conn_ >= 0) {
+    close(store_conn_);
+  }
 }
 
 void LightningClient::init_mpk() {

@@ -8,8 +8,12 @@
 #include "parser/column_definition.hpp"
 #include "main/client_context.hpp"
 #include <sys/fcntl.h>
-
 #include <iostream>
+
+#ifdef ENABLE_SANITIZER_FLAG
+	#include <sanitizer/lsan_interface.h>
+#endif 
+
 #include "icecream.hpp"
 
 namespace duckdb {
@@ -44,7 +48,13 @@ private:
 
 CatalogSet::CatalogSet(Catalog &catalog, unique_ptr<DefaultGenerator> defaults)
     : catalog(&catalog), defaults(move(defaults)) {
+#ifdef ENABLE_SANITIZER_FLAG
+	__lsan_disable();
+#endif
 	current_entry = new idx_t;
+#ifdef ENABLE_SANITIZER_FLAG
+	__lsan_enable();
+#endif
 	*current_entry = 0;
 }
 
@@ -820,10 +830,17 @@ bool CatalogSetInMem::CreateEntry(ClientContext &context, const string &name, Ca
 		*current_entry = entry_index + 1;
 
 		string dummy_name = name + "_dummy" + std::to_string(entry_index);
+
+#ifdef ENABLE_SANITIZER_FLAG
+		__lsan_disable();
+#endif
         auto dummy_node =
 			new CatalogEntry(CatalogType::INVALID, value->catalog, name, 
 			(void_allocator)context.GetCatalogSHM()->get_segment_manager());
-        
+#ifdef ENABLE_SANITIZER_FLAG
+        __lsan_enable();
+#endif
+
 		dummy_node->timestamp = 0;
 		dummy_node->deleted = true;
 		dummy_node->set = this;
@@ -855,7 +872,13 @@ void CatalogSetInMem::PutMapping(ClientContext &context, const string &name, idx
 	auto entry = mapping->find(name);
 	string new_value_name = name + "_mapval" + std::to_string(entry_index);
 
+#ifdef ENABLE_SANITIZER_FLAG
+	__lsan_disable();
+#endif
 	auto new_value = new MappingValue(entry_index);
+#ifdef ENABLE_SANITIZER_FLAG
+	__lsan_enable();
+#endif
 	//new_value->timestamp = Transaction::GetTransaction(context).transaction_id;
 	new_value->timestamp = 0;
 	if (entry != mapping->end()) {

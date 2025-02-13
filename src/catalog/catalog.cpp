@@ -25,6 +25,7 @@
 #include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <sanitizer/lsan_interface.h>
 
 #include "icecream.hpp"	
 namespace duckdb {
@@ -116,15 +117,24 @@ void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<v
         catalog_version = std::stoll(catalog_version_str);
 		std::cout << "catalog_version: " << catalog_version << std::endl;
 
+#ifdef ENABLE_SANITIZER_FLAG
+		__lsan_disable(); 
+#endif
 		ofs = new std::ofstream();
 		ofs->open(path + "/catalog_version", std::ofstream::out | std::ofstream::ate);
 		*ofs << std::to_string(catalog_version) + "\n" << std::flush;
 	} else {
+#ifdef ENABLE_SANITIZER_FLAG
+		__lsan_disable();
+#endif
 		catalog_version = 10000000; // temporary..
 		ofs = new std::ofstream();
 		ofs->open(path + "/catalog_version", std::ofstream::out | std::ofstream::trunc);
 		*ofs << std::to_string(catalog_version) + "\n" << std::flush;
 	}
+#ifdef ENABLE_SANITIZER_FLAG
+	__lsan_enable();
+#endif
 }
 
 Catalog &Catalog::GetCatalog(ClientContext &context) {
@@ -182,9 +192,11 @@ CatalogEntry *Catalog::CreateFunction(ClientContext &context, CreateFunctionInfo
 }
 
 CatalogEntry *Catalog::CreateFunction(ClientContext &context, SchemaCatalogEntry *schema, CreateFunctionInfo *info) {
-    // return schema->CreateFunction(context, info);
     StandardEntry *function;
     void_allocator alloc_inst(context.GetCatalogSHM()->get_segment_manager());
+#ifdef ENABLE_SANITIZER_FLAG
+	__lsan_disable(); 
+#endif
     switch (info->type) {
         case CatalogType::SCALAR_FUNCTION_ENTRY:
             function = new ScalarFunctionCatalogEntry(
@@ -208,7 +220,9 @@ CatalogEntry *Catalog::CreateFunction(ClientContext &context, SchemaCatalogEntry
             throw InternalException("Unknown function type \"%s\"",
                                     CatalogTypeToString(info->type));
     }
-    // return AddEntry(context, move(function), info->on_conflict);
+#ifdef ENABLE_SANITIZER_FLAG
+	__lsan_enable();
+#endif
 	unordered_set<CatalogEntry *> dependencies;
 	auto entry_name = function->name;
 	auto entry_type = function->type;

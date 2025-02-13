@@ -135,37 +135,44 @@ void DatabaseInstance::Initialize(const char *path) {
 		const boost::interprocess::managed_shared_memory::char_type *name = named_beg->name();
 		if (startsWith(name, "schemacatalogentry")) { // SchemaCatalogEntry
 			object_names[0].push_back(name);
+			object_ptrs[0].push_back(const_cast<void*>(value));
 		} else if (startsWith(name, "graph")) { // GraphCatalogEntry
 			object_names[1].push_back(name);
+			object_ptrs[1].push_back(const_cast<void*>(value));
 		} else if (startsWith(name, "vpart")) { // VertexPartitionCatalogEntry
 			object_names[2].push_back(name);
 			object_ptrs[2].push_back(const_cast<void*>(value));
 		} else if (startsWith(name, "epart")) { // EdgePartitionCatalogEntry
 			object_names[3].push_back(name);
+			object_ptrs[3].push_back(const_cast<void*>(value));
 		} else if (startsWith(name, "vps")) { // VertexPropertySchemaCatalogEntry
 			object_names[4].push_back(name);
 			object_ptrs[4].push_back(const_cast<void*>(value));
 		} else if (startsWith(name, "eps")) { // EdgePropertySchemaCatalogEntry
 			object_names[5].push_back(name);
+			object_ptrs[5].push_back(const_cast<void*>(value));
 		} else if (startsWith(name, "ext")) { // ExtentCatalogEntry
 			object_names[6].push_back(name);
+			object_ptrs[6].push_back(const_cast<void*>(value));
 		} else if (startsWith(name, "cdf")) { // ChunkDefinitionCatalogEntry
 			object_names[7].push_back(name);
+			object_ptrs[7].push_back(const_cast<void*>(value));
 		} else {
 			object_names[8].push_back(name);
+			object_ptrs[8].push_back(const_cast<void*>(value));
 		}
 		num_objects_in_catalog++;
 	}
 
     spdlog::trace("SchemaCatalogEntry");
-    for (const auto& name : object_names[0]) {
-        spdlog::trace("\t{}", name);
-    }
+	for (size_t i = 0; i < object_names[0].size(); i++) {
+		spdlog::trace("\t{} {}", object_names[0][i], static_cast<void*>(object_ptrs[0][i]));
+	}
 
     spdlog::trace("GraphCatalogEntry");
-    for (const auto& name : object_names[1]) {
-        spdlog::trace("\t{}", name);
-    }
+	for (size_t i = 0; i < object_names[1].size(); i++) {
+		spdlog::trace("\t{} {}", object_names[1][i], static_cast<void*>(object_ptrs[1][i]));
+	}
 
     spdlog::trace("VertexPartitionCatalogEntry");
     for (size_t i = 0; i < object_names[2].size(); i++) {
@@ -173,9 +180,9 @@ void DatabaseInstance::Initialize(const char *path) {
     }
 
     spdlog::trace("EdgePartitionCatalogEntry");
-    for (const auto& name : object_names[3]) {
-        spdlog::trace("\t{}", name);
-    }
+    for (size_t i = 0; i < object_names[3].size(); i++) {
+		spdlog::trace("\t{} {}", object_names[3][i], static_cast<void*>(object_ptrs[3][i]));
+	}
 
     spdlog::trace("VertexPropertySchemaCatalogEntry");
     for (size_t i = 0; i < object_names[4].size(); i++) {
@@ -183,24 +190,24 @@ void DatabaseInstance::Initialize(const char *path) {
     }
 
     spdlog::trace("EdgePropertySchemaCatalogEntry");
-    for (const auto& name : object_names[5]) {
-        spdlog::trace("\t{}", name);
-    }
+    for (size_t i = 0; i < object_names[5].size(); i++) {
+		spdlog::trace("\t{} {}", object_names[5][i], static_cast<void*>(object_ptrs[5][i]));
+	}
 
     spdlog::trace("ExtentCatalogEntry");
-    for (const auto& name : object_names[6]) {
-        spdlog::trace("\t{}", name);
-    }
+    for (size_t i = 0; i < object_names[6].size(); i++) {
+		spdlog::trace("\t{} {}", object_names[6][i], static_cast<void*>(object_ptrs[6][i]));
+	}
 
     spdlog::trace("ChunkDefinitionCatalogEntry");
-    for (const auto& name : object_names[7]) {
-        spdlog::trace("\t{}", name);
-    }
+    for (size_t i = 0; i < object_names[7].size(); i++) {
+		spdlog::trace("\t{} {}", object_names[7][i], static_cast<void*>(object_ptrs[7][i]));
+	}
 
     spdlog::trace("Else");
-    for (const auto& name : object_names[8]) {
-        spdlog::trace("\t{}", name);
-    }
+    for (size_t i = 0; i < object_names[8].size(); i++) {
+		spdlog::trace("\t{} {}", object_names[8][i], static_cast<void*>(object_ptrs[8][i]));
+	}
 
     spdlog::trace("Num_objects in catalog = {}", num_objects_in_catalog);
 	

@@ -81,6 +81,11 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
     PropertySchemaID_vector *ps_oids = partition_cat->GetPropertySchemaIDs();
     PropertyToIdxUnorderedMap *property_to_idx_map = partition_cat->GetPropertyToIdxMap();
 
+    if (ps_oids->size() > 1) {
+        spdlog::info("[_create_histogram] Skip for multi-schema partition (to be supported)");
+        return;
+    }
+
     // For each property schema, read data & accumulate histogram
     for (auto i = 0; i < ps_oids->size(); i++) {
         vector<idx_t> oids;
@@ -258,7 +263,7 @@ void HistogramGenerator::_create_histogram(std::shared_ptr<ClientContext> client
 }
 
 void HistogramGenerator::_init_accumulators(vector<LogicalType> &universal_schema, std::vector<std::vector<double>>& probs_per_column) {
-    accms.clear();
+    _clear_accms();
     target_cols.clear();
     for (auto i = 0; i < universal_schema.size(); i++) {
         if (universal_schema[i].IsNumeric() || universal_schema[i] == LogicalType::DATE) {
@@ -282,6 +287,7 @@ void HistogramGenerator::_init_accumulators(vector<LogicalType> &universal_schem
 void HistogramGenerator::_accumulate_data_for_hist(DataChunk &chunk, vector<LogicalType> &universal_schema, vector<idx_t> &target_cols_in_univ_schema)
 {
     for (auto i = 0; i < target_cols_in_univ_schema.size(); i++) {
+        if (accms[target_cols_in_univ_schema[i]] == nullptr) continue;
         auto &target_accm = *(accms[target_cols_in_univ_schema[i]]);
         auto &target_vec = chunk.data[i];
 

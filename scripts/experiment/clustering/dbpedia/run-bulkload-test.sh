@@ -5,7 +5,7 @@
 # cost_models=("OURS" "OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE")
 # layering_orders=("ASCENDING" "DESCENDING" "NO_SORT")
 cluster_algorithms=("AGGLOMERATIVE")
-cost_models=("OURS")
+cost_models=("JACCARD")
 layering_orders=("DESCENDING")
 
 # File path to the configuration header
@@ -55,12 +55,12 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
             sleep 15
 
             log_file="${log_dir}/dbpedia_${cluster_algo}_${cost_model}_${layering_order}.txt"
-            /turbograph-v3/build-release/tools/bulkload \
+            /turbograph-v3/build/tools/bulkload \
+                --log-level debug \
                 --output_dir ${target_dir} \
                 --nodes NODE ${source_dir}/nodes2.json \
-                --nodes Person /source-data/ldbc/sf1/dynamic/Person.csv \
                 --relationships http://dbpedia.org/ontology/academicAdvisor ${source_dir}/edges_test.csv \
-                --relationships_backward http://dbpedia.org/ontology/academicAdvisor ${source_dir}/edges_test.csv.backward
+                --relationships_backward http://dbpedia.org/ontology/academicAdvisor ${source_dir}/edges_test.csv.backward &> ${log_file}
 
             pkill -f store
             pkill -f catalog_server

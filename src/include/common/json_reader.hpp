@@ -92,13 +92,13 @@ public:
 		return -1;
 	}
 
-	void GetSrcColumnInfo(int64_t &src_column_idx, string &src_column_name) {
+	void GetSrcColumnIndexFromHeader(int64_t &src_column_idx, string &src_column_name) {
 		// TODO
 		src_column_idx = -1;
 		return;
 	}
 
-	void GetDstColumnInfo(int64_t &dst_column_idx, string &dst_column_name) {
+	void GetDstColumnIndexFromHeader(int64_t &dst_column_idx, string &dst_column_name) {
 		// TODO
 		dst_column_idx = -1;
 		return;
