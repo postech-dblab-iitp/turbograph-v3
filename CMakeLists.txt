@@ -80,8 +80,8 @@ set(S62_EXPORT_SET "S62Exports")
 
 # Options
 option(DISABLE_UNITY "Disable unity build." FALSE)
-option(ENABLE_SANITIZER "Enable address sanitizer." TRUE)
-option(ENABLE_UBSAN "Enable undefined behavior sanitizer." TRUE)
+option(ENABLE_SANITIZER "Enable address sanitizer." FALSE)
+option(ENABLE_UBSAN "Enable undefined behavior sanitizer." FALSE)
 option(EXPLICIT_EXCEPTIONS "Explicitly enable C++ exceptions." FALSE)
 option(EXPORT_DYNAMIC_SYMBOLS "Export dynamic symbols." FALSE)
 option(TREAT_WARNINGS_AS_ERRORS "Treat warnings as errors" FALSE)

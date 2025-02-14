@@ -84,6 +84,10 @@ void CatalogSet::Load(Catalog &catalog, fixed_managed_mapped_file *&catalog_segm
 		catalog_segment_->get_allocator<ValueType>());
 	string current_entry_name = catalog_set_name_ + "_current_entry";
 	current_entry = catalog_segment_->find_or_construct<idx_t>(current_entry_name.c_str())(0);
+
+	for (auto &entry : *entries) {
+		entry.second->catalog = &catalog;
+	}
 }
 
 /*bool CatalogSet::CreateEntry(ClientContext &context, const string &name, unique_ptr<CatalogEntry> value,

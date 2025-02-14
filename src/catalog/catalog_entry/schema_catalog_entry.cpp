@@ -462,14 +462,14 @@ unique_ptr<CreateSchemaInfo> SchemaCatalogEntry::Deserialize(Deserializer &sourc
 	//return info;
 }
 
-void SchemaCatalogEntry::LoadCatalogSet(fixed_managed_mapped_file *&catalog_segment) {
+void SchemaCatalogEntry::LoadCatalogSet(Catalog* new_catalog, fixed_managed_mapped_file *&catalog_segment) {
+	this->catalog = new_catalog;
 	graphs.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_graphs"));
 	partitions.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_partitions"));
 	propertyschemas.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_propertyschemas"));
 	extents.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_extents"));
 	chunkdefinitions.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_chunkdefinitions"));
 	indexes.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_indexes"));
-	// functions.Load(*catalog, catalog_segment, std::string(this->name.data()) + std::string("_functions"));
 }
 
 // void SchemaCatalogEntry::SetCatalogSegment(fixed_managed_mapped_file *catalog_segment) {

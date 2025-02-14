@@ -43,6 +43,7 @@ public:
 
 private:
 	void Initialize(const char *path);
+	size_t IterateNamedCatalogObjects(vector<vector<string>>& object_names, vector<vector<void*>>& object_ptrs);
 
 private:
 	unique_ptr<StorageManager> storage;

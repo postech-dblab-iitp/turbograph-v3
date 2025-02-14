@@ -2,19 +2,9 @@
 
 #include "catalog/catalog.hpp"
 #include "catalog/catalog_wrapper.hpp"
-//#include "common/virtual_file_system.hpp"
 #include "main/client_context.hpp"
-//#include "parallel/task_scheduler.hpp"
-//#include "storage/storage_manager.hpp"
-//#include "storage/object_cache.hpp"
-//#include "transaction/transaction_manager.hpp"
-//#include "main/connection_manager.hpp"
-//#include "function/compression_function.hpp"
-//#include "main/extension_helper.hpp"
 #include "common/boost.hpp"
 #include "common/logger.hpp"
-
-// #include "catalog/catalog_entry/schema_catalog_entry.hpp" 
 #include "parser/parsed_data/create_schema_info.hpp" // TODO remove this..
 
 #ifndef DUCKDB_NO_THREADS
@@ -122,11 +112,27 @@ void DatabaseInstance::Initialize(const char *path) {
         (string(path) + "/iTurboGraph_Catalog_SHM").c_str(),
         (void *)CATALOG_ADDR);
     
-	int64_t num_objects_in_catalog = 0;
+	vector<vector<string>> object_names;
+	vector<vector<void*>> object_ptrs;
+	auto num_objects_in_catalog = IterateNamedCatalogObjects(object_names, object_ptrs);
+
+	bool create_new_db = (num_objects_in_catalog == 0); // TODO move this to configuration..
+	if (create_new_db) {
+		// Make a new catalog
+		catalog = make_unique<Catalog>(*this, catalog_shm);
+	} else {
+		// Load the existing catalog
+		catalog = make_unique<Catalog>(*this);
+		catalog->LoadCatalog(catalog_shm, object_names, path);
+	}
+	catalog_wrapper = make_unique<CatalogWrapper>(*this);
+	storage->Initialize();
+}
+
+size_t DatabaseInstance::IterateNamedCatalogObjects(vector<vector<string>>& object_names, vector<vector<void*>>& object_ptrs) {
+	size_t num_objects_in_catalog = 0;
 	const_named_it named_beg = catalog_shm->named_begin();
 	const_named_it named_end = catalog_shm->named_end();
-	vector<vector<string>> object_names;
-	vector<vector<void*>> object_ptrs; // for debugging
 	object_names.resize(20);
 	object_ptrs.resize(20);
 	for(; named_beg != named_end; ++named_beg) {
@@ -210,21 +216,10 @@ void DatabaseInstance::Initialize(const char *path) {
 	}
 
     spdlog::trace("Num_objects in catalog = {}", num_objects_in_catalog);
-	
-	bool create_new_db = (num_objects_in_catalog == 0); // TODO move this to configuration..
-	if (create_new_db) {
-		// Make a new catalog
-		catalog = make_unique<Catalog>(*this, catalog_shm);
-	} else {
-		// Load the existing catalog
-		catalog = make_unique<Catalog>(*this);
-		catalog->LoadCatalog(catalog_shm, object_names, path);
-	}
-	catalog_wrapper = make_unique<CatalogWrapper>(*this);
 
-	// initialize the database
-	storage->Initialize();
+	return num_objects_in_catalog;
 }
+
 /*
 DuckDB::DuckDB(const char *path, DBConfig *new_config) : instance(make_shared<DatabaseInstance>()) {
 	instance->Initialize(path, new_config);

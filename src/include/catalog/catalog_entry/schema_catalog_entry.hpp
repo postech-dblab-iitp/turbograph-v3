@@ -115,7 +115,7 @@ public:
 	virtual void Serialize(Serializer &serializer);
 	//! Deserializes to a CreateSchemaInfo
 	static unique_ptr<CreateSchemaInfo> Deserialize(Deserializer &source);
-	void LoadCatalogSet(fixed_managed_mapped_file *&catalog_segment);
+	void LoadCatalogSet(Catalog* new_catalog, fixed_managed_mapped_file *&catalog_segment);
 	// void SetCatalogSegment(fixed_managed_mapped_file *catalog_segment);
 
 	string ToSQL() override;

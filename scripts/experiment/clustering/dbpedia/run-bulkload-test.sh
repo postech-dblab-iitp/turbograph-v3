@@ -55,7 +55,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
             sleep 15
 
             log_file="${log_dir}/dbpedia_${cluster_algo}_${cost_model}_${layering_order}.txt"
-            /turbograph-v3/build/tools/bulkload \
+            /turbograph-v3/build-release/tools/bulkload \
                 --log-level debug \
                 --output_dir ${target_dir} \
                 --nodes NODE ${source_dir}/nodes2.json \

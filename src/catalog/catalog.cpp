@@ -80,7 +80,7 @@ void Catalog::LoadCatalog(fixed_managed_mapped_file *&catalog_segment_, vector<v
 	}
 
 	// Load CatalogSet
-	entry->LoadCatalogSet(catalog_segment_);
+	entry->LoadCatalogSet(this, catalog_segment_);
 
 	// initialize default functions
 	BuiltinFunctions builtin(*client.get(), *this, true);

@@ -542,8 +542,8 @@ void PopulateLidToPidMap(BulkloadContext &bulkload_ctx, std::string &label_name,
 	
 	while (s62_fetch_next(resultset_wrapper) != S62_END_OF_RESULT) {
 		uint64_t pid = s62_get_id(resultset_wrapper, 0);
-		int64_t id1 = s62_get_int64(resultset_wrapper, 1);
-		int64_t id2 = (num_id_columns == 2) ? s62_get_int64(resultset_wrapper, 2) : 0;
+		uint64_t id1 = s62_get_uint64(resultset_wrapper, 1);
+		uint64_t id2 = (num_id_columns == 2) ? s62_get_uint64(resultset_wrapper, 2) : 0;
 		lid_pid_map.emplace(LidPair(id1, id2), pid);
 	}
 }
