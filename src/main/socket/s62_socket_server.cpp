@@ -169,6 +169,9 @@ json S62SocketServer::handleQuery(const std::string& query) {
                 case S62_TYPE_DECIMAL:
                     row.push_back(std::string(s62_decimal_to_string(s62_get_decimal(result_set_wrp, i)).data));
                     break;
+                case S62_TYPE_ID:
+                    row.push_back(s62_get_id(result_set_wrp, i));
+                    break;
                 default:
                     row.push_back(nullptr);
                     break;
