@@ -73,8 +73,8 @@ for scale_factor in "${scale_factors[@]}"; do
         --relationships_backward IS_PART_OF ${data_dir}/static/Place_isPartOf_Place.csv.backward \
         --relationships IS_SUBCLASS_OF ${data_dir}/static/TagClass_isSubclassOf_TagClass.csv \
         --relationships_backward IS_SUBCLASS_OF ${data_dir}/static/TagClass_isSubclassOf_TagClass.csv.backward \
-        # --relationships HAS_TYPE ${data_dir}/static/Tag_hasType_TagClass.csv \
-        # --relationships_backward HAS_TYPE ${data_dir}/static/Tag_hasType_TagClass.csv.backward
+        --relationships HAS_TYPE ${data_dir}/static/Tag_hasType_TagClass.csv \
+        --relationships_backward HAS_TYPE ${data_dir}/static/Tag_hasType_TagClass.csv.backward
 
     pkill -f store
     pkill -f catalog_server

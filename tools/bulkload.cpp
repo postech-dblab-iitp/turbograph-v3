@@ -47,6 +47,7 @@ struct InputOptions {
 	vector<LabeledFile> edge_files_backward;
     std::string output_dir;
 	bool incremental = false;
+	bool skip_histogram = false;
     bool load_edge = false;
     bool load_backward_edge = false;
 };
@@ -63,6 +64,7 @@ struct BulkloadContext {
     vector<
         std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>>
         lid_pair_to_epid_map;  // For Backward AdjLis
+	std::vector<std::string> skipped_labels;
 
     BulkloadContext(InputOptions input_options, std::shared_ptr<ClientContext> client, 
 					Catalog &catalog, CatalogWrapper &catalog_wrapper,
@@ -88,6 +90,10 @@ struct BulkloadContext {
 /**
  * UTIL FUNCTIONS
  */
+
+inline bool isSkippedLabel(BulkloadContext& bulkload_ctx, string &label) {
+	return std::find(bulkload_ctx.skipped_labels.begin(), bulkload_ctx.skipped_labels.end(), label) != bulkload_ctx.skipped_labels.end();
+}
 
 inline bool isJSONFile(const std::string &file_path_str) {
     boost::filesystem::path file_path(file_path_str);
@@ -199,6 +205,10 @@ void CreateVertexCatalogInfos(BulkloadContext& bulkload_ctx, std::string &vertex
 
 	property_schema_cat->SetSchema(*(bulkload_ctx.client.get()), key_names, types, property_key_ids);
 	property_schema_cat->SetPhysicalIDIndex(index_cat->GetOid());
+}
+
+bool IsEdgeCatalogInfoExist(BulkloadContext& bulkload_ctx, std::string &edge_type) {
+	return bulkload_ctx.catalog.GetEntry(*(bulkload_ctx.client.get()), CatalogType::PARTITION_ENTRY, DEFAULT_SCHEMA, DEFAULT_EDGE_PARTITION_PREFIX + edge_type) != nullptr;
 }
 
 void CreateEdgeCatalogInfos(BulkloadContext& bulkload_ctx, std::string &edge_type, vector<string> &key_names, vector<LogicalType> &types, string &src_vertex_label,
@@ -817,6 +827,12 @@ void ReadFwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files
 		string &edge_file_path = std::get<1>(edge_file);
 
 		spdlog::info("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] Start to load {} with edge type {}", edge_file_path, edge_type);
+
+		if(IsEdgeCatalogInfoExist(bulkload_ctx, edge_type)) {
+			spdlog::info("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] Edge Catalog Info for {} is already exists", edge_type);
+			bulkload_ctx.skipped_labels.push_back(edge_type);
+			continue;
+		}
 		
 		GraphSIMDCSVFileParser reader;
 		string src_vertex_label;
@@ -878,6 +894,7 @@ void ReadFwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files
 		spdlog::debug("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] CreateEdgeCatalogInfos");
 		PartitionCatalogEntry *partition_cat;
 		PropertySchemaCatalogEntry *property_schema_cat;
+
 		CreateEdgeCatalogInfos(bulkload_ctx, edge_type, key_names, types, src_vertex_label, dst_vertex_label,
 			partition_cat, property_schema_cat, LogicalType::FORWARD_ADJLIST, src_column_idx.size());
 			
@@ -1046,6 +1063,11 @@ void ReadBwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files
 		string &edge_file_path = std::get<1>(edge_file);
 
 		spdlog::info("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] Start to load {} with edge type {}", edge_file_path, edge_type);
+
+		if(isSkippedLabel(bulkload_ctx, edge_type)) {
+			spdlog::info("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] Edge Catalog Info for {} is already exists", edge_type);
+			continue;
+		}
 
 		string src_vertex_label;
 		string dst_vertex_label;
@@ -1250,6 +1272,7 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
         ("relationships_backward", po::value<std::vector<std::string>>()->multitoken()->composing(), "Backward relationships input: <label> <file>")
         ("output_dir", po::value<std::string>(), "Output directory")
 		("incremental", po::value<bool>()->default_value(false), "Incremental load")
+		("skip-histogram", po::value<bool>()->default_value(false), "Skip Histogram Generation")
         ("log-level", po::value<std::string>(), "Set logging level (trace/debug/info/warn/error)");
 
     po::variables_map vm;
@@ -1293,6 +1316,10 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
 		if (options.incremental && options.vertex_files.size() > 0) {
 			throw InvalidInputException("Incremental load only supports edge label");
 		}
+	}
+
+	if (vm.count("skip-histogram")) {
+		options.skip_histogram = vm["skip-histogram"].as<bool>();
 	}
 
     if (vm.count("log-level")) {
@@ -1373,10 +1400,14 @@ int main(int argc, char** argv) {
 	
 	spdlog::info("[Main] Post Processing");
 	
-	SUBTIMER_START(main, "CreateHistogram");
-	HistogramGenerator hist_gen;
-	hist_gen.CreateHistogram(bulkload_context.client);
-	SUBTIMER_STOP(main, "CreateHistogram");
+	if (bulkload_context.input_options.skip_histogram) {
+		spdlog::info("[Main] Skip Histogram Generation");
+	} else {
+		SUBTIMER_START(main, "CreateHistogram");
+		HistogramGenerator hist_gen;
+		hist_gen.CreateHistogram(bulkload_context.client);
+		SUBTIMER_STOP(main, "CreateHistogram");
+	}
 
 	SUBTIMER_START(main, "FlushMetaInfo");
 	ChunkCacheManager::ccm->FlushMetaInfo(bulkload_context.input_options.output_dir.c_str());

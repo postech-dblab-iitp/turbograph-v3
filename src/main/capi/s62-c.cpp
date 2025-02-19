@@ -109,6 +109,7 @@ s62_state s62_connect_with_client_context(void *client_context) {
     client = *reinterpret_cast<std::shared_ptr<ClientContext>*>(client_context); 
 	initialize_planner();
 	connected_via_client_context = true;
+	return S62_SUCCESS;
 }
 
 void s62_disconnect() {

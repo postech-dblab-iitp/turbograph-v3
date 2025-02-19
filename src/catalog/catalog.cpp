@@ -488,7 +488,7 @@ CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type
 		auto entry = schema->GetCatalogSet(type).GetEntry(context, name);
 
 		if (!entry && !if_exists) {
-			D_ASSERT(false);
+			return {schema, nullptr};
 			//throw CreateMissingEntryException(context, name, type, {schema}, error_context);
 		}
 
