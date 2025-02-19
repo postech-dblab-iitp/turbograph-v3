@@ -35,16 +35,15 @@ RUN apt-get install -y \
     libaio-dev \
     numactl \
     libnuma-dev \
-    vim \
     dstat \
     intel-basekit \
-    gdb \
     sudo \
     libgoogle-perftools-dev \
     libreadline-dev \
     libhwloc-dev \
-    python3-pip && \
-    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 50 --slave /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION}
+    python3-pip
+
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 50 --slave /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION}
 
 # Install CMake
 RUN curl -OL https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz && \

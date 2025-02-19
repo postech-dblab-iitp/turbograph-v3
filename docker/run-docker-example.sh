@@ -21,7 +21,6 @@ SOURCE_DATA_DIR=$2
 
 docker run -itd --cap-add SYS_ADMIN \
 	--cap-add SYS_PTRACE \
-	--ulimit nofile=2000000000:2000000000	\
 	-v ${PROJECT_DIR}:/turbograph-v3 \
 	-v ${DATA_DIR}:/data \
 	-v ${SOURCE_DATA_DIR}:/source-data \
@@ -34,5 +33,6 @@ docker run -itd --cap-add SYS_ADMIN \
 
 # Run Velox 
 echo "Running Velox Dependencies Installation"
-docker exec -it ${CONTAINER_NAME} "cd /turbograph-v3/third_party/velox && bash scripts/setup-ubuntu.sh"
+sleep 5
+docker exec -it ${CONTAINER_NAME} bash -c "(cd /turbograph-v3/third_party/velox && bash scripts/setup-ubuntu.sh)"
 echo "Done!"
