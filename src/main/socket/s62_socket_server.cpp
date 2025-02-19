@@ -49,7 +49,7 @@ void S62SocketServer::start() {
             perror("[start] Socket accept failed");
             continue;
         }
-        std::thread(&S62SocketServer::handleClient, this, new_socket).detach();
+        handleClient(new_socket);
     }
 }
 
