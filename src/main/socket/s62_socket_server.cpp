@@ -127,12 +127,14 @@ json S62SocketServer::handleQuery(const std::string& query) {
     response["error"] = nullptr;
 
     std::vector<std::string> columns;
+    std::vector<s62_type> types;
     s62_num_properties num_columns = result_set_wrp->result_set->num_properties;
     s62_result* result = result_set_wrp->result_set->result;
     s62_property* property = prep_stmt->property;
     
     while (property) {
         columns.push_back(property->property_name);
+        types.push_back(property->property_type);
         property = property->next;
     }
     response["columns"] = columns;
@@ -141,7 +143,7 @@ json S62SocketServer::handleQuery(const std::string& query) {
     while (s62_fetch_next(result_set_wrp) != S62_END_OF_RESULT) {
         json row;
         for (idx_t i = 0; i < num_columns; ++i) {
-            switch (result_set_wrp->result_set->result[i].data_type) {
+            switch (types[i]) {
                 case S62_TYPE_BOOLEAN:
                     row.push_back(s62_get_bool(result_set_wrp, i));
                     break;
