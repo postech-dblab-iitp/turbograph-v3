@@ -119,25 +119,26 @@ json S62SocketServer::handleQuery(const std::string& query) {
         return response;
     }
 
-    s62_resultset_wrapper* result_set_wrp;
-    s62_num_rows rows = s62_execute(prep_stmt, &result_set_wrp);
-
     json response;
     response["status"] = "success";
     response["error"] = nullptr;
 
     std::vector<std::string> columns;
     std::vector<s62_type> types;
-    s62_num_properties num_columns = result_set_wrp->result_set->num_properties;
-    s62_result* result = result_set_wrp->result_set->result;
     s62_property* property = prep_stmt->property;
-    
     while (property) {
         columns.push_back(property->property_name);
         types.push_back(property->property_type);
         property = property->next;
     }
+    spdlog::info("[handleQuery] Columns: {}", join_vector(columns));
     response["columns"] = columns;
+
+    s62_resultset_wrapper* result_set_wrp;
+    s62_num_rows rows = s62_execute(prep_stmt, &result_set_wrp);
+
+    s62_num_properties num_columns = result_set_wrp->result_set->num_properties;
+    s62_result* result = result_set_wrp->result_set->result;
 
     json data;
     while (s62_fetch_next(result_set_wrp) != S62_END_OF_RESULT) {
