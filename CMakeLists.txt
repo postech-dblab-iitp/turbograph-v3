@@ -80,7 +80,7 @@ set(S62_EXPORT_SET "S62Exports")
 
 # Options
 option(DISABLE_UNITY "Disable unity build." FALSE)
-option(ENABLE_SANITIZER "Enable address sanitizer." FALSE)
+option(ENABLE_SANITIZER "Enable address sanitizer." TRUE)
 option(ENABLE_UBSAN "Enable undefined behavior sanitizer." FALSE)
 option(EXPLICIT_EXCEPTIONS "Explicitly enable C++ exceptions." FALSE)
 option(EXPORT_DYNAMIC_SYMBOLS "Export dynamic symbols." FALSE)
@@ -95,9 +95,9 @@ option(BUILD_STATIC "Build the S62GDB Static Library" FALSE)
 
 # Settings
 if(${ENABLE_SANITIZER} AND ${ENABLE_UBSAN})
-  set(CXX_EXTRA_DEBUG "${CXX_EXTRA_DEBUG} -fsanitize=address,undefined -fno-sanitize-recover=all")
+  set(CXX_EXTRA_DEBUG "${CXX_EXTRA_DEBUG} -fsanitize=address,undefined -fno-sanitize=vptr -fno-sanitize-recover=all")
 elseif(${ENABLE_SANITIZER})
-  set(CXX_EXTRA_DEBUG "${CXX_EXTRA_DEBUG} -fsanitize=address")
+  set(CXX_EXTRA_DEBUG "${CXX_EXTRA_DEBUG} -fsanitize=address -fno-sanitize=vptr")
 elseif(${ENABLE_UBSAN})
   set(CXX_EXTRA_DEBUG "${CXX_EXTRA_DEBUG} -fsanitize=undefined -fno-sanitize-recover=all")
 endif()

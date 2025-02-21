@@ -74,7 +74,6 @@ void Planner::orcaInit()
 
 void Planner::reset()
 {
-
     // reset planner context
     // note that we reuse orca memory pool
     bound_statement = nullptr;
@@ -82,6 +81,7 @@ void Planner::reset()
     logical_plan_output_col_names.clear();
     logical_plan_output_colrefs.clear();
     physical_plan_output_colrefs.clear();
+    property_col_to_output_col_names_mapping.clear();
 }
 
 CQueryContext *Planner::_orcaGenQueryCtxt(CMemoryPool *mp,
@@ -148,7 +148,6 @@ CQueryContext *Planner::_orcaGenQueryCtxt(CMemoryPool *mp,
 
 void Planner::execute(kuzu::binder::BoundStatement *bound_statement)
 {
-
     // reset previous context
     this->reset();
 
