@@ -15,7 +15,7 @@ for scale_factor in "${scale_factors[@]}"; do
     mkdir -p ${target_dir}
     
     ${BUILD_DIR}/store 365GB &
-    ${BUILD_DIR}/catalog_server ${target_dir} &
+    # ${BUILD_DIR}/catalog_server ${target_dir} &
     sleep 10
 
     ${BUILD_DIR}/bulkload \
@@ -77,6 +77,6 @@ for scale_factor in "${scale_factors[@]}"; do
         --relationships_backward HAS_TYPE ${data_dir}/static/Tag_hasType_TagClass.csv.backward
 
     pkill -f store
-    pkill -f catalog_server
+    # pkill -f catalog_server
     sleep 5
 done

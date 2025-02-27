@@ -635,7 +635,6 @@ CatalogEntry *CatalogSet::GetEntry(ClientContext &context, const string &name) {
 	// no entry found with this name, check for defaults
 	if (!defaults || defaults->created_all_entries) {
 		// no defaults either: return null
-		icecream::ic.enable(); IC(); icecream::ic.disable();
 		return nullptr;
 	}
 
