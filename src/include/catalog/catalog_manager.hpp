@@ -10,20 +10,15 @@
 
 namespace duckdb {
 
-class CatalogServer {
+class CatalogManager {
 public:
-  CatalogServer(const std::string &unix_socket, std::string shm_directory);
-  void Run();
-  void Exit();
+  static void CreateOrOpenCatalog(std::string shm_directory);
+  static void CloseCatalog();
 
 private:
-  void monitor();
-  void listener();
-  bool recreate();
 
-  std::string unix_socket_;
-  std::string shm_directory_;
-  fixed_managed_mapped_file *catalog_segment;
+  static std::string shm_directory_;
+  static fixed_managed_mapped_file *catalog_segment;
 };
 
 } // namespace duckdb

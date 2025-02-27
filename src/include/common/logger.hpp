@@ -46,6 +46,10 @@ inline void setLogLevel(LogLevel level) {
 }
 
 inline void SetupLogger() {
+    if (spdlog::default_logger()) {
+        return;  // Logger already set, do nothing
+    }
+
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     console_sink->set_pattern("[%Y-%m-%d %H:%M:%S] [%^%l%$] %v");
 

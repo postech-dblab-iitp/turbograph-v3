@@ -14,7 +14,7 @@
 #include "storage/cache/chunk_cache_manager.h"
 #include "storage/statistics/histogram_generator.hpp"
 #include "catalog/catalog.hpp"
-#include "catalog/catalog_server.hpp"
+#include "catalog/catalog_manager.hpp"
 #include "catalog/catalog_entry/list.hpp"
 #include "catalog/catalog_wrapper.hpp"
 #include "parser/parsed_data/create_schema_info.hpp"
@@ -90,6 +90,25 @@ struct BulkloadContext {
 /**
  * UTIL FUNCTIONS
  */
+
+void cntl_c_signal_handler(int sig_number) {
+	spdlog::info("Capture Ctrl+C");
+	if (ChunkCacheManager::ccm) delete ChunkCacheManager::ccm;
+    exit(0);
+}
+
+void RemoveAllFilesInDirectory(const std::string& directory) {
+    try {
+        if (fs::exists(directory) && fs::is_directory(directory)) {
+            for (const auto& entry : fs::directory_iterator(directory)) {
+                fs::remove_all(entry.path());  // Remove file or directory
+            }
+            spdlog::info("[Main] Cleaned output directory: {}", directory);
+        }
+    } catch (const std::exception& e) {
+        spdlog::error("[Main] Failed to clean output directory: {}. Error: {}", directory, e.what());
+    }
+}
 
 inline bool isSkippedLabel(BulkloadContext& bulkload_ctx, string &label) {
 	return std::find(bulkload_ctx.skipped_labels.begin(), bulkload_ctx.skipped_labels.end(), label) != bulkload_ctx.skipped_labels.end();
@@ -1348,15 +1367,25 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
     }
 }
 
+void RegisterSignalHandler() {
+	if (signal(SIGINT, cntl_c_signal_handler) == SIG_ERR) {
+		spdlog::error("[Main] Cannot register signal handler");
+		exit(-1);
+	}
+}
+
 int main(int argc, char** argv) {
 	SCOPED_TIMER_SIMPLE(main, spdlog::level::info, spdlog::level::debug);
     SetupLogger();
+	RegisterSignalHandler();
 
 	spdlog::info("[Main] Initialization");
 	
 	SUBTIMER_START(main, "Initialization");
 	InputOptions options;
 	ParseConfig(argc, argv, options);
+	if(!options.incremental) RemoveAllFilesInDirectory(options.output_dir);
+	CatalogManager::CreateOrOpenCatalog(options.output_dir);
 	InitializeDiskAio(options.output_dir);
 
 	ChunkCacheManager::ccm = new ChunkCacheManager(options.output_dir.c_str());
@@ -1416,6 +1445,10 @@ int main(int argc, char** argv) {
 	SUBTIMER_START(main, "DeleteChunkCacheManager");
   	delete ChunkCacheManager::ccm;
 	SUBTIMER_STOP(main, "DeleteChunkCacheManager");
+
+	SUBTIMER_START(main, "CloseCatalog");
+	CatalogManager::CloseCatalog();
+	SUBTIMER_STOP(main, "CloseCatalog");
 
 	return 0;
 }

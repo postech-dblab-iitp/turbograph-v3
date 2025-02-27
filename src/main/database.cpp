@@ -107,10 +107,14 @@ void DatabaseInstance::Initialize(const char *path) {
 	storage =
 	    make_unique<StorageManager>(*this, path ? string(path) : string(), false);
 
+	spdlog::trace("StorageManager initialized");
+
     catalog_shm = new fixed_managed_mapped_file(
         boost::interprocess::open_only,
         (string(path) + "/iTurboGraph_Catalog_SHM").c_str(),
-        (void *)CATALOG_ADDR);
+        (void *)CLIENT_CATALOG_ADDR);
+	
+	spdlog::trace("Catalog SHM Created at {}", (string(path) + "/iTurboGraph_Catalog_SHM").c_str());
     
 	vector<vector<string>> object_names;
 	vector<vector<void*>> object_ptrs;
