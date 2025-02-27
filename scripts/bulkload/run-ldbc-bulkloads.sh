@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the possible values for each configuration
-BUILD_DIR="/turbograph-v3/build-release/tools/"
+BUILD_DIR="/turbograph-v3/build/tools/"
 scale_factors=("1")
 source_dir_base="/source-data/ldbc/"
 target_dir_base="/data/ldbc/"
@@ -11,13 +11,6 @@ for scale_factor in "${scale_factors[@]}"; do
     data_dir="${source_dir_base}/sf${scale_factor}"
     target_dir="${target_dir_base}/sf${scale_factor}"
     
-    rm -rf ${target_dir}
-    mkdir -p ${target_dir}
-    
-    ${BUILD_DIR}/store 365GB &
-    # ${BUILD_DIR}/catalog_server ${target_dir} &
-    sleep 10
-
     ${BUILD_DIR}/bulkload \
         --log-level trace \
         --output_dir ${target_dir} \
@@ -75,8 +68,4 @@ for scale_factor in "${scale_factors[@]}"; do
         --relationships_backward IS_SUBCLASS_OF ${data_dir}/static/TagClass_isSubclassOf_TagClass.csv.backward \
         --relationships HAS_TYPE ${data_dir}/static/Tag_hasType_TagClass.csv \
         --relationships_backward HAS_TYPE ${data_dir}/static/Tag_hasType_TagClass.csv.backward
-
-    pkill -f store
-    # pkill -f catalog_server
-    sleep 5
 done

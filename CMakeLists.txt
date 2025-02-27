@@ -80,7 +80,7 @@ set(S62_EXPORT_SET "S62Exports")
 
 # Options
 option(DISABLE_UNITY "Disable unity build." FALSE)
-option(ENABLE_SANITIZER "Enable address sanitizer." TRUE)
+option(ENABLE_SANITIZER "Enable address sanitizer." FALSE)
 option(ENABLE_UBSAN "Enable undefined behavior sanitizer." FALSE)
 option(EXPLICIT_EXCEPTIONS "Explicitly enable C++ exceptions." FALSE)
 option(EXPORT_DYNAMIC_SYMBOLS "Export dynamic symbols." FALSE)
@@ -102,7 +102,7 @@ elseif(${ENABLE_UBSAN})
   set(CXX_EXTRA_DEBUG "${CXX_EXTRA_DEBUG} -fsanitize=undefined -fno-sanitize-recover=all")
 endif()
 
-if(${ENABLE_SANITIZER} OR ${ENABLE_UBSAN})
+if(((${ENABLE_SANITIZER} OR ${ENABLE_UBSAN}) AND (CMAKE_BUILD_TYPE STREQUAL "Debug")))
   add_definitions(-DENABLE_SANITIZER_FLAG)
 endif()
 

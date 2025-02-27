@@ -18,7 +18,7 @@ public:
   static ChunkCacheManager *ccm;
 
 public:
-  ChunkCacheManager(const char *path);
+  ChunkCacheManager(const char *path, bool standalone=false);
   ~ChunkCacheManager();
 
   void InitializeFileHandlersByIteratingDirectories(const char *path);

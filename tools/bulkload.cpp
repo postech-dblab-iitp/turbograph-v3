@@ -97,6 +97,24 @@ void cntl_c_signal_handler(int sig_number) {
     exit(0);
 }
 
+bool FolderExists(const std::string& folder_path) {
+    return fs::exists(folder_path) && fs::is_directory(folder_path);
+}
+
+bool CreateDirectoryIfNotExists(const std::string& folder_path) {
+    try {
+        if (!FolderExists(folder_path)) {
+			spdlog::info("[CreateDirectory] Creating directory: {}", folder_path);
+            return fs::create_directories(folder_path);  
+        }
+		spdlog::info("[CreateDirectory] Directory already exists: {}", folder_path);
+        return true; 
+    } catch (const std::exception& e) {
+        std::cerr << "Error creating directory: " << e.what() << std::endl;
+        return false;
+    }
+}
+
 void RemoveAllFilesInDirectory(const std::string& directory) {
     try {
         if (fs::exists(directory) && fs::is_directory(directory)) {
@@ -1384,11 +1402,12 @@ int main(int argc, char** argv) {
 	SUBTIMER_START(main, "Initialization");
 	InputOptions options;
 	ParseConfig(argc, argv, options);
+	CreateDirectoryIfNotExists(options.output_dir);
 	if(!options.incremental) RemoveAllFilesInDirectory(options.output_dir);
 	CatalogManager::CreateOrOpenCatalog(options.output_dir);
 	InitializeDiskAio(options.output_dir);
 
-	ChunkCacheManager::ccm = new ChunkCacheManager(options.output_dir.c_str());
+	ChunkCacheManager::ccm = new ChunkCacheManager(options.output_dir.c_str(), true /* standalone */);
 	std::unique_ptr<DuckDB> database = make_unique<DuckDB>(options.output_dir.c_str());
 	CreateGraphInfo graph_info(DEFAULT_SCHEMA, DEFAULT_GRAPH);
 	BulkloadContext bulkload_context {
