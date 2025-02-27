@@ -20,6 +20,8 @@
 #include <unistd.h>
 #include <vector>
 
+#include "common/logger.hpp"
+#include "storage/cache/common.h"
 #include "storage/cache/client.h"
 #include "storage/cache/disk_aio/Turbo_bin_aio_handler.hpp"
 
@@ -81,6 +83,18 @@ int recv_fd(int unix_sock) {
 }
 
 LightningClient::LightningClient(const std::string &store_socket,
+                                 const std::string &password,
+                                 bool standalone) {
+  spdlog::info("[LightningClient] Initializing LightningClient with standloneness: {}", standalone);
+  
+  if (!standalone) {
+    InitializeWithDemon(store_socket, password);
+  } else {
+    InitializeStandalone();
+  }
+}
+
+void LightningClient::InitializeWithDemon(const std::string &store_socket,
                                  const std::string &password) {
   // setup unix domain socket with storage
   store_conn_ = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -191,7 +205,96 @@ LightningClient::LightningClient(const std::string &store_socket,
   init_mpk();
 #endif
 
-  // std::cout << "header_ = " << (unsigned long)base_ << std::endl;
+  spdlog::info("[InitializeWithDemon] LightningClient initialized");
+}
+
+void LightningClient::InitializeStandalone() {
+  // Demon Intialization
+  spdlog::info("[InitializeStandalone] Initializing LightningClient standalone");
+  size_t size = DEFAULT_STORE_SIZE;
+  int store_fd_ = shm_open(STORE_NAME, O_CREAT | O_RDWR, 0666);
+  int status = ftruncate64(store_fd_, size);
+  if (status < 0) {
+    perror("cannot ftruncate");
+    exit(-1);
+  }
+  LightningStoreHeader* store_header_ =
+      (LightningStoreHeader *)mmap((void *)LIGHTNING_MMAP_ADDR, size, PROT_WRITE,
+                                   MAP_SHARED | MAP_FIXED, store_fd_, 0);
+  if (store_header_ == (LightningStoreHeader *)-1) {
+    perror("mmap failed");
+    exit(-1);
+  }
+
+  shm_unlink(STORE_NAME);
+
+  spdlog::debug("[InitializeStandalone] Store Header created at {}", (void *)store_header_);
+
+  store_header_ = new (store_header_) LightningStoreHeader;
+
+  for (int i = 0; i < MAX_NUM_OBJECTS - 1; i++) {
+    store_header_->memory_entries[i].free_list_next = i + 1;
+  }
+  store_header_->memory_entries[MAX_NUM_OBJECTS - 1].free_list_next = -1;
+
+  for (int i = 0; i < MAX_NUM_OBJECTS - 1; i++) {
+    store_header_->object_entries[i].free_list_next = i + 1;
+  }
+  store_header_->object_entries[MAX_NUM_OBJECTS - 1].free_list_next = -1;
+  MemAllocator *store_allocator_ = new MemAllocator((LightningStoreHeader *)store_header_, nullptr);
+
+  int64_t num_mpk_pages = sizeof(LightningStoreHeader) / 4096 + 1;
+
+  int64_t secure_memory_size = num_mpk_pages * 4096;
+
+  store_allocator_->Init(secure_memory_size, size - secure_memory_size);
+
+  for (int i = 0; i < HASHMAP_SIZE; i++) {
+    store_header_->hashmap.hash_entries[i].object_list = -1;
+  }
+
+  spdlog::trace("[InitializeStandalone] Mock Demon initialized");
+
+  // Client Initalization
+  store_conn_ = -1;
+  size_ = size;
+  base_ = (uint8_t *)LIGHTNING_MMAP_ADDR;
+
+  header_ = (LightningStoreHeader *)mmap((void *)base_, size_, PROT_WRITE,
+                                         MAP_SHARED | MAP_FIXED, store_fd_, 0);
+
+  if (header_ != (LightningStoreHeader *)base_) {
+    perror("mmap failed");
+    exit(-1);
+  }
+
+  pid_ = getpid();
+  auto pid_str = "object-log-" + std::to_string(pid_);
+  size_t object_log_size = sizeof(LogObjectEntry) * OBJECT_LOG_SIZE;
+  object_log_fd_ = shm_open(pid_str.c_str(), O_CREAT | O_RDWR, 0666);
+
+  status = ftruncate(object_log_fd_, object_log_size);
+  if (status < 0) {
+    perror("cannot ftruncate");
+    exit(-1);
+  }
+
+  uint8_t *object_log_base = base_ + size_;
+
+  object_log_base_ =
+      (uint8_t *)mmap(object_log_base, object_log_size, PROT_WRITE,
+                      MAP_SHARED | MAP_FIXED, object_log_fd_, 0);
+
+  if (object_log_base_ != object_log_base) {
+    perror("mmap failed");
+    exit(-1);
+  }
+
+  disk_ = new UndoLogDisk(1024 * 1024 * 1024, base_, size_ + object_log_size);
+  object_log_ = new ObjectLog(object_log_base_, size_, disk_);
+  allocator_ = new MemAllocator(header_, disk_);
+
+  spdlog::info("[InitializeStandalone] LightningClient initialized");
 }
 
 LightningClient::~LightningClient() {

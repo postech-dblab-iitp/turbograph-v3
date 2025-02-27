@@ -18,11 +18,11 @@
 #include <unordered_set>
 #include <vector>
 
+#include "storage/cache/common.h"
 #include "storage/cache/log_disk.h"
 #include "storage/cache/object_log.h"
 #include "storage/cache/store.h"
 
-const char *name = "lightning";
 static volatile sig_atomic_t got_signal = 0;
 
 void signal_handler(int sig_number) {
@@ -75,7 +75,7 @@ int send_fd(int unix_sock, int fd) {
 
 LightningStore::LightningStore(const std::string &unix_socket, size_t size)
     : unix_socket_(unix_socket), size_(size) {
-  store_fd_ = shm_open(name, O_CREAT | O_RDWR, 0666);
+  store_fd_ = shm_open(STORE_NAME, O_CREAT | O_RDWR, 0666);
   int status = ftruncate64(store_fd_, size);
   if (status < 0) {
     perror("cannot ftruncate");
@@ -89,7 +89,7 @@ LightningStore::LightningStore(const std::string &unix_socket, size_t size)
     exit(-1);
   }
 
-  shm_unlink(name);
+  shm_unlink(STORE_NAME);
 
   std::cout << "store_header_ = " << (unsigned long)store_header_ << std::endl;
 

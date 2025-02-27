@@ -31,8 +31,6 @@ long parseSize(const std::string& sizeStr) {
 }
 
 int main(int argc, char* argv[]) {
-    const long DEFAULT_SIZE = 100L * 1024L * 1024L * 1024L; // 100GB
-
     long size;
     if (argc == 2) {
         std::string sizeStr(argv[1]);
@@ -43,7 +41,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     } else {
-        size = DEFAULT_SIZE;
+        size = DEFAULT_STORE_SIZE;
     }
 
     std::shared_ptr<LightningStore> store = std::make_shared<LightningStore>("/tmp/lightning", size);

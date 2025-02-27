@@ -18,9 +18,9 @@ namespace duckdb {
 
 ChunkCacheManager* ChunkCacheManager::ccm;
 
-ChunkCacheManager::ChunkCacheManager(const char *path) {
+ChunkCacheManager::ChunkCacheManager(const char *path, bool standalone) {
   spdlog::debug("[ChunkCacheManager] Construct ChunkCacheManager");
-  client = new LightningClient("/tmp/lightning", "password");
+  client = new LightningClient("/tmp/lightning", "password", standalone);
   if (std::filesystem::exists(std::string(path) + "/" + file_meta_info_name)) {
     InitializeFileHandlersUsingMetaInfo(path);
   } else {
@@ -173,6 +173,7 @@ void ChunkCacheManager::FlushMetaInfo(const char *path)
 }
 
 ReturnStatus ChunkCacheManager::PinSegment(ChunkID cid, std::string file_path, uint8_t** ptr, size_t* size, bool read_data_async, bool is_initial_loading) {
+  spdlog::trace("[PinSegment] Start to pin segment: {}", cid);
   // Check validity of given ChunkID
   if (CidValidityCheck(cid))
     exit(-1);
@@ -259,6 +260,7 @@ ReturnStatus ChunkCacheManager::SetDirty(ChunkID cid) {
 }
 
 ReturnStatus ChunkCacheManager::CreateSegment(ChunkID cid, std::string file_path, size_t alloc_size, bool can_destroy) {
+  spdlog::trace("[CreateSegment] Start to create segment: {}", cid);
   // Check validity of given alloc_size
   // It fails if 1) the storage runs out of space, 2) the alloc_size exceeds the limit size (if it exists)
   if (AllocSizeValidityCheck(alloc_size))

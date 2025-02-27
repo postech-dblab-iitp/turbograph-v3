@@ -12,7 +12,10 @@ class Turbo_bin_aio_handler;
 
 class LightningClient {
 public:
-  LightningClient(const std::string &store_socket, const std::string &password);
+  LightningClient(const std::string &store_socket, const std::string &password, bool standalone=false);
+
+  void InitializeWithDemon(const std::string &store_socket, const std::string &password);
+  void InitializeStandalone();
 
   ~LightningClient();
 
