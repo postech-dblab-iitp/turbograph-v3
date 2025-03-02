@@ -317,6 +317,11 @@ private:
 	unique_ptr<duckdb::Expression> lExprScalarAllShortestPathExprDuckDB(kuzu::binder::Expression *expression);
 
 	/* Helper functions for generating orca logical plans */
+    LogicalPlan *lPlanNodeOrRelExpr(
+        NodeOrRelExpression *node_rel_expr, const expression_vector &prop_exprs,
+        std::vector<uint64_t> &table_oids, std::vector<size_t> &num_tables_per_part);
+	CExpression *lGetCoalescedGet(NodeOrRelExpression *node_rel_expr, 
+		const expression_vector &prop_exprs, std::vector<uint64_t> &table_oids, uint64_t &repr_oid);
     LogicalPlan *lPlanNodeOrRelExprWithoutDSI(
         NodeOrRelExpression *node_expr, const expression_vector &prop_exprs,
         std::vector<uint64_t> &pruned_table_oids, bool is_node);
@@ -339,6 +344,15 @@ private:
                                    bool is_node, vector<int> &used_col_idx,
                                    CColRefArray *prop_colrefs,
                                    LogicalSchema &schema);
+	void lGetUsedPropertyIDs(
+		NodeOrRelExpression *node_rel_expr, const expression_vector &prop_exprs,
+		 std::vector<uint64_t>& prop_key_ids, bool exclude_pid = true
+	);
+
+	void lUpdatePropExprsForNewTable(
+		NodeOrRelExpression *node_rel_expr, const expression_vector &prop_exprs,
+		uint64_t oid, std::vector<uint64_t>& property_location
+	);
 
     CExpression *lExprLogicalGet(
         uint64_t obj_id, string rel_name, bool is_instance = false,

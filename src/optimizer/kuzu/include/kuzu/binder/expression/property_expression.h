@@ -49,7 +49,7 @@ class PropertyExpression : public Expression {
         return variableRawName;
     }  // returns rawname of node
 
-    inline bool hasPropertyID(table_id_t tableID) const
+    inline bool isBelongToTable(table_id_t tableID) const
     {
         return propertyIDPerTable.find(tableID) != propertyIDPerTable.end();
     }

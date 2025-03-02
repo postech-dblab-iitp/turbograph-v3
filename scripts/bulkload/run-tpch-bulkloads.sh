@@ -11,13 +11,6 @@ for scale_factor in "${scale_factors[@]}"; do
     data_dir="${source_dir_base}/sf${scale_factor}"
     target_dir="${target_dir_base}/sf${scale_factor}"
     
-    rm -rf ${target_dir}
-    mkdir -p ${target_dir}
-    
-    ${BUILD_DIR}/store 365GB &
-    ${BUILD_DIR}/catalog_server ${target_dir} &
-    sleep 10
-
     ${BUILD_DIR}/bulkload \
         --output_dir ${target_dir} \
         --nodes LINEITEM ${data_dir}/lineitem.tbl \
@@ -44,7 +37,4 @@ for scale_factor in "${scale_factors[@]}"; do
         --relationships PARTSUPP ${data_dir}/partsupp.tbl \
         --relationships_backward PARTSUPP ${data_dir}/partsupp.tbl.backward
 
-    pkill -f store
-    pkill -f catalog_server
-    sleep 5
 done
