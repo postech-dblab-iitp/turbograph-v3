@@ -184,9 +184,6 @@ class Binder {
     shared_ptr<NodeExpression> createQueryNode(const NodePattern &nodePattern);
     void bindNodePartitionIDs(const vector<string> &tableNames,
                               vector<uint64_t> &partitionIDs);
-    void bindNodeTableIDsFromPartitions(vector<uint64_t> &partitionIDs,
-                                        vector<uint64_t> &tableIDs,
-                                        uint64_t &univTableID);
     void bindNodeTableIDs(const vector<string> &tableNames,
                           vector<uint64_t> &partitionIDs,
                           vector<uint64_t> &tableIDs);
@@ -194,9 +191,6 @@ class Binder {
                              const shared_ptr<NodeExpression> &srcNode,
                              const shared_ptr<NodeExpression> &dstNode,
                              vector<uint64_t> &partitionIDs);
-    void bindRelTableIDsFromPartitions(vector<uint64_t> &partitionIDs,
-                                       vector<uint64_t> &tableIDs,
-                                       uint64_t &univTableID);
     void bindRelTableIDs(const vector<string> &tableNames,
                          const shared_ptr<NodeExpression> &srcNode,
                          const shared_ptr<NodeExpression> &dstNode,

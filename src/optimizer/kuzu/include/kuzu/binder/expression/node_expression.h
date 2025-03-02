@@ -11,8 +11,8 @@ namespace binder {
 
 class NodeExpression : public NodeOrRelExpression  {
 public:
-    NodeExpression(const string& uniqueName, vector<table_id_t> partitionIDs, vector<table_id_t> tableIDs)
-        : NodeOrRelExpression{DataTypeID::NODE, uniqueName, std::move(partitionIDs), std::move(tableIDs)} {}
+    NodeExpression(const string& uniqueName, vector<table_id_t> partitionIDs)
+        : NodeOrRelExpression{DataTypeID::NODE, uniqueName, std::move(partitionIDs), NodeRelType::NODE} {}
 
     inline void setInternalIDProperty(unique_ptr<Expression> expression) {
         internalIDExpression = std::move(expression);

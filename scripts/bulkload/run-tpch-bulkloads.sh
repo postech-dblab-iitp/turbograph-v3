@@ -2,7 +2,7 @@
 
 # Define the possible values for each configuration
 BUILD_DIR="/turbograph-v3/build-release/tools/"
-scale_factors=("1" "10" "100")
+scale_factors=("1")
 source_dir_base="/source-data/tpch/"
 target_dir_base="/data/tpch/"
 
@@ -11,14 +11,9 @@ for scale_factor in "${scale_factors[@]}"; do
     data_dir="${source_dir_base}/sf${scale_factor}"
     target_dir="${target_dir_base}/sf${scale_factor}"
     
-    rm -rf ${target_dir}
-    mkdir -p ${target_dir}
-    
-    ${BUILD_DIR}/store 365GB &
-    ${BUILD_DIR}/catalog_server ${target_dir} &
-    sleep 10
-
     ${BUILD_DIR}/bulkload \
+        --log-level debug \
+        --standalone \
         --output_dir ${target_dir} \
         --nodes LINEITEM ${data_dir}/lineitem.tbl \
         --nodes ORDERS ${data_dir}/orders.tbl \
@@ -44,7 +39,4 @@ for scale_factor in "${scale_factors[@]}"; do
         --relationships PARTSUPP ${data_dir}/partsupp.tbl \
         --relationships_backward PARTSUPP ${data_dir}/partsupp.tbl.backward
 
-    pkill -f store
-    pkill -f catalog_server
-    sleep 5
 done

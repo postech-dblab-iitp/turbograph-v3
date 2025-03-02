@@ -1275,6 +1275,7 @@ void Vector::UTFVerify(const SelectionVector &sel, idx_t count) {
 }
 
 void Vector::UTFVerify(idx_t count) {
+	if (!is_valid) return;
 	SelectionVector owned_sel;
 	auto flat_sel = FlatVector::IncrementalSelectionVector(count, owned_sel);
 
@@ -1394,6 +1395,7 @@ void Vector::Verify(const SelectionVector &sel, idx_t count) {
 }
 
 void Vector::Verify(idx_t count) {
+	if (!is_valid) return;
 	SelectionVector owned_sel;
 	auto flat_sel = FlatVector::IncrementalSelectionVector(count, owned_sel);
 	Verify(*flat_sel, count);

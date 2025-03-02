@@ -10,13 +10,6 @@ target_dir_base="/data/tpch/"
 for scale_factor in "${scale_factors[@]}"; do
     data_dir="${source_dir_base}/sf${scale_factor}"
     target_dir="${target_dir_base}/sf${scale_factor}"
-    
-    rm -rf ${target_dir}
-    mkdir -p ${target_dir}
-    
-    ${BUILD_DIR}/store 365GB &
-    ${BUILD_DIR}/catalog_server ${target_dir} &
-    sleep 10
 
     ${BUILD_DIR}/bulkload \
         --output_dir ${target_dir} \
@@ -45,9 +38,5 @@ for scale_factor in "${scale_factors[@]}"; do
         --relationships_backward PARTSUPP ${data_dir}/partsupp.tbl.backward \
         --relationships BELONG_TO_SAME_ORDER ${data_dir}/part_belong_to_same_order_part.tbl \
         --relationships PURCHASE_SAME_ITEM ${data_dir}/customer_purchase_same_item_customer.tbl \
-        --relationships BOUGHT ${data_dir}/customer_bought_item.tbl \
-
-    pkill -f store
-    pkill -f catalog_server
-    sleep 5
+        --relationships BOUGHT ${data_dir}/customer_bought_item.tbl 
 done

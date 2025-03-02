@@ -7,37 +7,27 @@
 namespace kuzu {
 namespace binder {
 
+enum class NodeRelType { NODE, EDGE };
+
 class NodeOrRelExpression : public Expression {
 public:
     NodeOrRelExpression(
-        DataTypeID dataTypeID, const string& uniqueName, vector<table_id_t> partitionIDs, vector<table_id_t> tableIDs)
-        : Expression{VARIABLE, dataTypeID, uniqueName}, partitionIDs{std::move(partitionIDs)}, tableIDs{std::move(tableIDs)} {}
+        DataTypeID dataTypeID, const string& uniqueName, vector<table_id_t> partitionIDs, NodeRelType type)
+        : Expression{VARIABLE, dataTypeID, uniqueName}, partitionIDs{std::move(partitionIDs)}, type(type) {}
     virtual ~NodeOrRelExpression() = default;
 
-    inline void addTableIDs(const vector<table_id_t>& tableIDsToAdd) {
-        auto tableIDsMap = unordered_set<table_id_t>(tableIDs.begin(), tableIDs.end());
-        for (auto tableID : tableIDsToAdd) {
-            if (!(tableIDsMap.find(tableID) != tableIDsMap.end())) {
-                tableIDs.push_back(tableID);
-            }
-        }
-    }
-    inline void pushBackTableIDs(const vector<table_id_t>& tableIDsToAdd) {
+    inline void addTableIDs(const vector<table_id_t>& tableIDsToAdd, const vector<size_t>& numTablesPerPartitionToAdd) {
         for (auto i = 0; i < tableIDsToAdd.size(); i++) {
             tableIDs.push_back(tableIDsToAdd[i]);
         }
+        for (auto i = 0; i < numTablesPerPartition.size(); i++) {
+            numTablesPerPartition.push_back(numTablesPerPartitionToAdd[i]);
+        }
     }
-    void setUnivTableID(table_id_t univTableID) {
-        this->univTableID = univTableID;
-    }
+
     inline bool isMultiLabeled() const { return tableIDs.size() > 1; }
     inline vector<table_id_t> &getPartitionIDs() { return partitionIDs; }
     inline vector<table_id_t> &getTableIDs() { return tableIDs; }
-    table_id_t getUnivTableID() { return univTableID; }
-    inline table_id_t getSingleTableID() const {
-        assert(tableIDs.size() == 1);
-        return tableIDs[0];
-    }
 
     inline void addPropertyExpression(uint64_t propertyKeyID, unique_ptr<Expression> property) {
         assert(!(propertyKeyIDToIdx.find(propertyKeyID) != propertyKeyIDToIdx.end()));
@@ -69,18 +59,8 @@ public:
         schema_info_bound = schema_info_bound_;
     }
 
-    bool isDSITarget() {
-        return dsi_target;
-    }
-
-    void setDSITarget() {
-        dsi_target = true;
-    }
-
     void markAllColumnsAsUsed() {
-        for (auto i = 0; i < used_columns.size(); i++) {
-            used_columns[i] = true;
-        }
+        std::fill(used_columns.begin(), used_columns.end(), true);
         is_whold_node_required = true;
     }
 
@@ -125,13 +105,15 @@ public:
         return is_whold_node_required;
     }
 
+    bool isNode() const { return type == NodeRelType::NODE; }
+    bool isEdge() const { return type == NodeRelType::EDGE; }
+
 protected:
+    NodeRelType type;
     vector<table_id_t> partitionIDs;
     vector<table_id_t> tableIDs;
-    table_id_t univTableID;
+    vector<size_t> numTablesPerPartition;
     unordered_map<uint64_t, size_t> propertyKeyIDToIdx;
-    // TODO maintain map<tid, vector<size_t> projectionListPerTid
-    // vector<unique_ptr<Expression>> properties;
     vector<shared_ptr<Expression>> properties;
     vector<bool> used_columns;
     unordered_map<int, vector<bool>> used_for_filter_columns_per_OR;

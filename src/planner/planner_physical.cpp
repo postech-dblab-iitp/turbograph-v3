@@ -230,7 +230,7 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
                     {COperator::EOperatorId::EopPhysicalFilter,
                      COperator::EOperatorId::EopPhysicalTableScan});
                 if (pMatchExprPattern(plan_expr, scan_p1, 0, true)
-                    /* && pIsFilterPushdownAbleIntoScan(plan_expr) */) {
+                    && pIsFilterPushdownAbleIntoScan(plan_expr)) {
                     result = pTransformEopTableScan(plan_expr);
                 }
                 else {
@@ -4951,34 +4951,35 @@ bool Planner::pIsCartesianProduct(CExpression *expr)
 
 bool Planner::pIsFilterPushdownAbleIntoScan(CExpression *selection_expr)
 {
+    return false;
 
-    D_ASSERT(selection_expr->Pop()->Eopid() ==
-             COperator::EOperatorId::EopPhysicalFilter);
-    CExpression *filter_expr = NULL;
-    CExpression *filter_pred_expr = NULL;
-    filter_expr = selection_expr;
-    filter_pred_expr = filter_expr->operator[](1);
+    // D_ASSERT(selection_expr->Pop()->Eopid() ==
+    //          COperator::EOperatorId::EopPhysicalFilter);
+    // CExpression *filter_expr = NULL;
+    // CExpression *filter_pred_expr = NULL;
+    // filter_expr = selection_expr;
+    // filter_pred_expr = filter_expr->operator[](1);
 
-    auto ok = filter_pred_expr->Pop()->Eopid() ==
-                  COperator::EOperatorId::EopScalarCmp &&
-              (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-                  IMDType::ECmpType::EcmptEq ||
-                 ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-                     IMDType::ECmpType::EcmptNEq ||
-                 ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-                     IMDType::ECmpType::EcmptL ||
-                 ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-                     IMDType::ECmpType::EcmptLEq ||
-                 ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-                     IMDType::ECmpType::EcmptG ||
-                 ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
-                     IMDType::ECmpType::EcmptGEq)
-              && filter_pred_expr->operator[](0)->Pop()->Eopid() ==
-                     COperator::EOperatorId::EopScalarIdent &&
-              filter_pred_expr->operator[](1)->Pop()->Eopid() ==
-                  COperator::EOperatorId::EopScalarConst;
+    // auto ok = filter_pred_expr->Pop()->Eopid() ==
+    //               COperator::EOperatorId::EopScalarCmp &&
+    //           (((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+    //               IMDType::ECmpType::EcmptEq ||
+    //              ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+    //                  IMDType::ECmpType::EcmptNEq ||
+    //              ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+    //                  IMDType::ECmpType::EcmptL ||
+    //              ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+    //                  IMDType::ECmpType::EcmptLEq ||
+    //              ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+    //                  IMDType::ECmpType::EcmptG ||
+    //              ((CScalarCmp *)(filter_pred_expr->Pop()))->ParseCmpType() ==
+    //                  IMDType::ECmpType::EcmptGEq)
+    //           && filter_pred_expr->operator[](0)->Pop()->Eopid() ==
+    //                  COperator::EOperatorId::EopScalarIdent &&
+    //           filter_pred_expr->operator[](1)->Pop()->Eopid() ==
+    //               COperator::EOperatorId::EopScalarConst;
 
-    return ok;
+    // return ok;
 }
 
 duckdb::OrderByNullType Planner::pTranslateNullType(

@@ -10,10 +10,9 @@ namespace binder {
 
 class RelExpression : public NodeOrRelExpression {
 public:
-    RelExpression(const string& uniqueName, vector<table_id_t> partitionIDs, vector<table_id_t> tableIDs,
-        shared_ptr<NodeExpression> srcNode, shared_ptr<NodeExpression> dstNode, uint64_t lowerBound,
-        uint64_t upperBound)
-        : NodeOrRelExpression{DataTypeID::REL, uniqueName, std::move(partitionIDs), std::move(tableIDs)}, srcNode{std::move(srcNode)},
+    RelExpression(const string& uniqueName, vector<table_id_t> partitionIDs, shared_ptr<NodeExpression> srcNode,
+        shared_ptr<NodeExpression> dstNode, uint64_t lowerBound, uint64_t upperBound)
+        : NodeOrRelExpression{DataTypeID::REL, uniqueName, std::move(partitionIDs),  NodeRelType::EDGE}, srcNode{std::move(srcNode)},
           dstNode{std::move(dstNode)}, lowerBound{lowerBound}, upperBound{upperBound} {}
 
     inline bool isBoundByMultiLabeledNode() const {

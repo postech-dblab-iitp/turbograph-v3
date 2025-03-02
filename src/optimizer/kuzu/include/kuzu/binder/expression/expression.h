@@ -70,6 +70,10 @@ public:
 
     inline string getRawName() const { return rawName; }
 
+    inline string resolveName() const {
+        return hasAlias() ? getAlias() : getUniqueName();
+    }
+
     inline uint32_t getNumChildren() const { return children.size(); }
 
     inline shared_ptr<Expression> getChild(uint32_t idx) const { return children[idx]; }

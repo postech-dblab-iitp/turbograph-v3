@@ -71,14 +71,32 @@ public:
         partitionIDs = std::move(gcat->LookupPartition(context, labelset_names, g_type));
     }
 
-    void GetSubPartitionIDsFromPartitions(ClientContext &context, vector<uint64_t> &partitionIDs, vector<idx_t> &oids, idx_t &univTableID, GraphComponentType g_type) {
+    void GetSubPartitionIDsFromPartitions(ClientContext &context, vector<uint64_t> &partitionIDs, vector<idx_t> &oids, vector<size_t> &numOidsPerPartition,
+                                        GraphComponentType g_type, bool exclude_fakes = true) {
         auto &catalog = db.GetCatalog();
 
         for (auto &pid : partitionIDs) {
+            vector<idx_t> sub_partition_oids;
             PartitionCatalogEntry *p_cat =
                 (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, pid);
-            p_cat->GetPropertySchemaIDs(oids);
-            univTableID = p_cat->GetUnivPSOid();
+            p_cat->GetPropertySchemaIDs(sub_partition_oids);
+
+            if (exclude_fakes) {
+                size_t numValidOids = 0;
+                for (auto &oid : sub_partition_oids) {
+                    PropertySchemaCatalogEntry *ps_cat =
+                        (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, oid);
+                    if (!ps_cat->is_fake) {
+                        oids.push_back(oid);
+                        numValidOids++;
+                    }
+                }
+                numOidsPerPartition.push_back(numValidOids);
+            }
+            else {
+                oids.insert(oids.end(), sub_partition_oids.begin(), sub_partition_oids.end());
+                numOidsPerPartition.push_back(sub_partition_oids.size());
+            }
         }
     }
 
@@ -92,17 +110,6 @@ public:
             PartitionCatalogEntry *p_cat =
                 (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, pid);
             p_cat->GetPropertySchemaIDs(oids);
-        }
-    }
-
-    void RemoveFakePropertySchemas(ClientContext &context, vector<idx_t> &oids, vector<idx_t> &out_oids) {
-        auto &catalog = db.GetCatalog();
-        for (auto &oid : oids) {
-            PropertySchemaCatalogEntry *ps_cat =
-                (PropertySchemaCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, oid);
-            if (!ps_cat->is_fake) {
-                out_oids.push_back(oid);
-            }
         }
     }
 
@@ -252,48 +259,8 @@ public:
             (ScalarFunctionCatalogEntry *)catalog.GetFuncEntry(context, DEFAULT_SCHEMA, scalarfunc_oid_);
     }
 
-    // deprecated
-    // void GetPropertyKeyToPropertySchemaMap(
-    //     ClientContext &context, vector<idx_t> &oids,
-    //     unordered_map<string,
-    //                   std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>>
-    //         &pkey_to_ps_map,
-    //     vector<string> &universal_schema)
-    // {
-    //     auto &catalog = db.GetCatalog();
-
-    //     for (auto &oid : oids) {
-    //         PropertySchemaCatalogEntry *ps_cat =
-    //             (PropertySchemaCatalogEntry *)catalog.GetEntry(
-    //                 context, DEFAULT_SCHEMA, oid);
-
-    //         string_vector *property_keys = ps_cat->GetKeys();
-    //         LogicalTypeId_vector *property_key_types = ps_cat->GetTypes();
-    //         for (int i = 0; i < property_keys->size(); i++) {
-    //             if ((*property_key_types)[i] == LogicalType::FORWARD_ADJLIST ||
-    //                 (*property_key_types)[i] == LogicalType::BACKWARD_ADJLIST)
-    //                 continue;
-    //             string property_key = std::string((*property_keys)[i]);
-    //             auto it = pkey_to_ps_map.find(property_key);
-    //             if (it == pkey_to_ps_map.end()) {
-    //                 universal_schema.push_back(property_key);
-    //                 pkey_to_ps_map.emplace(
-    //                     property_key,
-    //                     std::vector<std::tuple<idx_t, idx_t, LogicalTypeId>>{
-    //                         std::make_tuple(oid, i + 1,
-    //                                         (*property_key_types)[i])});
-    //             }
-    //             else {
-    //                 it->second.push_back(
-    //                     std::make_tuple(oid, i + 1, (*property_key_types)[i]));
-    //             }
-    //         }
-    //     }
-    // }
-
     void GetPropertyKeyToPropertySchemaMap(
-        ClientContext &context, vector<idx_t> &oids,
-        unordered_map<idx_t, vector<std::pair<uint64_t, uint64_t>>>
+        ClientContext &context, unordered_map<idx_t, vector<std::pair<uint64_t, uint64_t>>>
             &property_schema_index,
         vector<idx_t> &universal_schema_ids,
         vector<LogicalTypeId> &universal_types_id, vector<idx_t> &part_oids)
@@ -314,6 +281,12 @@ public:
                 part_cat->GetUniversalPropertyTypeIds();
             auto part_property_schema_index =
                 part_cat->GetPropertySchemaIndex();
+            auto part_property_names =
+                part_cat->GetUniversalPropertyKeyNames();
+
+            for (int i = 0; i < part_property_names->size(); i++) {
+                std::cout << "Property name: " << part_property_names->at(i) << std::endl;
+            }
             
             if (universal_schema_ids.empty()) {
                 universal_schema_ids.reserve(part_universal_schema_ids->size());
@@ -465,6 +438,119 @@ public:
             + (right_type_physical_id);
     }
 
+    void CoalesceTablesOids(ClientContext &context,
+                            vector<uint64_t> &property_key_ids,
+                            vector<idx_t> &table_oids,
+                            gpmd::MDProviderTBGPP *provider,
+                            idx_t &coalesced_table_oid,
+                            vector<uint64_t> &properties_location)
+    {
+        D_ASSERT(table_oids.size() > 0);
+        D_ASSERT(provider != nullptr);
+        constexpr idx_t REPR_IDX = 0;
+        auto &catalog = db.GetCatalog();
+
+        GraphCatalogEntry *gcat = (GraphCatalogEntry *)catalog.GetEntry(
+            context, CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA, DEFAULT_GRAPH);
+        constexpr idx_t REPR_IDX = 0;
+        PropertySchemaCatalogEntry *ps_cat =
+            (PropertySchemaCatalogEntry *)catalog.GetEntry(
+                context, DEFAULT_SCHEMA, table_oids[REPR_IDX]);
+        auto part_oid = ps_cat->GetPartitionOID();
+        auto part_id = ps_cat->GetPartitionID();
+
+        PartitionCatalogEntry *part_cat =
+            (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA,
+                                                      part_oid);
+        vector<PropertyKeyID> merged_property_key_ids;
+
+        uint64_t virtual_table_oid = 0;
+        if (!(provider->CheckVirtualTableExists(table_oids,
+                                                virtual_table_oid))) {
+            string property_schema_name =
+                part_cat->GetName() + DEFAULT_TEMPORAL_INFIX +
+                std::to_string(part_cat->GetNewTemporalID());
+
+            CreatePropertySchemaInfo virtual_ps_info(
+                DEFAULT_SCHEMA, property_schema_name.c_str(), part_id,
+                part_oid);
+
+            PropertySchemaCatalogEntry *virtual_ps_cat =
+                (PropertySchemaCatalogEntry *)catalog.CreatePropertySchema(
+                    context, &virtual_ps_info);
+
+            vector<LogicalType> merged_types;
+            vector<PropertyKeyID> merged_property_key_ids;
+            idx_t_vector *merged_offset_infos =
+                virtual_ps_cat->GetOffsetInfos();
+            idx_t_vector *merged_freq_values =
+                virtual_ps_cat->GetFrequencyValues();
+            uint64_t_vector *merged_ndvs = virtual_ps_cat->GetNDVs();
+            uint64_t merged_num_tuples = 0;
+
+            MergeSchemas(
+                context, db, table_oids, merged_types, merged_property_key_ids
+            );
+            MergeHistograms(
+                context, db, (uint32_t*)&table_oids[0], table_oids.size(), merged_property_key_ids,
+                merged_offset_infos, merged_freq_values, merged_ndvs, merged_num_tuples
+            );
+
+            CreateIndexInfo idx_info(DEFAULT_SCHEMA,
+                                    property_schema_name + "_id",
+                                    IndexType::PHYSICAL_ID, part_oid,
+                                    virtual_ps_cat->GetOid(), 0, {-1});
+
+            IndexCatalogEntry *index_cat =
+                (IndexCatalogEntry *)catalog.CreateIndex(context,
+                                                        &idx_info);
+         
+            vector<string> key_names;
+            gcat->GetPropertyNames(context, merged_property_key_ids,
+                                key_names);
+            virtual_ps_cat->SetFake();
+            virtual_ps_cat->SetSchema(context, key_names, merged_types,
+                                    merged_property_key_ids);
+            virtual_ps_cat->SetPhysicalIDIndex(index_cat->GetOid());
+            virtual_ps_cat->SetNumberOfLastExtentNumTuples(
+                merged_num_tuples);
+
+            provider->AddVirtualTable(table_oids, virtual_ps_cat->GetOid());  
+            coalesced_table_oid = virtual_ps_cat->GetOid(); 
+        }
+        else {
+            PropertySchemaCatalogEntry* virtual_ps_cat = (
+                PropertySchemaCatalogEntry *)catalog.GetEntry(
+                    context, DEFAULT_SCHEMA, virtual_table_oid);
+            D_ASSERT(virtual_ps_cat != nullptr);
+            D_ASSERT(virtual_ps_cat->IsFake());
+
+            auto *key_ids = virtual_ps_cat->GetKeyIDs();
+            merged_property_key_ids.reserve(key_ids->size());
+            for (auto i = 0; i < key_ids->size(); i++) {
+                merged_property_key_ids.push_back(key_ids->at(i));
+            }
+            coalesced_table_oid = virtual_ps_cat->GetOid();
+        }
+
+        // update property_location_in_representative - may be inefficient
+        for (auto j = 0; j < property_key_ids.size(); j++) {
+            auto it = std::find(merged_property_key_ids.begin(),
+                                merged_property_key_ids.end(),
+                                property_key_ids[j]);
+
+            if (it != merged_property_key_ids.end()) {
+                auto idx =
+                    std::distance(merged_property_key_ids.begin(), it);
+                properties_location.push_back(idx);
+            } else {
+                properties_location.push_back(
+                    std::numeric_limits<uint64_t>::max()
+                );
+            }
+        }
+    }
+
     void ConvertTableOidsIntoRepresentativeOids(
         ClientContext &context, vector<uint64_t> &property_key_ids,
         vector<idx_t> &table_oids, gpmd::MDProviderTBGPP *provider,
@@ -525,7 +611,12 @@ public:
         uint64_t_vector *merged_ndvs = temporal_ps_cat->GetNDVs();
         uint64_t merged_num_tuples = 0;
 
-        _merge_histograms(context, db, oid_array, size, *original_key_ids,
+        vector<PropertyKeyID> prop_key_ids;
+        prop_key_ids.reserve(original_key_ids->size());
+        for (auto i = 0; i < original_key_ids->size(); i++) {
+            prop_key_ids.push_back((*original_key_ids)[i]);
+        }
+        MergeHistograms(context, db, oid_array, size, prop_key_ids,
                           merged_offset_infos, merged_freq_values,
                           merged_ndvs, merged_num_tuples);
 
@@ -545,10 +636,46 @@ public:
         return temporal_ps_cat->GetOid();
     }
 
-    void _merge_histograms(
+private:
+    void MergeSchemas(
         ClientContext &context, DatabaseInstance &db,
-        uint32_t *table_oids_to_be_merged, idx_t size,
-        const PropertyKeyID_vector &original_key_ids,
+        vector<idx_t> table_oids_to_be_merged,
+        vector<LogicalType> &merged_types,
+        vector<PropertyKeyID> &merged_property_key_ids)
+    {
+        unordered_set<PropertyKeyID> merged_schema;
+        unordered_map<PropertyKeyID, LogicalTypeId> type_info;
+
+        auto &catalog = db.GetCatalog();
+        for (auto i = 0; i < table_oids_to_be_merged.size(); i++) {
+            PropertySchemaCatalogEntry *ps_cat =
+                (PropertySchemaCatalogEntry *)catalog.GetEntry(
+                    context, DEFAULT_SCHEMA, table_oids_to_be_merged[i]);
+
+            auto *types = ps_cat->GetTypes();
+            auto *key_ids = ps_cat->GetKeyIDs();
+
+            for (auto j = 0; j < key_ids->size(); j++) {
+                merged_schema.insert(key_ids->at(j));
+                if (type_info.find(key_ids->at(j)) == type_info.end()) {
+                    type_info.insert({key_ids->at(j), types->at(j)});
+                }
+            }
+        }
+
+        for (auto it = merged_schema.begin(); it != merged_schema.end(); it++) {
+            merged_property_key_ids.push_back(*it);
+        }
+
+        for (auto i = 0; i < merged_property_key_ids.size(); i++) {
+            idx_t prop_key_id = merged_property_key_ids[i];
+            merged_types.push_back(LogicalType(type_info.at(prop_key_id)));
+        }
+    }
+
+    void MergeHistograms(
+        ClientContext &context, DatabaseInstance &db,
+        uint32_t *table_oids_to_be_merged, idx_t size, vector<PropertyKeyID> &original_key_ids,
         idx_t_vector *merged_offset_infos, uint64_t_vector *merged_freq_values,
         uint64_t_vector *merged_ndvs, uint64_t &merged_num_tuples)
     {
@@ -652,7 +779,6 @@ public:
         }
     }
 
-private:
     //! Reference to the database
 	DatabaseInstance &db;
 };

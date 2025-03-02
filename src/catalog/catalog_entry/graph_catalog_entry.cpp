@@ -387,7 +387,10 @@ PropertyKeyID GraphCatalogEntry::GetPropertyKeyID(ClientContext &context,
 
     // find property key id. do not allow to get property key id for a property that does not exist
     auto property_key_id = propertykey_map.find(property_name_);
-    D_ASSERT(property_key_id != propertykey_map.end());
+	// jhha: fix SID_COLNAME_ID not found if no edges load
+	if (property_key_id == propertykey_map.end()) {
+		return -1;
+	}
 
     return property_key_id->second;
 }
