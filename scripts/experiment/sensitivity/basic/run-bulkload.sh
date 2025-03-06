@@ -57,7 +57,9 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                     --log-level trace \
                     --skip-histogram true \
                     --output_dir ${target_dir} \
-                    --nodes Person ${source_dir}/Person-zipf-${zipf_value}.json  &> ${log_file}
+                    --nodes Person ${source_dir}/Person-zipf-${zipf_value}.json  \
+                    --relationships KNOWS ${source_dir}/Person_knows_Person.csv \
+                    --relationships_backward KNOWS ${source_dir}/Person_knows_Person.csv.backward &> ${log_file}
 
                 pkill -f store
                 sleep 5

@@ -182,6 +182,16 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     void markInvalidForColumnsToUnseek(DataChunk &chunk, vector<ExtentID> &target_eids, 
                                     vector<idx_t> &mapping_idxs) const;
 
+    inline bool isInnerColIdx(idx_t col_idx) const
+    {
+        if (std::find(outer_output_col_idxs.begin(),
+                      outer_output_col_idxs.end(),
+                      col_idx) != outer_output_col_idxs.end()) {
+            return true;
+        }
+        return false;
+    }
+
     // parameters
     uint64_t id_col_idx;
     mutable vector<uint64_t> oids;
