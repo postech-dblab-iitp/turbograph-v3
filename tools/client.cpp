@@ -33,6 +33,7 @@ struct ClientOptions {
 	string query;
 	string output_file;
 	bool slient = false;
+    bool standalone = false;
 	bool dump_output = false;
 	bool compile_only = false;
 	bool warmup = false;
@@ -54,7 +55,8 @@ void ParseConfig(int argc, char** argv, ClientOptions& options) {
         ("workspace", po::value<std::string>(), "Set workspace path")
         ("log-level", po::value<std::string>(), "Set logging level (trace/debug/info/warn/error)")
 		("slient", "Disable output to console")
-		("output-file", po::value<std::string>(), "Output file path");
+		("output-file", po::value<std::string>(), "Output file path")
+        ("standalone", "Run client as standalone");
 
 	po::options_description compiler_options("Compiler Options");
 	compiler_options.add_options()
@@ -90,6 +92,9 @@ void ParseConfig(int argc, char** argv, ClientOptions& options) {
 		{"slient", [&]() {
 			options.slient = true;
 		}},
+        {"standalone", [&]() {
+            options.standalone = true;
+        }},
 		{"output-file", [&]() {
 			options.output_file = vm["output-file"].as<std::string>();
 		}},
@@ -350,8 +355,12 @@ void CompileExecuteQuery(const std::string &query_str,
         compile_times.erase(compile_times.begin());
     }
 
-	spdlog::info("Average Query Execution Time: {} ms", CalculateAverageTime(execution_times));
-	spdlog::info("Average Compile Time: {} ms", CalculateAverageTime(compile_times));
+    double avg_exec_time = CalculateAverageTime(execution_times);
+    double avg_compile_time = CalculateAverageTime(compile_times);
+    double avg_end_to_end_time = avg_compile_time + avg_exec_time;
+	spdlog::info("Average Query Execution Time: {} ms", avg_exec_time);
+	spdlog::info("Average Compile Time: {} ms", avg_compile_time);
+    spdlog::info("Average End to End Time: {} ms", avg_end_to_end_time);
 }
 
 void InitializeDiskAIO(string& workspace) {
@@ -421,7 +430,7 @@ int main(int argc, char** argv) {
 
     InitializeDiskAIO(options.workspace);
 
-    ChunkCacheManager::ccm = new ChunkCacheManager(options.workspace.c_str());
+    ChunkCacheManager::ccm = new ChunkCacheManager(options.workspace.c_str(), options.standalone);
     auto database = std::make_unique<DuckDB>(options.workspace.c_str());
     auto client = std::make_shared<ClientContext>(database->instance->shared_from_this());
     InitializeClient(client, options);

@@ -5,15 +5,16 @@
 # cost_models=("OURS" "OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE")
 # layering_orders=("ASCENDING" "DESCENDING" "NO_SORT")
 cluster_algorithms=("AGGLOMERATIVE")
-cost_models=("JACCARD")
+cost_models=("OURS")
 layering_orders=("DESCENDING")
+zipf_values=("1")
 
 # File path to the configuration header
 config_file_path="/turbograph-v3/src/include/common/graph_simdjson_parser.hpp"
 
 # Define source, target, and log directories
-source_dir_base="/source-data/dbpedia/"
-target_dir_base="/data/dbpedia/"
+source_dir_base="/source-data/basic/"
+target_dir_base="/data/basic/"
 log_dir_base="/turbograph-v3/logs"
 
 # Function to update the configuration file with new values
@@ -42,29 +43,25 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
     for cost_model in "${cost_models[@]}"; do
         for layering_order in "${layering_orders[@]}"; do
             update_config_file ${cluster_algo} ${cost_model} ${layering_order}
-            cd /turbograph-v3/build-release && ninja
+            for zipf_value in "${zipf_values[@]}"; do
+                cd /turbograph-v3/build-release && ninja
 
-            source_dir="${source_dir_base}"
-            target_dir="${target_dir_base}/dbpedia_${cluster_algo}_${cost_model}_${layering_order}"
-            
-            rm -rf ${target_dir}
-            mkdir -p ${target_dir}
-            
-            /turbograph-v3/build-release/tools/store 500GB &
-            /turbograph-v3/build-release/tools/catalog_server ${target_dir} &
-            sleep 15
+                source_dir="${source_dir_base}"
+                target_dir="${target_dir_base}/basic_${cluster_algo}_${cost_model}_${layering_order}_zipf${zipf_value}"
 
-            log_file="${log_dir}/dbpedia_${cluster_algo}_${cost_model}_${layering_order}.txt"
-            /turbograph-v3/build-release/tools/bulkload \
-                --log-level debug \
-                --output_dir ${target_dir} \
-                --nodes NODE ${source_dir}/nodes2.json \
-                --relationships http://dbpedia.org/ontology/academicAdvisor ${source_dir}/edges_test.csv \
-                --relationships_backward http://dbpedia.org/ontology/academicAdvisor ${source_dir}/edges_test.csv.backward &> ${log_file}
+                /turbograph-v3/build-release/tools/store 500GB &
+                sleep 15
 
-            pkill -f store
-            pkill -f catalog_server
-            sleep 5
+                log_file="${log_dir}/basic_${cluster_algo}_${cost_model}_${layering_order}_zipf${zipf_value}.txt"
+                /turbograph-v3/build-release/tools/bulkload \
+                    --log-level trace \
+                    --skip-histogram true \
+                    --output_dir ${target_dir} \
+                    --nodes Person ${source_dir}/Person-zipf-${zipf_value}.json  &> ${log_file}
+
+                pkill -f store
+                sleep 5
+            done
         done
     done
 done

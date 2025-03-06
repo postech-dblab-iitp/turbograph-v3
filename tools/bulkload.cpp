@@ -47,6 +47,7 @@ struct InputOptions {
 	vector<LabeledFile> edge_files_backward;
     std::string output_dir;
 	bool incremental = false;
+	bool standalone = false;
 	bool skip_histogram = false;
     bool load_edge = false;
     bool load_backward_edge = false;
@@ -692,7 +693,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(vector<LabeledFile> &csv_vertex_fil
 		spdlog::info("[ReadVertexCSVFileAndCreateVertexExtents] Load {} Done", vertex_file_path);
 	}
 	spdlog::debug("[ReadVertexCSVFileAndCreateVertexExtents] Flush Dirty Segments and Delete From Cache");
-	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
+	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache(false);
 	spdlog::info("[ReadVertexCSVFileAndCreateVertexExtents] Load CSV Vertex Files Done");
 }
 
@@ -722,7 +723,7 @@ void ReadVertexJSONFileAndCreateVertexExtents(vector<LabeledFile> &json_vertex_f
 		spdlog::info("[ReadVertexJSONFileAndCreateVertexExtents] Load {} Done", vertex_file_path);
 	}
 	spdlog::debug("[ReadVertexJSONFileAndCreateVertexExtents] Flush Dirty Segments and Delete From Cache");
-	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
+	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache(false);
 	spdlog::info("[ReadVertexJSONFileAndCreateVertexExtents] Load JSON Vertex Files Done");
 }
 
@@ -735,9 +736,7 @@ void ReadVertexFilesAndCreateVertexExtents(BulkloadContext &bulkload_ctx) {
 	if (json_vertex_files.size() > 0) {
 		// Note: we should prevent calling Py_Initialize multple times
 		// Also, note that Py_Initialize can affect disk AIO, leading to unexpected error
-	    // Py_Initialize();
 		ReadVertexJSONFileAndCreateVertexExtents(json_vertex_files, bulkload_ctx);
-		// Py_Finalize();
 	}
 	if (csv_vertex_files.size() > 0) ReadVertexCSVFileAndCreateVertexExtents(csv_vertex_files, bulkload_ctx);
 }
@@ -1072,7 +1071,7 @@ void ReadFwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files
 		SUBTIMER_STOP(ReadSingleEdgeCSVFile, "Remaining AppendAdjListChunk");
 	}
 	spdlog::debug("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] Flush Dirty Segments and Delete From Cache");
-	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
+	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache(false);
 	spdlog::info("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] Load CSV Edge Files Done");
 }
 
@@ -1283,11 +1282,16 @@ void ReadBwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files
 		SUBTIMER_STOP(ReadSingleEdgeCSVFile, "Remaining AppendAdjListChunk");
 	}
 	spdlog::debug("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] Flush Dirty Segments and Delete From Cache");
-	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
+	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache(false);
 	spdlog::info("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] Load CSV Edge Files Done");
 }
 
 void ReadBwdEdgeFilesAndCreateEdgeExtents(BulkloadContext &bulkload_ctx) {
+	if(!bulkload_ctx.input_options.load_backward_edge) {
+		spdlog::info("[ReadBwdEdgeFilesAndCreateEdgeExtents] Skip loading backward edges");
+		return;
+	}
+	
 	vector<LabeledFile> json_edge_files;
 	vector<LabeledFile> csv_edge_files;
 	SeperateFilesByExtension(bulkload_ctx.input_options.edge_files, json_edge_files, csv_edge_files);
@@ -1310,6 +1314,7 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
         ("output_dir", po::value<std::string>(), "Output directory")
 		("incremental", po::value<bool>()->default_value(false), "Incremental load")
 		("skip-histogram", po::value<bool>()->default_value(false), "Skip Histogram Generation")
+		("standalone", "Run in standalone mode")
         ("log-level", po::value<std::string>(), "Set logging level (trace/debug/info/warn/error)");
 
     po::variables_map vm;
@@ -1359,6 +1364,10 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
 		options.skip_histogram = vm["skip-histogram"].as<bool>();
 	}
 
+	if (vm.count("standalone")) {
+		options.standalone = true;
+	}
+
     if (vm.count("log-level")) {
         LogLevel level = getLogLevel(vm["log-level"].as<std::string>());
         setLogLevel(level);
@@ -1368,6 +1377,7 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
 	spdlog::info("[ParseConfig] Incremental Load: {}", options.incremental);
 	spdlog::info("[ParseConfig] Load Edge: {}", options.load_edge);
 	spdlog::info("[ParseConfig] Load Backward Edge: {}", options.load_backward_edge);
+	spdlog::info("[ParseConfig] Storage Standalone: {}", options.standalone);
 
     spdlog::info("[ParseConfig] Load Following Nodes");
     for (const auto& file : options.vertex_files) {
@@ -1394,6 +1404,7 @@ void RegisterSignalHandler() {
 
 int main(int argc, char** argv) {
 	SCOPED_TIMER_SIMPLE(main, spdlog::level::info, spdlog::level::debug);
+	Py_Initialize();
     SetupLogger();
 	RegisterSignalHandler();
 
@@ -1407,7 +1418,7 @@ int main(int argc, char** argv) {
 	CatalogManager::CreateOrOpenCatalog(options.output_dir);
 	InitializeDiskAio(options.output_dir);
 
-	ChunkCacheManager::ccm = new ChunkCacheManager(options.output_dir.c_str(), true /* standalone */);
+	ChunkCacheManager::ccm = new ChunkCacheManager(options.output_dir.c_str(), options.standalone);
 	std::unique_ptr<DuckDB> database = make_unique<DuckDB>(options.output_dir.c_str());
 	CreateGraphInfo graph_info(DEFAULT_SCHEMA, DEFAULT_GRAPH);
 	BulkloadContext bulkload_context {
@@ -1469,5 +1480,6 @@ int main(int argc, char** argv) {
 	CatalogManager::CloseCatalog();
 	SUBTIMER_STOP(main, "CloseCatalog");
 
+	Py_Finalize();
 	return 0;
 }
