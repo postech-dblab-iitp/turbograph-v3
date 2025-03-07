@@ -84,6 +84,7 @@ void DataChunk::Initialize(const vector<LogicalType> &types, DataChunk &other, c
 	D_ASSERT(data.empty());   // can only be initialized once
 	D_ASSERT(!types.empty()); // empty chunk not allowed
 	D_ASSERT(projection_mappings.size() >= 1);
+
 	capacity = capacity_;
 	data.reserve(types.size());
 	for (idx_t i = 0; i < types.size(); i++) {
@@ -95,7 +96,7 @@ void DataChunk::Initialize(const vector<LogicalType> &types, DataChunk &other, c
 			if (types[i].id() == LogicalTypeId::SQLNULL) data[i].is_valid = false;
 		} else {
 			// invalid || rowvec case
-			VectorCache cache;
+			VectorCache cache; 
 			data.emplace_back(Vector(types[i], nullptr));
 			vector_caches.push_back(move(cache));
 			if (!rowvec_column[i]) { // invalid

@@ -44,6 +44,8 @@ def generate_schema_mapping_and_indices_rand_num_column(alpha, num_objects, colu
     for r in range(0, len(other_columns) + 1):
         for comb in itertools.combinations(other_columns, r):
             all_combinations.append((first_column,) + comb)  # Ensure first column is included
+            
+    random.shuffle(all_combinations)
 
     num_schemas = len(all_combinations)
     

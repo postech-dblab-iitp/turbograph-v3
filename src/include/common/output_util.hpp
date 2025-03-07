@@ -15,7 +15,7 @@ class OutputUtil {
    public:
     static void PrintQueryOutput(
         PropertyKeys &col_names,
-        std::vector<std::unique_ptr<DataChunk>> &resultChunks,
+        std::vector<std::shared_ptr<DataChunk>> &resultChunks,
         bool show_top_10_only = false);
     static void PrintAllTuplesInDataChunk(DataChunk &chunk);
     static void PrintTop10TuplesInDataChunk(DataChunk &chunk);

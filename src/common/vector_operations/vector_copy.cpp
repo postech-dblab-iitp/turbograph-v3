@@ -62,7 +62,7 @@ void VectorOperations::Copy(const Vector &source, Vector &target, const Selectio
 	D_ASSERT(source.GetType().InternalType() == target.GetType().InternalType());
 	idx_t copy_count = source_count - source_offset;
 
-	if (!source.GetIsValid()) {
+	if (!source.GetIsValid() && source_offset == 0) {
 		target.SetIsValid(false);
 		return;
 	}
@@ -275,7 +275,7 @@ void VectorOperations::CopyRowStore(const Vector &source, Vector &target, const 
 		return;
 	}
 
-	if (!source.GetIsValid()) {
+	if (!source.GetIsValid() && source_offset == 0) {
 		target.SetIsValid(false);
 		return;
 	}

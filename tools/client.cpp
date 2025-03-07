@@ -242,7 +242,7 @@ void ExecuteQuery(const string& query, std::shared_ptr<ClientContext> client, Cl
 }
 
 void PrintOutputToFile(PropertyKeys col_names, 
-                            std::vector<std::unique_ptr<duckdb::DataChunk>> *query_results_ptr, 
+                            std::vector<std::shared_ptr<duckdb::DataChunk>> *query_results_ptr, 
 							duckdb::Schema &schema,
                             std::string &file_path) {
 	if (!query_results_ptr) {
@@ -283,7 +283,7 @@ void PrintOutputToFile(PropertyKeys col_names,
 }
 
 void PrintOutputConsole(const PropertyKeys &col_names, 
-                 std::vector<std::unique_ptr<duckdb::DataChunk>> *query_results_ptr, 
+                 std::vector<std::shared_ptr<duckdb::DataChunk>> *query_results_ptr, 
                  duckdb::Schema &schema) {
     if (!query_results_ptr) {
         spdlog::error("[PrintOutputConsole] Query Results Empty");
