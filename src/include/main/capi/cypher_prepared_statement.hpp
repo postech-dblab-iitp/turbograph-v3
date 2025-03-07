@@ -83,7 +83,7 @@ public:
         }
     }
 
-    void copyResults(vector<unique_ptr<DataChunk>>& results) {
+    void copyResults(vector<shared_ptr<DataChunk>>& results) {
         for (size_t i = 0; i < results.size(); i++) {
             queryResults.push_back(new DataChunk());
         }

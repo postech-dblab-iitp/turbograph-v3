@@ -3,6 +3,7 @@
 BUILD_DIR="/turbograph-v3/build-release/tools/"
 db_dir=$1
 
+
 ${BUILD_DIR}/client \
 	--log-level info \
 	--standalone \
@@ -10,4 +11,4 @@ ${BUILD_DIR}/client \
 	--disable-merge-join \
 	--join-order-optimizer exhaustive \
 	--profile \
-	--explain
+	--explain 
