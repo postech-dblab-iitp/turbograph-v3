@@ -21,6 +21,7 @@ using namespace simdjson;
 #define NEO4J_VERTEX_ID_NAME "id"
 #define COST_MAX 10000000000.00
 #define COST_MIN 0
+#define MAX_THREADS 32
 
 // Thresholds
 #define FREQUENCY_THRESHOLD 0.95
@@ -1541,6 +1542,99 @@ public:
         // layer_boundaries.push_back(num_tuples_order.size());
     }
 
+    void ClusterSchemasInCurrentLayer(
+        vector<std::pair<std::vector<uint32_t>, uint64_t>>
+            &schema_groups_with_num_tuples,
+        const vector<uint32_t> &num_tuples_order,
+        const vector<uint32_t> &layer_boundaries,
+        uint32_t current_layer,
+        vector<std::pair<uint32_t, std::vector<uint32_t>>> &current_merge_state,
+        const CostModel _cost_model)
+    {
+        uint32_t iteration = 0;
+        do {
+	        SCOPED_TIMER_SIMPLE(ClusterSchemasInCurrentLayer, spdlog::level::info, spdlog::level::debug);
+            spdlog::info("[ClusterSchemasInCurrentLayer] Layer: {} Iteration: {}", current_layer, iteration);
+
+            SUBTIMER_START(ClusterSchemasInCurrentLayer, "PrecomputeMergePairs");
+            auto merge_pairs = PrecomputeMergePairs(current_merge_state, _cost_model);
+            auto merged_size = merge_pairs.size();
+            SUBTIMER_STOP(ClusterSchemasInCurrentLayer, "PrecomputeMergePairs");
+
+            if (merged_size == 0) break;
+
+            size_t new_merge_state_start_idx = current_merge_state.size();
+            size_t new_schema_start_idx = schema_groups_with_num_tuples.size();
+            current_merge_state.resize(new_merge_state_start_idx + merged_size);
+            schema_groups_with_num_tuples.resize(new_schema_start_idx + merged_size);
+
+            SUBTIMER_START(ClusterSchemasInCurrentLayer, "MergeVertexlets");
+            #pragma omp parallel for schedule(dynamic) num_threads(MAX_THREADS)
+            for (size_t i = 0; i < merged_size; ++i) {
+                spdlog::trace("[ClusterSchemasInCurrentLayer] Merging pair: {} {}", merge_pairs[i].first, merge_pairs[i].second);
+                MergeVertexlets(
+                    merge_pairs[i].first, 
+                    merge_pairs[i].second, 
+                    current_merge_state, 
+                    new_schema_start_idx + i,
+                    new_merge_state_start_idx + i
+                );
+            }
+            SUBTIMER_STOP(ClusterSchemasInCurrentLayer, "MergeVertexlets");
+
+            iteration++;
+        } while (true);
+
+        spdlog::info("[ClusterSchemasInCurrentLayer] Done with Total Iterations: {}", iteration);
+    }
+
+
+    std::vector<std::pair<uint32_t, uint32_t>> PrecomputeMergePairs(
+        const std::vector<std::pair<uint32_t, std::vector<uint32_t>>> &current_merge_state,
+        const CostModel _cost_model)
+    {
+	    SCOPED_TIMER_SIMPLE(PrecomputeMergePairs, spdlog::level::info, spdlog::level::debug);
+
+        SUBTIMER_START(PrecomputeMergePairs, "Initialize Heaps");
+        std::vector<CostHeap> heaps;
+        InitializeHeaps(current_merge_state, _cost_model, heaps);
+        SUBTIMER_STOP(PrecomputeMergePairs, "Initialize Heaps");
+        
+	    SUBTIMER_START(PrecomputeMergePairs, "Fill Cost Heaps");
+        FillCostHeap(current_merge_state, _cost_model, heaps);
+        SUBTIMER_STOP(PrecomputeMergePairs, "Fill Cost Heaps");
+
+        SUBTIMER_START(PrecomputeMergePairs, "Find Merge Pairs");
+        std::vector<std::pair<uint32_t, uint32_t>> final_pairs;
+        FindMergePairs(heaps, _cost_model, final_pairs);
+        SUBTIMER_STOP(PrecomputeMergePairs, "Find Merge Pairs");
+        
+        spdlog::info("[PrecomputeMergePairs] {} merge pairs generated", final_pairs.size());
+        return final_pairs;
+    }
+
+    using CostPair = std::pair<double, uint32_t>;
+    using CostHeap = std::priority_queue<CostPair, std::vector<CostPair>, std::function<bool(const CostPair&, const CostPair&)>>;
+
+    inline double GetWorstCost(CostModel model) {
+        return (model == CostModel::OURS || model == CostModel::SETEDIT)
+                    ? std::numeric_limits<double>::max()
+                    : std::numeric_limits<double>::lowest();
+    }
+
+    inline std::function<bool(const CostPair&, const CostPair&)> GetCostCompare(CostModel model) {
+        auto cost_compare_great = [](const CostPair &a, const CostPair &b) { 
+            return (a.first > b.first) || (a.first == b.first && a.second > b.second); 
+        };
+        auto cost_compare_less = [](const CostPair &a, const CostPair &b) { 
+            return (a.first < b.first) || (a.first == b.first && a.second < b.second);
+        };
+        auto cost_compare = (model == CostModel::OURS || model == CostModel::SETEDIT)
+                                ? cost_compare_great
+                                : cost_compare_less;
+        return cost_compare;
+    }       
+
     inline bool PassesThreshold(double cost, CostModel model) {
         switch (model) {
             case CostModel::OURS:
@@ -1562,83 +1656,13 @@ public:
         }
     }
 
-    void ClusterSchemasInCurrentLayer(
-        vector<std::pair<std::vector<uint32_t>, uint64_t>>
-            &schema_groups_with_num_tuples,
-        const vector<uint32_t> &num_tuples_order,
-        const vector<uint32_t> &layer_boundaries,
-        uint32_t current_layer,
-        vector<std::pair<uint32_t, std::vector<uint32_t>>> &current_merge_state,
-        const CostModel _cost_model)
-    {
-        uint32_t iteration = 0;
-        do {
-	        SCOPED_TIMER_SIMPLE(ClusterSchemasInCurrentLayer, spdlog::level::info, spdlog::level::debug);
-            spdlog::info("[ClusterSchemasInCurrentLayer] Layer: {} Iteration: {}", current_layer, iteration);
-
-            SUBTIMER_START(ClusterSchemasInCurrentLayer, "PrecomputeMergePairs");
-            auto merge_pairs = PrecomputeMergePairs(current_merge_state, _cost_model);
-            auto merged_size = merge_pairs.size();
-            spdlog::info("[ClusterSchemasInCurrentLayer] Number of merge pairs: {}", merged_size);
-            SUBTIMER_STOP(ClusterSchemasInCurrentLayer, "PrecomputeMergePairs");
-
-            if (merged_size == 0) break;
-
-            size_t new_merge_state_start_idx = current_merge_state.size();
-            size_t new_schema_start_idx = schema_groups_with_num_tuples.size();
-            current_merge_state.resize(new_merge_state_start_idx + merged_size);
-            schema_groups_with_num_tuples.resize(new_schema_start_idx + merged_size);
-
-            SUBTIMER_START(ClusterSchemasInCurrentLayer, "MergeVertexlets");
-            #pragma omp parallel for schedule(dynamic) num_threads(32)
-            for (size_t i = 0; i < merged_size; ++i) {
-                spdlog::trace("[ClusterSchemasInCurrentLayer] Merging pair: {} {}", merge_pairs[i].first, merge_pairs[i].second);
-                MergeVertexlets(
-                    merge_pairs[i].first, 
-                    merge_pairs[i].second, 
-                    current_merge_state, 
-                    new_schema_start_idx + i,
-                    new_merge_state_start_idx + i
-                );
-            }
-            SUBTIMER_STOP(ClusterSchemasInCurrentLayer, "MergeVertexlets");
-
-            iteration++;
-        } while (true);
-
-        spdlog::info("[ClusterSchemasInCurrentLayer] Done with Total Iterations: {}", iteration);
-    }
-
-
-    using CostPair = std::pair<double, uint32_t>;
-    using CostHeap = std::priority_queue<CostPair, std::vector<CostPair>, std::function<bool(const CostPair&, const CostPair&)>>;
-
-    std::vector<std::pair<uint32_t, uint32_t>> PrecomputeMergePairs(
+    void FillCostHeap(
         const std::vector<std::pair<uint32_t, std::vector<uint32_t>>> &current_merge_state,
-        const CostModel _cost_model)
+        const CostModel _cost_model,
+        std::vector<CostHeap> &heaps)
     {
-	    SCOPED_TIMER_SIMPLE(PrecomputeMergePairs, spdlog::level::info, spdlog::level::debug);
-
         const size_t num_tuples_total = current_merge_state.size();
-        spdlog::info("[PrecomputeMergePairs] Number of tuples: {}", num_tuples_total);
-        
-        // Define comparison functions for the heap
-        auto cost_compare_great = [](const CostPair &a, const CostPair &b) { return a.first > b.first; };
-        auto cost_compare_less = [](const CostPair &a, const CostPair &b) { return a.first < b.first; };
-        
-        // Initialize heaps for each schema
-        std::vector<CostHeap> heaps;
-        heaps.reserve(num_tuples_total);
-        for (size_t i = 0; i < num_tuples_total; ++i) {
-            heaps.emplace_back((_cost_model == CostModel::OURS || _cost_model == CostModel::SETEDIT)
-                                ? cost_compare_great
-                                : cost_compare_less);
-        }
-        spdlog::trace("[PrecomputeMergePairs] {} Heaps initialized", num_tuples_total);
-        
-        // Fill heaps in parallel
-	    SUBTIMER_START(PrecomputeMergePairs, "Fill Cost Heaps");
-        #pragma omp parallel for schedule(dynamic) num_threads(32)
+        #pragma omp parallel for schedule(dynamic) num_threads(MAX_THREADS)
         for (uint32_t i = 0; i < num_tuples_total; ++i) {
             if (current_merge_state[i].first == MERGED_SCHEMA) {
                 continue;
@@ -1662,81 +1686,168 @@ public:
                 }
             }
         }
-        SUBTIMER_STOP(PrecomputeMergePairs, "Fill Cost Heaps");
-        
-        if (spdlog::default_logger_raw()->should_log(spdlog::level::trace)) {
-            spdlog::trace("[PrecomputeMergePairs] Heaps filled");
-            for (uint32_t i = 0; i < num_tuples_total; ++i) {
-                spdlog::trace("[PrecomputeMergePairs] Heap {} size: {}", i, heaps[i].size());
-            }
-        }
-        
-        // Identify non-empty heaps
-        std::vector<uint32_t> active_schemas;
-        for (uint32_t i = 0; i < num_tuples_total; ++i) {
-            if (!heaps[i].empty()) {
-                active_schemas.push_back(i);
-            }
-        }
-        spdlog::trace("[PrecomputeMergePairs] {} Active schemas identified", active_schemas.size());
-        
-        std::vector<std::pair<uint32_t, uint32_t>> final_pairs;
-        std::unordered_set<uint32_t> used_schemas;
 
-        // Process heaps and resolve conflicts
-        SUBTIMER_START(PrecomputeMergePairs, "Find Merge Pairs");
-        while (!active_schemas.empty()) {
-            std::vector<std::tuple<double, uint32_t, uint32_t>> candidates;
-            
-            for (uint32_t idx : active_schemas) {
-                while (!heaps[idx].empty() && used_schemas.count(idx) == 0) {
-                    auto [cost, pair_idx] = heaps[idx].top();
-                    heaps[idx].pop();
-                    
-                    if (used_schemas.count(pair_idx) == 0) {
-                        candidates.emplace_back(cost, idx, pair_idx);
+        if (spdlog::default_logger_raw()->should_log(spdlog::level::trace)) {
+            spdlog::trace("[FillCostHeap] Heaps filled");
+            for (uint32_t i = 0; i < num_tuples_total; ++i) {
+                spdlog::trace("[FillCostHeap] Heap {} size: {}", i, heaps[i].size());
+            }
+        }
+    }
+
+    void FillFrontiers(
+        std::vector<CostHeap> &heaps,
+        std::vector<CostPair> &frontiers,
+        std::unordered_set<uint32_t> &active_schemas,
+        std::vector<bool> &schema_merged,
+        bool initialize)
+    {
+        spdlog::trace("[FillFrontiers] {} active schemas initially", active_schemas.size());
+
+        std::vector<uint32_t> active_schemas_vec(active_schemas.begin(), active_schemas.end());
+
+        // print schemas
+        if (spdlog::default_logger_raw()->should_log(spdlog::level::trace)) {
+            for (auto &schema_idx : active_schemas_vec) {
+                spdlog::trace("[FillFrontiers] Schema: {}", schema_idx);
+            }
+        }
+
+        std::vector<int> inactive_schemas(active_schemas_vec.size(), true);
+        #pragma omp parallel for schedule(dynamic) num_threads(MAX_THREADS)
+        for (size_t i = 0; i < active_schemas_vec.size(); ++i) {
+            auto schema_idx = active_schemas_vec[i];
+            auto current_pair = frontiers[schema_idx];
+            if (initialize || schema_merged[current_pair.second]) {
+                while(!heaps[schema_idx].empty()) {
+                    auto [cost, pair_idx] = heaps[schema_idx].top();
+                    heaps[schema_idx].pop();
+                    if (schema_merged[pair_idx]) {
+                        continue;
+                    }
+                    else {
+                        inactive_schemas[i] = false;
+                        frontiers[schema_idx] = std::make_pair(cost, pair_idx);
                         break;
                     }
                 }
             }
-            
-            // If no valid pairs remain, exit
-            if (candidates.empty()) {
-                spdlog::trace("[PrecomputeMergePairs] No valid pairs remain");
-                break;
-            }
-            
-            // Sort candidates by cost
-            std::sort(candidates.begin(), candidates.end(), [](const auto &a, const auto &b) {
-                return std::get<0>(a) < std::get<0>(b);
-            });
-            
-            for (const auto &[cost, idx1, idx2] : candidates) {
-                if (used_schemas.count(idx1) == 0 && used_schemas.count(idx2) == 0) {
-                    final_pairs.emplace_back(idx1, idx2);
-                    used_schemas.insert(idx1);
-                    used_schemas.insert(idx2);
-                }
-            }
-            
-            // Update active schemas
-            active_schemas.clear();
-            for (uint32_t i = 0; i < num_tuples_total; ++i) {
-                if (!heaps[i].empty() && used_schemas.count(i) == 0) {
-                    active_schemas.push_back(i);
-                }
+            else {
+                inactive_schemas[i] = false;
             }
         }
-        SUBTIMER_STOP(PrecomputeMergePairs, "Find Merge Pairs");
+
+        // Print frontiers
+        if (spdlog::default_logger_raw()->should_log(spdlog::level::trace)) {
+            for (auto &pair : frontiers) {
+                spdlog::trace("[FillFrontiers] Frontier: {} {}", pair.first, pair.second);
+            }
+        }
+
+        // TODO: Need Efficient Erase
+        for (size_t i = 0; i < active_schemas_vec.size(); ++i) {
+            if (inactive_schemas[i]) {
+                spdlog::trace("[FillFrontiers] Erasing schema {}", active_schemas_vec[i]);
+                active_schemas.erase(active_schemas_vec[i]);
+            }
+        }
+
+        spdlog::trace("[FillFrontiers] {} active schemas remained after update", active_schemas.size());
+    }
+
+    std::pair<uint32_t, uint32_t> FindBestMergePair(
+        const CostModel _cost_model,
+        std::vector<CostPair> &frontiers,
+        std::unordered_set<uint32_t> &active_schemas)
+    {
+        spdlog::trace("[FindBestMergePair] {} active schemas initially", active_schemas.size());
+        uint32_t best_idx, best_pair_idx;
+        double best_cost =  GetWorstCost(_cost_model);
+        auto cost_compare = GetCostCompare(_cost_model);
+        for (uint32_t idx : active_schemas) {
+            auto [cost, pair_idx] = frontiers[idx];
+            if (cost_compare(std::make_pair(best_cost, 0), std::make_pair(cost, 0))) {
+                best_cost = cost;
+                best_idx = idx;
+                best_pair_idx = pair_idx;
+            }
+        }
+        spdlog::trace("[FindBestMergePair] {} and {} are the best pair", best_idx, best_pair_idx);
+        return std::make_pair(best_idx, best_pair_idx);
+    }
+
+    void FindMergePairs(
+        std::vector<CostHeap> &heaps,
+        const CostModel _cost_model,
+        std::vector<std::pair<uint32_t, uint32_t>> &merge_pairs)
+    {
+        size_t num_heaps = heaps.size();
+        std::vector<std::pair<uint32_t, uint32_t>> final_pairs;
+        std::vector<CostPair> frontiers(num_heaps);
+        std::unordered_set<uint32_t> active_schemas;
+        std::vector<bool> schema_merged(num_heaps, false);
+
+        spdlog::debug("[FindMergePairs] Identify active schemas");
+        for (uint32_t i = 0; i < num_heaps; ++i) {
+            if (!heaps[i].empty()) {
+                active_schemas.insert(i);
+            }
+        }
+
+        spdlog::debug("[FindMergePairs] Initially Fill frontiers");
+        FillFrontiers(
+            heaps,
+            frontiers,
+            active_schemas,
+            schema_merged,
+            true
+        );
+
+        spdlog::debug("[FindMergePairs] Iteratively Find Merge Pairs");
+        while (!active_schemas.empty()) {
+            auto best_pair = FindBestMergePair(
+                _cost_model,
+                frontiers,
+                active_schemas
+            );
+
+            merge_pairs.push_back(best_pair);
+            active_schemas.erase(best_pair.first);
+            active_schemas.erase(best_pair.second);
+            schema_merged[best_pair.first] = true;
+            schema_merged[best_pair.second] = true;
+
+            spdlog::trace("[FindMergePairs] Update frontiers");
+            FillFrontiers(
+                heaps,
+                frontiers,
+                active_schemas,
+                schema_merged,
+                false
+            );
+        }
 
         if (spdlog::default_logger_raw()->should_log(spdlog::level::trace)) {
-            for (auto &pair : final_pairs) {
-                spdlog::trace("[PrecomputeMergePairs] Pair: {} {}", pair.first, pair.second);
+            for (auto &pair : merge_pairs) {
+                spdlog::trace("[FindMergePairs] Pair: {} {}", pair.first, pair.second);
             }
         }
+    }
+
+    void InitializeHeaps(
+        const std::vector<std::pair<uint32_t, std::vector<uint32_t>>> &current_merge_state,
+        const CostModel _cost_model,
+        std::vector<CostHeap> &heaps)
+    {
+        const size_t num_tuples_total = current_merge_state.size();
+        spdlog::info("[InitializeHeaps] Number of tuples: {}", num_tuples_total);
+        auto cost_compare = GetCostCompare(_cost_model);
         
-        spdlog::info("[PrecomputeMergePairs] {} merge pairs generated", final_pairs.size());
-        return final_pairs;
+        heaps.reserve(num_tuples_total);
+        for (size_t i = 0; i < num_tuples_total; ++i) {
+            heaps.emplace_back(cost_compare);
+        }
+        spdlog::debug("[InitializeHeaps] {} Heaps initialized", num_tuples_total);
     }
 
     void MergeVertexlets(uint32_t idx1, uint32_t idx2, 
