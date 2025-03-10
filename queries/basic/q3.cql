@@ -1,1 +1,1 @@
-MATCH (n:Person) RETURN n.firstName;
+MATCH (n) RETURN n.`http://dbpedia.org/ontology/Planet/averageSpeed`;

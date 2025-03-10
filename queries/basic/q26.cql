@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.locationIP = "110.55.223.223" RETURN n;
+MATCH (n) RETURN n.`http://dbpedia.org/property/iupacName`;

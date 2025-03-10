@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.lastName = "Duong Truong" RETURN n;
+MATCH (n) RETURN n.`http://dbpedia.org/ontology/fileSize`;

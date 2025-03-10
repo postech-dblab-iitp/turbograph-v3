@@ -1,1 +1,1 @@
-MATCH (n:Person)-[:KNOWS]->(m0:Person)-[:KNOWS]->(m1:Person)-[:KNOWS]->(m2:Person) RETURN n, m0, m1, m2;
+MATCH (n) WHERE n.`http://dbpedia.org/property/competitors` > 311 AND n.`http://dbpedia.org/property/competitors` < 634 RETURN n;

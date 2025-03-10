@@ -1,1 +1,1 @@
-MATCH (n:Person) RETURN n.speaks;
+MATCH (n) RETURN n.`http://dbpedia.org/property/category`;

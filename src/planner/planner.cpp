@@ -307,13 +307,13 @@ void Planner::_orcaSetTraceFlags()
 
     if (config.ORCA_DEBUG_PRINT) {
         // GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintPlan);
-        // GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintXformResults);
-        // GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintXform);
-        // GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintMemoAfterExploration);
-        // GPOS_SET_TRACE(
-        //     gpos::EOptTraceFlag::EopttracePrintMemoAfterImplementation);
-        // GPOS_SET_TRACE(
-        //     gpos::EOptTraceFlag::EopttracePrintMemoAfterOptimization);
+        GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintXformResults);
+        GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintXform);
+        GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintMemoAfterExploration);
+        GPOS_SET_TRACE(
+            gpos::EOptTraceFlag::EopttracePrintMemoAfterImplementation);
+        GPOS_SET_TRACE(
+            gpos::EOptTraceFlag::EopttracePrintMemoAfterOptimization);
         GPOS_SET_TRACE(gpos::EOptTraceFlag::EopttracePrintOptimizationContext);
         GPOS_SET_TRACE(
             gpos::EOptTraceFlag::EopttracePrintOptimizationStatistics);

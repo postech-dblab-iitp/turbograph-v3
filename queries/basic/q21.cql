@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.lastName = "Shafi" RETURN n;
+MATCH (n) RETURN n.`http://dbpedia.org/property/r6LengthF`;

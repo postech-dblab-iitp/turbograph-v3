@@ -103,6 +103,7 @@ public:
 
 	DUCKDB_API void StartOperator(const CypherPhysicalOperator *phys_op);
 	DUCKDB_API void EndOperator(DataChunk *chunk);
+	DUCKDB_API void EndOperator(vector<shared_ptr<DataChunk>> &chunks);
 	DUCKDB_API void Flush(const CypherPhysicalOperator *phys_op, ExpressionExecutor *expression_executor, const string &name,
 	                      int id);
 

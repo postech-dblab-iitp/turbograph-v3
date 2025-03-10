@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.firstName = "Ilona" RETURN n;
+MATCH (n) RETURN n.`http://dbpedia.org/property/certification`;

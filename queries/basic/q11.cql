@@ -1,1 +1,1 @@
-MATCH (n:Person) RETURN n.email;
+MATCH (n) RETURN n.`http://dbpedia.org/property/temperatureLowC`;

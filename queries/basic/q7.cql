@@ -1,1 +1,1 @@
-MATCH (n:Person) RETURN n.creationDate;
+MATCH (n) RETURN n.`http://dbpedia.org/property/leaderName`;

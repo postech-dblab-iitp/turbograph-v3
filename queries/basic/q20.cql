@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.lastName = "Mori" RETURN n;
+MATCH (n) RETURN n.`http://dbpedia.org/property/fam`;

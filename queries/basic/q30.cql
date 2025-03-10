@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.browserUsed = "Firefox" RETURN n;
+MATCH (n) RETURN n.`http://dbpedia.org/property/hsGenlocChr`;

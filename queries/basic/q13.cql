@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.firstName = "Abo El Seoud" RETURN n;
+MATCH (n) RETURN n.`http://dbpedia.org/property/sign`;

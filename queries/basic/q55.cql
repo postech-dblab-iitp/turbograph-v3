@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.id > 20580277060165 AND n.id < 31242728622091 RETURN n;
+MATCH (n) WHERE n.`http://dbpedia.org/property/otherwins` > 10 AND n.`http://dbpedia.org/property/otherwins` < 13 RETURN n;

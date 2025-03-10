@@ -1,1 +1,1 @@
-MATCH (n:Person) RETURN n.gender;
+MATCH (n) RETURN n.`http://dbpedia.org/property/services`;

@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.firstName = "Amos" RETURN n;
+MATCH (n) RETURN n.`http://dbpedia.org/ontology/smiles`;

@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.speaks = "gu;as;en" RETURN n;
+MATCH (n) WHERE n.`http://dbpedia.org/property/popDate` = 1380499200000 RETURN n;

@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.creationDate > 1267221691717 AND n.creationDate < 1280088933608 RETURN n;
+MATCH (n) WHERE n.`http://dbpedia.org/ontology/buildingEndYear` > 654 AND n.`http://dbpedia.org/ontology/buildingEndYear` < 967 RETURN n;

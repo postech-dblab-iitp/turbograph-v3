@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.birthday > 328381751897 AND n.birthday < 514906563862 RETURN n;
+MATCH (n) WHERE n.`http://dbpedia.org/ontology/endowment` = '4.92E8' RETURN n;

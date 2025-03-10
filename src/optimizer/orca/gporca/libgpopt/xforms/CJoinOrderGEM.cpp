@@ -651,12 +651,12 @@ CExpression *CJoinOrderGEM::ProcessUnionAllComponents(CDouble &dCost)
 			pexprGOO->Release();
 		}
 
-        CDouble dComponentTime(timerComponent.ElapsedUS() /
-                               CDouble(GPOS_USEC_IN_MSEC));
-        dTotalTime = CDouble(dTotalTime.Get() + dComponentTime.Get());
-        if (dTotalTime.Get() > COMPONENT_TIME_LIMIT) {
-            break;
-        }
+        // CDouble dComponentTime(timerComponent.ElapsedUS() /
+        //                        CDouble(GPOS_USEC_IN_MSEC));
+        // dTotalTime = CDouble(dTotalTime.Get() + dComponentTime.Get());
+        // if (dTotalTime.Get() > COMPONENT_TIME_LIMIT) {
+        //     break;
+        // }
     }
 	
 	return pexprResultUnionAll;

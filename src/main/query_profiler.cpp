@@ -212,6 +212,28 @@ void OperatorProfiler::EndOperator(DataChunk *chunk) {
 	active_operator = nullptr;
 }
 
+
+void OperatorProfiler::EndOperator(vector<shared_ptr<DataChunk>> &chunks) {
+	if (!enabled) {
+		return;
+	}
+
+	if (!active_operator) {
+		throw InternalException("OperatorProfiler: Attempting to call EndOperator while another operator is active");
+	}
+
+	// finish timing for the current element
+	op.End();
+
+	size_t total_size = 0;
+	for (auto &chunk : chunks) {
+		total_size += chunk->size();
+	}
+	AddTiming(active_operator, op.Elapsed(), total_size);
+	active_operator = nullptr;
+}
+
+
 void OperatorProfiler::AddTiming(const CypherPhysicalOperator *op, double time, idx_t elements) {
 	if (!enabled) {
 		return;

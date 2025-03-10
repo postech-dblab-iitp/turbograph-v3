@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.browserUsed = "Opera" RETURN n;
+MATCH (n) WHERE n.`http://dbpedia.org/property/aircraftPatrol` = 'Wildcat, Lynx, Merlin, Sea King' RETURN n;

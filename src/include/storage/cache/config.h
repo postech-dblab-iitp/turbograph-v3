@@ -3,7 +3,7 @@
 #define CACHE_CONFIG_H
 
 #define STORE_NAME "lightning"
-#define DEFAULT_STORE_SIZE 100L * 1024L * 1024L * 1024L
+#define DEFAULT_STORE_SIZE 300L * 1024L * 1024L * 1024L
 #define LIGHTNING_MMAP_ADDR 0x30007fff8000
 
 inline uint64_t hash_object_id(uint64_t object_id) {

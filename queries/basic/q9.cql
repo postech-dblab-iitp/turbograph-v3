@@ -1,1 +1,1 @@
-MATCH (n:Person) RETURN n.browserUsed;
+MATCH (n) RETURN n.`http://dbpedia.org/property/areaUrbanSqMi`;

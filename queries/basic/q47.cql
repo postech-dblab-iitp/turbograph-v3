@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.birthday > 536839792717 AND n.birthday < 539341892788 RETURN n;
+MATCH (n) WHERE n.`http://dbpedia.org/property/roads` = 'Andres Soriano Avenue' RETURN n;

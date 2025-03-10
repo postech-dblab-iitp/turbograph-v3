@@ -7,14 +7,13 @@
 cluster_algorithms=("AGGLOMERATIVE")
 cost_models=("OURS")
 layering_orders=("DESCENDING")
-zipf_values=("3")
 
 # File path to the configuration header
 config_file_path="/turbograph-v3/src/include/common/graph_simdjson_parser.hpp"
 
 # Define source, target, and log directories
-source_dir_base="/source-data/basic/"
-target_dir_base="/data/basic/"
+source_dir_base="/source-data/dbpedia/"
+target_dir_base="/data/dbpedia/"
 log_dir_base="/turbograph-v3/logs"
 
 # Function to update the configuration file with new values
@@ -43,33 +42,31 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
     for cost_model in "${cost_models[@]}"; do
         for layering_order in "${layering_orders[@]}"; do
             update_config_file ${cluster_algo} ${cost_model} ${layering_order}
-            for zipf_value in "${zipf_values[@]}"; do
-                cd /turbograph-v3/build-release && ninja
+            cd /turbograph-v3/build-release && ninja
 
-                source_dir="${source_dir_base}"
-                target_dir="${target_dir_base}/basic_${cluster_algo}_${cost_model}_${layering_order}_zipf${zipf_value}"
+            source_dir="${source_dir_base}"
+            target_dir="${target_dir_base}/basic_${cluster_algo}_${cost_model}_${layering_order}_zipf${zipf_value}"
 
-                /turbograph-v3/build-release/tools/store 500GB &
-                sleep 15
+            /turbograph-v3/build-release/tools/store 500GB &
+            sleep 15
 
-                log_file="${log_dir}/basic_${cluster_algo}_${cost_model}_${layering_order}_zipf${zipf_value}.txt"
-                # /turbograph-v3/build-release/tools/bulkload \
-                #     --log-level trace \
-                #     --skip-histogram true \
-                #     --output_dir ${target_dir} \
-                #     --nodes Person ${source_dir}/Person-zipf-${zipf_value}.json  \
-                #     --relationships KNOWS ${source_dir}/Person_knows_Person.csv \
-                #     --relationships_backward KNOWS ${source_dir}/Person_knows_Person.csv.backward &> ${log_file}
+            log_file="${log_dir}/basic_${cluster_algo}_${cost_model}_${layering_order}_zipf${zipf_value}.txt"
+            # /turbograph-v3/build-release/tools/bulkload \
+            #     --log-level trace \
+            #     --skip-histogram true \
+            #     --output_dir ${target_dir} \
+            #     --nodes Person ${source_dir}/Person-zipf-${zipf_value}.json  \
+            #     --relationships KNOWS ${source_dir}/Person_knows_Person.csv \
+            #     --relationships_backward KNOWS ${source_dir}/Person_knows_Person.csv.backward &> ${log_file}
 
-                /turbograph-v3/build-release/tools/bulkload \
-                    --log-level trace \
-                    --skip-histogram true \
-                    --output_dir ${target_dir} \
-                    --nodes Person ${source_dir}/Person-zipf-${zipf_value}.json  &> ${log_file}
+            /turbograph-v3/build-release/tools/bulkload \
+                --log-level trace \
+                --skip-histogram \
+                --output_dir ${target_dir} \
+                --nodes NODE ${source_dir}/nodes.json &> ${log_file}
 
-                pkill -f store
-                sleep 5
-            done
+            pkill -f store
+            sleep 5
         done
     done
 done
