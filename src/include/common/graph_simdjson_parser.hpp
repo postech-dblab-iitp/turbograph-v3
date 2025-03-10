@@ -8,10 +8,11 @@
 #include <Python.h>
 #include <simdjson.h>
 
+#include "icecream.hpp"
+#include "common/logger.hpp"
 #include "common/vector.hpp"
 #include "common/clustering/dbscan.h"
 #include "common/clustering/optics.hpp"
-#include "icecream.hpp"
 #include "storage/schemaless/schema_hash_table.hpp"
 
 using namespace simdjson;
@@ -20,6 +21,7 @@ using namespace simdjson;
 #define NEO4J_VERTEX_ID_NAME "id"
 #define COST_MAX 10000000000.00
 #define COST_MIN 0
+#define MAX_THREADS 64
 
 // Thresholds
 #define FREQUENCY_THRESHOLD 0.95
@@ -39,6 +41,12 @@ namespace duckdb {
 #define LIDPAIR
 typedef std::pair<idx_t, idx_t> LidPair;
 #endif
+
+typedef uint64_t NumTuples;
+typedef uint32_t PropertyID;
+typedef vector<std::pair<vector<PropertyID>, NumTuples>> SchemaGroups;
+
+const uint32_t MERGED_SCHEMA = std::numeric_limits<uint32_t>::max();
 
 class GraphSIMDJSONFileParser {
 
@@ -76,7 +84,7 @@ public:
     };
 
     const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
-    const CostModel cost_model = CostModel::JACCARD;
+    const CostModel cost_model = CostModel::OURS;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
     const MergeInAdvance merge_in_advance = MergeInAdvance::IN_QUERY_TIME;
 /*******************/
@@ -93,6 +101,10 @@ public:
         cat_instance = cat_instance_;
 
         sch_HT.resize(1000); // TODO appropriate size
+
+        spdlog::info("[GraphSIMDJSONFileParser] CostSchemaVal: {}", CostSchemaVal);
+        spdlog::info("[GraphSIMDJSONFileParser] CostNullVal: {}", CostNullVal);
+        spdlog::info("[GraphSIMDJSONFileParser] CostVectorizationVal: {}", CostVectorizationVal);
     }
     
     void SetLidToPidMap (vector<std::pair<string, unordered_map<LidPair, idx_t, boost::hash<LidPair>>>> *lid_to_pid_map_) {
@@ -311,40 +323,6 @@ public:
                 // Get Scheam from samples
             }
         }
-    }
-
-    void _ExtractSchemaBagSemantic(GraphComponentType gctype) {
-        D_ASSERT(false);
-        // if (gctype == GraphComponentType::INVALID) {
-        //     D_ASSERT(false); // deactivate temporarily
-        // } else if (gctype == GraphComponentType::VERTEX) {
-        //     int num_tuples = 0;
-        //     // TODO check; always same order?
-        //     for (auto doc_ : docs) { // iterate each jsonl document; one for each vertex
-        //         // properties object has vertex properties; assume Neo4j dump file format
-        //         std::vector<uint64_t> tmp_vec;
-
-        //         string current_prefix = "";
-        //         recursive_collect_key_paths_jsonl(doc_["properties"], current_prefix, true, tmp_vec, num_tuples);
-
-        //         int64_t schema_id;
-        //         schema_id = schema_groups.size();
-        //         schema_groups.push_back(tmp_vec);
-        //         corresponding_schemaID.push_back(schema_id);
-        //         num_tuples++;
-        //     }
-        //     schema_property_freq_vec.resize(property_freq_vec.size(), 0);
-        //     for (size_t i = 0; i < schema_groups.size(); i++) {
-        //         for (size_t j = 0; j < schema_groups[i].size(); j++) {
-        //             schema_property_freq_vec[schema_groups[i][j]]++;
-        //         }
-        //     }
-        //     printf("schema_groups.size = %ld\n", schema_groups.size());
-
-        //     return;
-        // } else if (gctype == GraphComponentType::EDGE) {
-        //     D_ASSERT(false); // not implemented yet
-        // }
     }
 
     void _PreprocessSchemaForClustering(bool use_setsim_algo = true) {
@@ -804,11 +782,11 @@ public:
                     j++;
                 }
             }
-            while (i < schema_group1.first.size()) {
+            while (i < schema_group2.first.size()) {
                 num_nulls1++;
                 i++;
             }
-            while (j < schema_group2.first.size()) {
+            while (j < schema_group1.first.size()) {
                 num_nulls2++;
                 j++;
             }
@@ -999,62 +977,62 @@ public:
         SplitIntoMultipleLayers(schema_groups_with_num_tuples, num_tuples_order,
                                 num_layers, layer_boundaries);
 
-        vector<std::pair<uint32_t, std::vector<uint32_t>>> temp_output;
+        vector<std::pair<uint32_t, std::vector<uint32_t>>> current_merge_state;
         for (uint32_t i = 0; i < num_layers; i++) {
             size_t size_to_reserve = i == 0 ? layer_boundaries[i]
-                                            : temp_output.size() +
+                                            : current_merge_state.size() +
                                                   layer_boundaries[i] -
                                                   layer_boundaries[i - 1];
-            temp_output.reserve(size_to_reserve);
+            current_merge_state.reserve(size_to_reserve);
             for (uint32_t j = i == 0 ? 0 : layer_boundaries[i - 1];
                  j < layer_boundaries[i]; j++) {
                 std::vector<uint32_t> temp_vec;
                 temp_vec.push_back(num_tuples_order[j]);
-                temp_output.push_back(std::make_pair(num_tuples_order[j], std::move(temp_vec)));
+                current_merge_state.push_back(std::make_pair(num_tuples_order[j], std::move(temp_vec)));
             }
             ClusterSchemasInCurrentLayer(schema_groups_with_num_tuples,
                                          num_tuples_order, layer_boundaries,
-                                         i, temp_output, cost_model);
+                                         i, current_merge_state, cost_model);
             
             // remove nullptrs
-            temp_output.erase(
-                std::remove_if(begin(temp_output), end(temp_output),
+            current_merge_state.erase(
+                std::remove_if(begin(current_merge_state), end(current_merge_state),
                                [](auto &x) { return x.first == std::numeric_limits<uint32_t>::max(); }),
-                end(temp_output));
+                end(current_merge_state));
             
-            for (auto i = 0; i < temp_output.size(); i++) {
-                if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) { continue; }
+            for (auto i = 0; i < current_merge_state.size(); i++) {
+                if (current_merge_state[i].first == std::numeric_limits<uint32_t>::max()) { continue; }
 
-                std::cout << "Cluster " << i << " (" << schema_groups_with_num_tuples[temp_output[i].first].second << ") : ";
-                for (auto j = 0; j < schema_groups_with_num_tuples[temp_output[i].first].first.size(); j++) {
-                    std::cout << schema_groups_with_num_tuples[temp_output[i].first].first[j] << ", ";
+                std::cout << "Cluster " << i << " (" << schema_groups_with_num_tuples[current_merge_state[i].first].second << ") : ";
+                for (auto j = 0; j < schema_groups_with_num_tuples[current_merge_state[i].first].first.size(); j++) {
+                    std::cout << schema_groups_with_num_tuples[current_merge_state[i].first].first[j] << ", ";
                 }
                 std::cout << std::endl;
 
                 std::cout << "\t";
-                for (auto j = 0; j < temp_output[i].second.size(); j++) {
-                    std::cout << temp_output[i].second[j] << ", ";
+                for (auto j = 0; j < current_merge_state[i].second.size(); j++) {
+                    std::cout << current_merge_state[i].second[j] << ", ";
                 }
                 std::cout << std::endl;
             }
         }
 
-        std::cout << "Number of final clusters: " << temp_output.size() << std::endl;
+        std::cout << "Number of final clusters: " << current_merge_state.size() << std::endl;
 
         if (merge_in_advance == MergeInAdvance::IN_STORAGE) {
-            _MergeInAdvance(temp_output);
+            _MergeInAdvance(current_merge_state);
         }
 
-        num_clusters = temp_output.size();
-        cluster_tokens.reserve(temp_output.size());
-        for (auto i = 0; i < temp_output.size(); i++) {
-            if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) { continue; }
+        num_clusters = current_merge_state.size();
+        cluster_tokens.reserve(current_merge_state.size());
+        for (auto i = 0; i < current_merge_state.size(); i++) {
+            if (current_merge_state[i].first == std::numeric_limits<uint32_t>::max()) { continue; }
 
-            cluster_tokens.push_back(std::move(schema_groups_with_num_tuples[temp_output[i].first].first));
+            cluster_tokens.push_back(std::move(schema_groups_with_num_tuples[current_merge_state[i].first].first));
             std::sort(cluster_tokens.back().begin(), cluster_tokens.back().end());
 
-            for (auto j = 0; j < temp_output[i].second.size(); j++) {
-                sg_to_cluster_vec[temp_output[i].second[j]] = i;
+            for (auto j = 0; j < current_merge_state[i].second.size(); j++) {
+                sg_to_cluster_vec[current_merge_state[i].second[j]] = i;
             }
         }
     }
@@ -1078,73 +1056,53 @@ public:
         layer_boundaries.push_back(num_tuples_order.size());
         num_layers = layer_boundaries.size();
 
-        vector<std::pair<uint32_t, std::vector<uint32_t>>> temp_output;
+        vector<std::pair<uint32_t, std::vector<uint32_t>>> current_merge_state;
         for (uint32_t i = 0; i < num_layers; i++) {
             size_t size_to_reserve = i == 0 ? layer_boundaries[i]
-                                            : temp_output.size() +
+                                            : current_merge_state.size() +
                                                   layer_boundaries[i] -
                                                   layer_boundaries[i - 1];
-            temp_output.reserve(size_to_reserve);
+            current_merge_state.reserve(size_to_reserve);
             for (uint32_t j = i == 0 ? 0 : layer_boundaries[i - 1];
                  j < layer_boundaries[i]; j++) {
                 std::vector<uint32_t> temp_vec;
                 temp_vec.push_back(num_tuples_order[j]);
-                temp_output.push_back(std::make_pair(num_tuples_order[j], std::move(temp_vec)));
+                current_merge_state.push_back(std::make_pair(num_tuples_order[j], std::move(temp_vec)));
             }
             ClusterSchemasInCurrentLayer(schema_groups_with_num_tuples,
                                          num_tuples_order, layer_boundaries,
-                                         i, temp_output, CostModel::WEIGHTEDJACCARD);
+                                         i, current_merge_state, CostModel::WEIGHTEDJACCARD);
             
             // remove nullptrs
-            temp_output.erase(
-                std::remove_if(begin(temp_output), end(temp_output),
+            current_merge_state.erase(
+                std::remove_if(begin(current_merge_state), end(current_merge_state),
                                [](auto &x) { return x.first == std::numeric_limits<uint32_t>::max(); }),
-                end(temp_output));
+                end(current_merge_state));
         }
-        
-        // Step 1: Compute the number of tuples for each cluster
-        // std::vector<std::pair<std::size_t, uint64_t>> cluster_tuples_count;
-        // for (std::size_t i = 0; i < temp_output.size(); i++) {
-        //     if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) {
-        //         continue;
-        //     }
-        //     uint64_t tuple_count = schema_groups_with_num_tuples[temp_output[i].first].second;
-        //     cluster_tuples_count.push_back({i, tuple_count});
-        // }
-
-        // Step 2: Sort the clusters based on the number of tuples in descending order
-        // std::sort(cluster_tuples_count.begin(), cluster_tuples_count.end(),
-        //         [](const std::pair<std::size_t, uint64_t>& a, const std::pair<std::size_t, uint64_t>& b) {
-        //             return b.second < a.second; // sort in descending order
-        //         });
 
         // Step 3: Populate cluster_tokens in sorted order
-        num_clusters = temp_output.size();
-        cluster_tokens.reserve(temp_output.size());
-        // for (const auto& cluster_info : cluster_tuples_count) {
-        //     std::size_t i = cluster_info.first;
-        //     if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) {
-        //         continue;
-        //     }
-        for (auto i = 0; i < temp_output.size(); i++) {
+        num_clusters = current_merge_state.size();
+        cluster_tokens.reserve(current_merge_state.size());
 
-            std::cout << "Cluster " << i << " (" << schema_groups_with_num_tuples[temp_output[i].first].second << ") : ";
-            for (auto j = 0; j < schema_groups_with_num_tuples[temp_output[i].first].first.size(); j++) {
-                std::cout << schema_groups_with_num_tuples[temp_output[i].first].first[j] << ", ";
+        for (auto i = 0; i < current_merge_state.size(); i++) {
+
+            std::cout << "Cluster " << i << " (" << schema_groups_with_num_tuples[current_merge_state[i].first].second << ") : ";
+            for (auto j = 0; j < schema_groups_with_num_tuples[current_merge_state[i].first].first.size(); j++) {
+                std::cout << schema_groups_with_num_tuples[current_merge_state[i].first].first[j] << ", ";
             }
             std::cout << std::endl;
 
-            cluster_tokens.push_back(std::move(schema_groups_with_num_tuples[temp_output[i].first].first));
+            cluster_tokens.push_back(std::move(schema_groups_with_num_tuples[current_merge_state[i].first].first));
             std::sort(cluster_tokens.back().begin(), cluster_tokens.back().end());
 
             std::cout << "\t";
-            for (auto j = 0; j < temp_output[i].second.size(); j++) {
-                std::cout << temp_output[i].second[j] << ", ";
+            for (auto j = 0; j < current_merge_state[i].second.size(); j++) {
+                std::cout << current_merge_state[i].second[j] << ", ";
             }
             std::cout << std::endl;
 
-            for (auto j = 0; j < temp_output[i].second.size(); j++) {
-                sg_to_cluster_vec[temp_output[i].second[j]] = i;
+            for (auto j = 0; j < current_merge_state[i].second.size(); j++) {
+                sg_to_cluster_vec[current_merge_state[i].second[j]] = i;
             }
         }
     }
@@ -1228,12 +1186,8 @@ public:
 
         D_ASSERT(_schema_groups_with_num_tuples.size() == schemas_in_cluster.size());
 
-        boost::timer::cpu_timer gmm_timer;
         vector<uint32_t> reference_schema_group;
         _GetReferenceSchemaGroup(_schema_groups_with_num_tuples, reference_schema_group);
-        auto gmm_timer_ms = gmm_timer.elapsed().wall / 1000000.0;
-        std::cout << "\nGMM Time: "  << gmm_timer_ms << " ms" << std::endl;
-
         D_ASSERT(reference_schema_group.size() == 1); // 1-most frequent property id
 
         vector<float> similarities;
@@ -1594,365 +1548,348 @@ public:
         const vector<uint32_t> &num_tuples_order,
         const vector<uint32_t> &layer_boundaries,
         uint32_t current_layer,
-        vector<std::pair<uint32_t, std::vector<uint32_t>>> &temp_output,
+        vector<std::pair<uint32_t, std::vector<uint32_t>>> &current_merge_state,
         const CostModel _cost_model)
     {
-        uint32_t merged_count;
         uint32_t iteration = 0;
-        uint32_t num_tuples_total = temp_output.size();
-        std::vector<bool> visited(num_tuples_total, false);
         do {
-            std::cout << "Iteration " << iteration << " start" << std::endl;
-            merged_count = 0;
+	        SCOPED_TIMER_SIMPLE(ClusterSchemasInCurrentLayer, spdlog::level::info, spdlog::level::debug);
+            spdlog::info("[ClusterSchemasInCurrentLayer] Layer: {} Iteration: {}", current_layer, iteration);
 
-            std::cout << "Layer " << current_layer 
-                    << ", num_tuples: " << num_tuples_total << std::endl;
+            SUBTIMER_START(ClusterSchemasInCurrentLayer, "PrecomputeMergePairs");
+            auto merge_pairs = PrecomputeMergePairs(current_merge_state, _cost_model);
+            auto merged_size = merge_pairs.size();
+            SUBTIMER_STOP(ClusterSchemasInCurrentLayer, "PrecomputeMergePairs");
 
-            if (num_tuples_total > std::numeric_limits<uint32_t>::max()) {
-                std::cerr << "Number of tuples exceeds the maximum value of uint32_t" << std::endl;
-                break;
+            if (merged_size == 0) break;
+
+            size_t new_merge_state_start_idx = current_merge_state.size();
+            size_t new_schema_start_idx = schema_groups_with_num_tuples.size();
+            current_merge_state.resize(new_merge_state_start_idx + merged_size);
+            schema_groups_with_num_tuples.resize(new_schema_start_idx + merged_size);
+
+            SUBTIMER_START(ClusterSchemasInCurrentLayer, "MergeVertexlets");
+            #pragma omp parallel for schedule(dynamic) num_threads(MAX_THREADS)
+            for (size_t i = 0; i < merged_size; ++i) {
+                spdlog::trace("[ClusterSchemasInCurrentLayer] Merging pair: {} {}", merge_pairs[i].first, merge_pairs[i].second);
+                MergeVertexlets(
+                    merge_pairs[i].first, 
+                    merge_pairs[i].second, 
+                    current_merge_state, 
+                    new_schema_start_idx + i,
+                    new_merge_state_start_idx + i
+                );
             }
+            SUBTIMER_STOP(ClusterSchemasInCurrentLayer, "MergeVertexlets");
 
-            std::cout << "GenerateCostMatrix done" << std::endl;
+            iteration++;
+        } while (true);
 
-            /* START_OF_COST_MODEL_BASED */
-            auto cost_compare_great = [](const std::pair<double, std::pair<uint32_t, uint32_t>> &a,
-                                        const std::pair<double, std::pair<uint32_t, uint32_t>> &b) {
-                return a.first > b.first;
-            };
+        spdlog::info("[ClusterSchemasInCurrentLayer] Done with Total Iterations: {}", iteration);
+    }
 
-            auto cost_compare_less = [](const std::pair<double, std::pair<uint32_t, uint32_t>> &a,
-                                        const std::pair<double, std::pair<uint32_t, uint32_t>> &b) {
-                return a.first < b.first;
-            };
 
-            // Pre-allocate memory for the vector
-            std::vector<std::pair<double, std::pair<uint32_t, uint32_t>>> pre_allocated_vector;
-            pre_allocated_vector.reserve(num_tuples_total); // Reserve space for all pairwise costs
+    std::vector<std::pair<uint32_t, uint32_t>> PrecomputeMergePairs(
+        const std::vector<std::pair<uint32_t, std::vector<uint32_t>>> &current_merge_state,
+        const CostModel _cost_model)
+    {
+	    SCOPED_TIMER_SIMPLE(PrecomputeMergePairs, spdlog::level::info, spdlog::level::debug);
 
-            std::unique_ptr<std::priority_queue<std::pair<double, std::pair<uint32_t, uint32_t>>,
-                                                std::vector<std::pair<double, std::pair<uint32_t, uint32_t>>>,
-                                                std::function<bool(const std::pair<double, std::pair<uint32_t, uint32_t>> &,
-                                                                const std::pair<double, std::pair<uint32_t, uint32_t>> &)>>> cost_pq_ptr;
-
-            if (_cost_model == CostModel::OURS || _cost_model == CostModel::SETEDIT) {
-                cost_pq_ptr = std::make_unique<std::priority_queue<std::pair<double, std::pair<uint32_t, uint32_t>>,
-                                                                std::vector<std::pair<double, std::pair<uint32_t, uint32_t>>>,
-                                                                std::function<bool(const std::pair<double, std::pair<uint32_t, uint32_t>> &,
-                                                                                    const std::pair<double, std::pair<uint32_t, uint32_t>> &)>>>(
-                    cost_compare_great, std::move(pre_allocated_vector));
-            } else {
-                cost_pq_ptr = std::make_unique<std::priority_queue<std::pair<double, std::pair<uint32_t, uint32_t>>,
-                                                                std::vector<std::pair<double, std::pair<uint32_t, uint32_t>>>,
-                                                                std::function<bool(const std::pair<double, std::pair<uint32_t, uint32_t>> &,
-                                                                                    const std::pair<double, std::pair<uint32_t, uint32_t>> &)>>>(
-                    cost_compare_less, std::move(pre_allocated_vector));
-            }
-            /* END_OF_COST_MODEL_BASED */
+        SUBTIMER_START(PrecomputeMergePairs, "Initialize Heaps");
+        std::vector<CostHeap> heaps;
+        InitializeHeaps(current_merge_state, _cost_model, heaps);
+        SUBTIMER_STOP(PrecomputeMergePairs, "Initialize Heaps");
         
-            auto &cost_pq = *cost_pq_ptr;
-            const size_t TOPK = 10;
-            vector<uint8_t> count_per_tuple;
-            count_per_tuple.resize(num_tuples_total, 0);
-            #pragma omp parallel for num_threads(32)
-            for (uint32_t i = 0; i < num_tuples_total; ++i) {
-                if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) {
+	    SUBTIMER_START(PrecomputeMergePairs, "Fill Cost Heaps");
+        FillCostHeap(current_merge_state, _cost_model, heaps);
+        SUBTIMER_STOP(PrecomputeMergePairs, "Fill Cost Heaps");
+
+        SUBTIMER_START(PrecomputeMergePairs, "Find Merge Pairs");
+        std::vector<std::pair<uint32_t, uint32_t>> final_pairs;
+        FindMergePairs(heaps, _cost_model, final_pairs);
+        SUBTIMER_STOP(PrecomputeMergePairs, "Find Merge Pairs");
+        
+        spdlog::info("[PrecomputeMergePairs] {} merge pairs generated", final_pairs.size());
+        return final_pairs;
+    }
+
+    using CostPair = std::pair<double, uint32_t>;
+    using CostHeap = std::priority_queue<CostPair, std::vector<CostPair>, std::function<bool(const CostPair&, const CostPair&)>>;
+
+    inline double GetWorstCost(CostModel model) {
+        return (model == CostModel::OURS || model == CostModel::SETEDIT)
+                    ? std::numeric_limits<double>::max()
+                    : std::numeric_limits<double>::lowest();
+    }
+
+    inline std::function<bool(const CostPair&, const CostPair&)> GetCostCompare(CostModel model) {
+        auto cost_compare_great = [](const CostPair &a, const CostPair &b) { 
+            return (a.first > b.first) || (a.first == b.first && a.second > b.second); 
+        };
+        auto cost_compare_less = [](const CostPair &a, const CostPair &b) { 
+            return (a.first < b.first) || (a.first == b.first && a.second < b.second);
+        };
+        auto cost_compare = (model == CostModel::OURS || model == CostModel::SETEDIT)
+                                ? cost_compare_great
+                                : cost_compare_less;
+        return cost_compare;
+    }       
+
+    inline bool PassesThreshold(double cost, CostModel model) {
+        switch (model) {
+            case CostModel::OURS:
+                return cost <= 0;
+            case CostModel::SETEDIT:
+                return cost <= SET_EDIT_THRESHOLD;
+            case CostModel::OVERLAP:
+                return cost >= OVERLAP_THRESHOLD;
+            case CostModel::JACCARD:
+                return cost >= JACCARD_THRESHOLD;
+            case CostModel::WEIGHTEDJACCARD:
+                return cost >= WEIGHTEDJACCARD_THRESHOLD;
+            case CostModel::COSINE:
+                return cost >= COSINE_THRESHOLD;
+            case CostModel::DICE:
+                return cost >= DICE_THRESHOLD;
+            default:
+                return false;
+        }
+    }
+
+    void FillCostHeap(
+        const std::vector<std::pair<uint32_t, std::vector<uint32_t>>> &current_merge_state,
+        const CostModel _cost_model,
+        std::vector<CostHeap> &heaps)
+    {
+        const size_t num_tuples_total = current_merge_state.size();
+        #pragma omp parallel for schedule(dynamic) num_threads(MAX_THREADS)
+        for (uint32_t i = 0; i < num_tuples_total; ++i) {
+            if (current_merge_state[i].first == MERGED_SCHEMA) {
+                continue;
+            }
+
+            for (uint32_t j = i + 1; j < num_tuples_total; ++j) {
+                if (current_merge_state[j].first == MERGED_SCHEMA) {
                     continue;
                 }
+                
+                uint32_t group1_idx = current_merge_state[i].first;
+                uint32_t group2_idx = current_merge_state[j].first;
 
-                // Use a local heap for each tuple to store top-10 costs
-                std::priority_queue<std::pair<double, std::pair<uint32_t, uint32_t>>,
-                                    std::vector<std::pair<double, std::pair<uint32_t, uint32_t>>>,
-                                    std::function<bool(const std::pair<double, std::pair<uint32_t, uint32_t>> &,
-                                                    const std::pair<double, std::pair<uint32_t, uint32_t>> &)>>
-                    local_heap((_cost_model == CostModel::OURS || _cost_model == CostModel::SETEDIT)
-                                ? cost_compare_great
-                                : cost_compare_less);
-
-                for (uint32_t j = i + 1; j < num_tuples_total; ++j) {
-                    uint32_t group1_idx = temp_output[i].first;
-                    uint32_t group2_idx = temp_output[j].first;
-
-                    double cost = (group1_idx == std::numeric_limits<uint32_t>::max() || 
-                                group2_idx == std::numeric_limits<uint32_t>::max())
-                                    ? (_cost_model == CostModel::OURS || _cost_model == CostModel::SETEDIT ? COST_MAX : COST_MIN)
-                                    : CalculateCost(schema_groups_with_num_tuples[group1_idx], 
-                                                    schema_groups_with_num_tuples[group2_idx],
-                                                    _cost_model,
-                                                    schema_groups_with_num_tuples.size());
-
-                    // Skip invalid costs for OURS model
-                    if (_cost_model == CostModel::OURS && cost > 0) {
-                        continue;
-                    } else if (_cost_model == CostModel::SETEDIT && cost > SET_EDIT_THRESHOLD) {
-                        continue;
-                    } else if (_cost_model == CostModel::OVERLAP && cost < OVERLAP_THRESHOLD) {
-                        continue;
-                    } else if (_cost_model == CostModel::JACCARD && cost < JACCARD_THRESHOLD) {
-                        continue;
-                    } else if (_cost_model == CostModel::WEIGHTEDJACCARD && cost < WEIGHTEDJACCARD_THRESHOLD) {
-                        continue;
-                    } else if (_cost_model == CostModel::COSINE && cost < COSINE_THRESHOLD) {
-                        continue;
-                    } else if (_cost_model == CostModel::DICE && cost < DICE_THRESHOLD) {
-                        continue;
-                    }
-
-                    // Add the current cost to the local heap
-                    local_heap.push(std::make_pair(cost, std::make_pair(i, j)));
-
-                    // If the heap size exceeds 10, remove the worst (least priority) cost
-                    if (local_heap.size() > TOPK) {
-                        local_heap.pop();
-                    }
-                }
-
-                count_per_tuple[i] = local_heap.size();
-
-                while (!local_heap.empty()) {
-                    #pragma omp critical
-                    {
-                        cost_pq.push(local_heap.top());
-                    }
-                    local_heap.pop();
+                double cost = CalculateCost(schema_groups_with_num_tuples[group1_idx],
+                                            schema_groups_with_num_tuples[group2_idx],
+                                            _cost_model,
+                                            schema_groups_with_num_tuples.size());
+                
+                if (PassesThreshold(cost, _cost_model)) {
+                    heaps[i].emplace(cost, j);
                 }
             }
+        }
 
-            std::cout << "Cost PQ size: " << cost_pq.size() << std::endl;
+        if (spdlog::default_logger_raw()->should_log(spdlog::level::trace)) {
+            spdlog::trace("[FillCostHeap] Heaps filled");
+            for (uint32_t i = 0; i < num_tuples_total; ++i) {
+                spdlog::trace("[FillCostHeap] Heap {} size: {}", i, heaps[i].size());
+            }
+        }
+    }
 
-            boost::timer::cpu_timer merge_timer;
-            uint32_t num_tuples_added = 0;
-            if (!cost_pq.empty()) {
-                do {
-                    std::pair<double, std::pair<uint32_t, uint32_t>> min_cost = cost_pq.top();
-                    cost_pq.pop();
+    void FillFrontiers(
+        std::vector<CostHeap> &heaps,
+        std::vector<CostPair> &frontiers,
+        std::unordered_set<uint32_t> &active_schemas,
+        std::vector<bool> &schema_merged,
+        bool initialize)
+    {
+        spdlog::trace("[FillFrontiers] {} active schemas initially", active_schemas.size());
 
-                    // Extract the indices directly from the pair
-                    uint32_t idx1 = min_cost.second.first;
-                    uint32_t idx2 = min_cost.second.second;
+        std::vector<uint32_t> active_schemas_vec(active_schemas.begin(), active_schemas.end());
 
-                    // fprintf(stdout, "min_cost: %.3f, idx1: %d, idx2: %d\n", min_cost.first, idx1, idx2);
-                    // fprintf(stdout, "visited[idx1]: %d, visited[idx2]: %d\n", visited[idx1] ? 1 : 0, visited[idx2] ? 1 : 0);
+        // print schemas
+        if (spdlog::default_logger_raw()->should_log(spdlog::level::trace)) {
+            for (auto &schema_idx : active_schemas_vec) {
+                spdlog::trace("[FillFrontiers] Schema: {}", schema_idx);
+            }
+        }
 
-                    /* START_OF_COST_MODEL_BASED */
-                    if (_cost_model == CostModel::OURS) {
-                        if (min_cost.first > 0) {
-                            break;
-                        }
-                    }
-                    else if (_cost_model == CostModel::SETEDIT) {
-                        if (min_cost.first > SET_EDIT_THRESHOLD) {
-                            break;
-                        }
-                    }
-                    else if (_cost_model == CostModel::JACCARD) {
-                        if (min_cost.first < JACCARD_THRESHOLD || min_cost.first == COST_MIN) {
-                            break;
-                        }
-                    }
-                    else if (_cost_model == CostModel::WEIGHTEDJACCARD) {
-                        if (min_cost.first < WEIGHTEDJACCARD_THRESHOLD || min_cost.first == COST_MIN) {
-                            break;
-                        }
-                    }
-                    else if (_cost_model == CostModel::COSINE) {
-                        if (min_cost.first < COSINE_THRESHOLD || min_cost.first == COST_MIN) {
-                            break;
-                        }
-                    }
-                    else if (_cost_model == CostModel::DICE) {
-                        if (min_cost.first < DICE_THRESHOLD || min_cost.first == COST_MIN) {
-                            break;
-                        }
-                    }
-                    else if (_cost_model == CostModel::OVERLAP) {
-                        if (min_cost.first < OVERLAP_THRESHOLD || min_cost.first == COST_MIN) {
-                            break;
-                        }
-                    }
-                    /* END_OF_COST_MODEL_BASED */
-
-                    // Check if either of the indices have been visited
-                    if (visited[idx1] || visited[idx2]) {
-                        if (visited[idx1] && visited[idx2]) {
-                            continue;
-                        } else {
-                            // one of them is not visited
-                            uint32_t not_visited_idx = visited[idx1] ? idx2 : idx1;
-                            if (--count_per_tuple[not_visited_idx] == 0) {
-                                // fprintf(stdout, "Refilling local heap for not_visited_idx: %d\n", not_visited_idx);
-                                // refill
-                                std::priority_queue<
-                                    std::pair<double,
-                                            std::pair<uint32_t, uint32_t>>,
-                                    std::vector<std::pair<
-                                        double, std::pair<uint32_t, uint32_t>>>,
-                                    std::function<bool(
-                                        const std::pair<
-                                            double,
-                                            std::pair<uint32_t, uint32_t>> &,
-                                        const std::pair<
-                                            double,
-                                            std::pair<uint32_t, uint32_t>> &)>>
-                                    local_heap(
-                                        (_cost_model == CostModel::OURS ||
-                                        _cost_model == CostModel::SETEDIT)
-                                            ? cost_compare_great
-                                            : cost_compare_less);
-
-                                for (uint32_t j = 0; j < num_tuples_total;
-                                    ++j) {
-                                    if (j == not_visited_idx)
-                                        continue;
-                                    if (visited[j])
-                                        continue;
-                                    uint32_t group1_idx =
-                                        temp_output[not_visited_idx].first;
-                                    uint32_t group2_idx = temp_output[j].first;
-
-                                    double cost =
-                                        (group1_idx == std::numeric_limits<
-                                                        uint32_t>::max() ||
-                                        group2_idx == std::numeric_limits<
-                                                        uint32_t>::max())
-                                            ? (_cost_model == CostModel::OURS ||
-                                                    _cost_model ==
-                                                        CostModel::SETEDIT
-                                                ? COST_MAX
-                                                : COST_MIN)
-                                            : CalculateCost(
-                                                schema_groups_with_num_tuples
-                                                    [group1_idx],
-                                                schema_groups_with_num_tuples
-                                                    [group2_idx],
-                                                _cost_model,
-                                                schema_groups_with_num_tuples
-                                                    .size());
-
-                                    // Skip invalid costs for OURS model
-                                    if (_cost_model == CostModel::OURS &&
-                                        cost > 0) {
-                                        continue;
-                                    }
-
-                                    // Add the current cost to the local heap
-                                    local_heap.push(std::make_pair(
-                                        cost, std::make_pair(not_visited_idx, j)));
-
-                                    // If the heap size exceeds 10, remove the worst (least priority) cost
-                                    if (local_heap.size() > TOPK) {
-                                        local_heap.pop();
-                                    }
-                                }
-
-                                count_per_tuple[not_visited_idx] = local_heap.size();
-
-                                while (!local_heap.empty()) {
-                                    cost_pq.push(local_heap.top());
-                                    local_heap.pop();
-                                }
-                            }
-                        }
+        std::vector<int> inactive_schemas(active_schemas_vec.size(), true);
+        #pragma omp parallel for schedule(dynamic) num_threads(MAX_THREADS)
+        for (size_t i = 0; i < active_schemas_vec.size(); ++i) {
+            auto schema_idx = active_schemas_vec[i];
+            auto current_pair = frontiers[schema_idx];
+            if (initialize || schema_merged[current_pair.second]) {
+                while(!heaps[schema_idx].empty()) {
+                    auto [cost, pair_idx] = heaps[schema_idx].top();
+                    heaps[schema_idx].pop();
+                    if (schema_merged[pair_idx]) {
                         continue;
                     }
-
-                    visited[idx1] = true;
-                    visited[idx2] = true;
-                    count_per_tuple[idx1] = 0;
-                    count_per_tuple[idx2] = 0;
-
-                    // Merge the two indices
-                    MergeVertexlets(idx1, idx2, temp_output);
-                    // fprintf(stdout, "Merged idx1: %d, idx2: %d\n", idx1, idx2);
-                    num_tuples_added++;
-                    merged_count++;
-                    visited.push_back(false);
-                } while (!cost_pq.empty());
+                    else {
+                        inactive_schemas[i] = false;
+                        frontiers[schema_idx] = std::make_pair(cost, pair_idx);
+                        break;
+                    }
+                }
             }
-            // for (auto i = 0; i < num_tuples_total + num_tuples_added; i++) {
-            //     if (!visited[i]) {
-            //         fprintf(stdout, "visited[%d]: %d\n", i, visited[i] ? 1 : 0);
-            //     }
-            // }
-            auto merge_time_ms = merge_timer.elapsed().wall / 1000000.0;
-            std::cout << "\nMerge Time: "  << merge_time_ms << " ms" << std::endl;
-            
-            num_tuples_total += num_tuples_added;
-            iteration++;
-        } while (merged_count > 0);
+            else {
+                inactive_schemas[i] = false;
+            }
+        }
 
-        std::cout << "Layer " << current_layer << " temp_output size: " << temp_output.size() << std::endl;
+        // Print frontiers
+        if (spdlog::default_logger_raw()->should_log(spdlog::level::trace)) {
+            for (auto &pair : frontiers) {
+                spdlog::trace("[FillFrontiers] Frontier: {} {}", pair.first, pair.second);
+            }
+        }
+
+        // TODO: Need Efficient Erase
+        for (size_t i = 0; i < active_schemas_vec.size(); ++i) {
+            if (inactive_schemas[i]) {
+                spdlog::trace("[FillFrontiers] Erasing schema {}", active_schemas_vec[i]);
+                active_schemas.erase(active_schemas_vec[i]);
+            }
+        }
+
+        spdlog::trace("[FillFrontiers] {} active schemas remained after update", active_schemas.size());
+    }
+
+    std::pair<uint32_t, uint32_t> FindBestMergePair(
+        const CostModel _cost_model,
+        std::vector<CostPair> &frontiers,
+        std::unordered_set<uint32_t> &active_schemas)
+    {
+        spdlog::trace("[FindBestMergePair] {} active schemas initially", active_schemas.size());
+        uint32_t best_idx, best_pair_idx;
+        double best_cost =  GetWorstCost(_cost_model);
+        auto cost_compare = GetCostCompare(_cost_model);
+        for (uint32_t idx : active_schemas) {
+            auto [cost, pair_idx] = frontiers[idx];
+            if (cost_compare(std::make_pair(best_cost, 0), std::make_pair(cost, 0))) {
+                best_cost = cost;
+                best_idx = idx;
+                best_pair_idx = pair_idx;
+            }
+        }
+        spdlog::trace("[FindBestMergePair] {} and {} are the best pair", best_idx, best_pair_idx);
+        return std::make_pair(best_idx, best_pair_idx);
+    }
+
+    void FindMergePairs(
+        std::vector<CostHeap> &heaps,
+        const CostModel _cost_model,
+        std::vector<std::pair<uint32_t, uint32_t>> &merge_pairs)
+    {
+        size_t num_heaps = heaps.size();
+        std::vector<std::pair<uint32_t, uint32_t>> final_pairs;
+        std::vector<CostPair> frontiers(num_heaps);
+        std::unordered_set<uint32_t> active_schemas;
+        std::vector<bool> schema_merged(num_heaps, false);
+
+        spdlog::debug("[FindMergePairs] Identify active schemas");
+        for (uint32_t i = 0; i < num_heaps; ++i) {
+            if (!heaps[i].empty()) {
+                active_schemas.insert(i);
+            }
+        }
+
+        spdlog::debug("[FindMergePairs] Initially Fill frontiers");
+        FillFrontiers(
+            heaps,
+            frontiers,
+            active_schemas,
+            schema_merged,
+            true
+        );
+
+        spdlog::debug("[FindMergePairs] Iteratively Find Merge Pairs");
+        while (!active_schemas.empty()) {
+            auto best_pair = FindBestMergePair(
+                _cost_model,
+                frontiers,
+                active_schemas
+            );
+
+            merge_pairs.push_back(best_pair);
+            active_schemas.erase(best_pair.first);
+            active_schemas.erase(best_pair.second);
+            schema_merged[best_pair.first] = true;
+            schema_merged[best_pair.second] = true;
+
+            spdlog::trace("[FindMergePairs] Update frontiers");
+            FillFrontiers(
+                heaps,
+                frontiers,
+                active_schemas,
+                schema_merged,
+                false
+            );
+        }
+
+        if (spdlog::default_logger_raw()->should_log(spdlog::level::trace)) {
+            for (auto &pair : merge_pairs) {
+                spdlog::trace("[FindMergePairs] Pair: {} {}", pair.first, pair.second);
+            }
+        }
+    }
+
+    void InitializeHeaps(
+        const std::vector<std::pair<uint32_t, std::vector<uint32_t>>> &current_merge_state,
+        const CostModel _cost_model,
+        std::vector<CostHeap> &heaps)
+    {
+        const size_t num_tuples_total = current_merge_state.size();
+        spdlog::info("[InitializeHeaps] Number of tuples: {}", num_tuples_total);
+        auto cost_compare = GetCostCompare(_cost_model);
+        
+        heaps.reserve(num_tuples_total);
+        for (size_t i = 0; i < num_tuples_total; ++i) {
+            heaps.emplace_back(cost_compare);
+        }
+        spdlog::debug("[InitializeHeaps] {} Heaps initialized", num_tuples_total);
     }
 
     void MergeVertexlets(uint32_t idx1, uint32_t idx2, 
-                        std::vector<std::pair<uint32_t, std::vector<uint32_t>>> &temp_output) {
-        // Check if indices are within bounds for temp_output
-        if (idx1 >= temp_output.size() || idx2 >= temp_output.size()) {
-            std::cerr << "Error: Index out of bounds for temp_output. "
-                    << "idx1: " << idx1 << ", idx2: " << idx2 
-                    << ", temp_output.size(): " << temp_output.size() << std::endl;
+                     std::vector<std::pair<uint32_t, std::vector<uint32_t>>> &current_merge_state,
+                     size_t new_schema_group_idx, size_t new_output_idx)
+    {
+        if (idx1 >= current_merge_state.size() || idx2 >= current_merge_state.size()) {
+            spdlog::error("Error: Index out of bounds for current_merge_state. "
+                    "idx1: {}, idx2: {}, current_merge_state.size(): {}", idx1, idx2, current_merge_state.size());
             return;
         }
 
-        // Check if the first indices from temp_output are valid for schema_groups_with_num_tuples
-        if (temp_output[idx1].first >= schema_groups_with_num_tuples.size() || 
-            temp_output[idx2].first >= schema_groups_with_num_tuples.size()) {
-            std::cerr << "Error: Invalid schema group index from temp_output. "
-                    << "temp_output[idx1].first: " << temp_output[idx1].first 
-                    << ", temp_output[idx2].first: " << temp_output[idx2].first 
-                    << ", schema_groups_with_num_tuples.size(): " << schema_groups_with_num_tuples.size() << std::endl;
-            return;
-        }
+        auto &schema_group1 = schema_groups_with_num_tuples[current_merge_state[idx1].first];
+        auto &schema_group2 = schema_groups_with_num_tuples[current_merge_state[idx2].first];
 
-        // Safely retrieve schema groups
-        auto &schema_group1 = schema_groups_with_num_tuples[temp_output[idx1].first];
-        auto &schema_group2 = schema_groups_with_num_tuples[temp_output[idx2].first];
-
-        // Merge schema vectors
         std::vector<uint32_t> merged_schema;
-        try {
-            merged_schema.reserve(schema_group1.first.size() + schema_group2.first.size());
-            std::merge(schema_group1.first.begin(), schema_group1.first.end(),
-                    schema_group2.first.begin(), schema_group2.first.end(),
-                    std::back_inserter(merged_schema));
-            merged_schema.erase(std::unique(merged_schema.begin(), merged_schema.end()), merged_schema.end());
-        } catch (const std::exception &e) {
-            std::cerr << "Error during schema merging: " << e.what() << std::endl;
-            return;
+        merged_schema.reserve(schema_group1.first.size() + schema_group2.first.size());
+        std::merge(schema_group1.first.begin(), schema_group1.first.end(),
+                schema_group2.first.begin(), schema_group2.first.end(),
+                std::back_inserter(merged_schema));
+        merged_schema.erase(std::unique(merged_schema.begin(), merged_schema.end()), merged_schema.end());
+        if (spdlog::default_logger_raw()->should_log(spdlog::level::trace)) {
+            spdlog::trace("[MergeVertexlets] Merged schema: {}", join_vector(merged_schema));
         }
 
-        // Compute merged number of tuples
         uint64_t merged_num_tuples = schema_group1.second + schema_group2.second;
+        schema_groups_with_num_tuples[new_schema_group_idx] = std::make_pair(std::move(merged_schema), merged_num_tuples);
+        spdlog::trace("[MergeVertexlets] Add schema {} with {} tuples", new_schema_group_idx, merged_num_tuples);
 
-        // Add new merged schema group
-        schema_groups_with_num_tuples.push_back(std::make_pair(std::move(merged_schema), merged_num_tuples));
-
-        // Merge indices
         std::vector<uint32_t> merged_indices;
-        try {
-            merged_indices.reserve(temp_output[idx1].second.size() + temp_output[idx2].second.size());
-            merged_indices.insert(merged_indices.end(), temp_output[idx1].second.begin(), temp_output[idx1].second.end());
-            merged_indices.insert(merged_indices.end(), temp_output[idx2].second.begin(), temp_output[idx2].second.end());
-        } catch (const std::exception &e) {
-            std::cerr << "Error during index merging: " << e.what() << std::endl;
-            return;
+        merged_indices.reserve(current_merge_state[idx1].second.size() + current_merge_state[idx2].second.size());
+        merged_indices.insert(merged_indices.end(), current_merge_state[idx1].second.begin(), current_merge_state[idx1].second.end());
+        merged_indices.insert(merged_indices.end(), current_merge_state[idx2].second.begin(), current_merge_state[idx2].second.end());
+        if (spdlog::default_logger_raw()->should_log(spdlog::level::trace)) {
+            spdlog::trace("[MergeVertexlets] Merged indices: {}", join_vector(merged_indices));
         }
 
-        // Add new merged entry to temp_output
-        temp_output.push_back(std::make_pair(schema_groups_with_num_tuples.size() - 1, std::move(merged_indices)));
+        current_merge_state[new_output_idx] = std::make_pair(new_schema_group_idx, std::move(merged_indices));
+        spdlog::trace("[MergeVertexlets] Add merge state {}", new_output_idx);
 
-        // Invalidate the original entries in temp_output
-        if (idx1 < temp_output.size()) {
-            temp_output[idx1].first = std::numeric_limits<uint32_t>::max();
-        } else {
-            std::cerr << "Warning: Invalidating idx1 failed as idx1 is now out of bounds." << std::endl;
-        }
-
-        if (idx2 < temp_output.size()) {
-            temp_output[idx2].first = std::numeric_limits<uint32_t>::max();
-        } else {
-            std::cerr << "Warning: Invalidating idx2 failed as idx2 is now out of bounds." << std::endl;
-        }
+        current_merge_state[idx1].first = MERGED_SCHEMA;
+        current_merge_state[idx2].first = MERGED_SCHEMA;
     }
 
     vector<unsigned int> &GetClusterTokens(size_t cluster_idx) {
@@ -2176,16 +2113,16 @@ public:
     void _CreateEdgeExtents(GraphCatalogEntry *graph_cat, string &label_name, vector<string> &label_set) {
     }
 
-    void _MergeInAdvance(vector<std::pair<uint32_t, std::vector<uint32_t>>> &temp_output) {
+    void _MergeInAdvance(vector<std::pair<uint32_t, std::vector<uint32_t>>> &current_merge_state) {
         D_ASSERT(merge_in_advance == MergeInAdvance::IN_STORAGE);
         // merge additionally based on cardinality
         // step 1. extract card & sort
         std::vector<std::pair<uint64_t, uint64_t>> num_tuples_per_cluster;
-        num_tuples_per_cluster.reserve(temp_output.size());
-        for (auto i = 0; i < temp_output.size(); i++) {
-            if (temp_output[i].first == std::numeric_limits<uint32_t>::max()) { continue; }
+        num_tuples_per_cluster.reserve(current_merge_state.size());
+        for (auto i = 0; i < current_merge_state.size(); i++) {
+            if (current_merge_state[i].first == std::numeric_limits<uint32_t>::max()) { continue; }
             num_tuples_per_cluster.push_back(std::make_pair(
-                schema_groups_with_num_tuples[temp_output[i].first].second, i));
+                schema_groups_with_num_tuples[current_merge_state[i].first].second, i));
         }
         std::sort(num_tuples_per_cluster.begin(), num_tuples_per_cluster.end(),
                 [](const std::pair<std::uint64_t, uint64_t> &a,
@@ -2214,28 +2151,28 @@ public:
             std::vector<uint32_t> merged_indices;
             for (auto j = boundary_begin; j < layer_boundaries[i]; j++) {
                 auto temp_idx = num_tuples_per_cluster[j].second;
-                auto idx = temp_output[temp_idx].first;
+                auto idx = current_merge_state[temp_idx].first;
                 auto &schema_group = schema_groups_with_num_tuples[idx];
                 merged_schema.insert(merged_schema.end(),
                                     schema_group.first.begin(),
                                     schema_group.first.end());
                 merged_indices.insert(merged_indices.end(),
-                                    temp_output[temp_idx].second.begin(),
-                                    temp_output[temp_idx].second.end());
+                                    current_merge_state[temp_idx].second.begin(),
+                                    current_merge_state[temp_idx].second.end());
                 merged_num_tuples += schema_group.second;
-                temp_output[temp_idx].first = std::numeric_limits<uint32_t>::max();
+                current_merge_state[temp_idx].first = std::numeric_limits<uint32_t>::max();
             }
             std::sort(merged_schema.begin(), merged_schema.end());
             merged_schema.erase(std::unique(merged_schema.begin(), merged_schema.end()), merged_schema.end());
             schema_groups_with_num_tuples.push_back(std::make_pair(std::move(merged_schema), merged_num_tuples));
-            temp_output.push_back(std::make_pair(schema_groups_with_num_tuples.size() - 1, std::move(merged_indices)));
+            current_merge_state.push_back(std::make_pair(schema_groups_with_num_tuples.size() - 1, std::move(merged_indices)));
             boundary_begin = layer_boundaries[i];
         }
         // remove nullptrs
-        temp_output.erase(
-            std::remove_if(begin(temp_output), end(temp_output),
+        current_merge_state.erase(
+            std::remove_if(begin(current_merge_state), end(current_merge_state),
                             [](auto &x) { return x.first == std::numeric_limits<uint32_t>::max(); }),
-            end(temp_output));
+            end(current_merge_state));
         }
 
 private:
@@ -2868,10 +2805,8 @@ private:
     simdjson::padded_string json;
     std::string input_json_file_path;
 
+    SchemaGroups schema_groups_with_num_tuples;
     vector<uint64_t> corresponding_schemaID;
-    // vector<vector<uint64_t>> schema_groups;
-    // vector<uint64_t> num_tuples_per_schema_group;
-    vector<std::pair<vector<uint32_t>, uint64_t>> schema_groups_with_num_tuples;
     vector<int32_t> sg_to_cluster_vec;
     vector<string> id_to_property_vec;
     vector<uint64_t> property_freq_vec;
@@ -2898,11 +2833,9 @@ private:
     PyObject* p_sklearn_module = nullptr;
 
     // Tip: for Yago-tiny, set CostNullVal to 0.005 and CostSchemaVal to 300. It creates two clusters
-    const double CostSchemaVal = 300;
-    // const double CostNullVal = 0.001;
-    const double CostNullVal = 0.01;
-    const double CostVectorizationVal = 10;
-    // const double CostVectorizationVal = 5.0;
+    const double CostSchemaVal = 100;
+    const double CostNullVal = 0.3;
+    const double CostVectorizationVal = 10000;
 };
 
 } // namespace duckdb

@@ -156,6 +156,7 @@ void ChunkCacheManager::FlushMetaInfo(const char *path)
   int64_t num_total_files = file_handlers.size();
   meta_info = new uint64_t[num_total_files * 2];
 
+  // TODO: I think file_handler.second is nullptr sometimes. Please fix.
   int64_t i = 0;
   for (auto &file_handler: file_handlers) {
     assert(file_handler.second != nullptr);
@@ -274,6 +275,7 @@ ReturnStatus ChunkCacheManager::CreateSegment(ChunkID cid, std::string file_path
 }
 
 ReturnStatus ChunkCacheManager::DestroySegment(ChunkID cid) {
+  spdlog::trace("[DestroySegment] Start to destroy segment: {}", cid);
   // Check validity of given ChunkID
   if (CidValidityCheck(cid))
     exit(-1);

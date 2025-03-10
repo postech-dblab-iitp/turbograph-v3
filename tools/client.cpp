@@ -242,7 +242,7 @@ void ExecuteQuery(const string& query, std::shared_ptr<ClientContext> client, Cl
 }
 
 void PrintOutputToFile(PropertyKeys col_names, 
-                            std::vector<std::unique_ptr<duckdb::DataChunk>> *query_results_ptr, 
+                            std::vector<std::shared_ptr<duckdb::DataChunk>> *query_results_ptr, 
 							duckdb::Schema &schema,
                             std::string &file_path) {
 	if (!query_results_ptr) {
@@ -283,7 +283,7 @@ void PrintOutputToFile(PropertyKeys col_names,
 }
 
 void PrintOutputConsole(const PropertyKeys &col_names, 
-                 std::vector<std::unique_ptr<duckdb::DataChunk>> *query_results_ptr, 
+                 std::vector<std::shared_ptr<duckdb::DataChunk>> *query_results_ptr, 
                  duckdb::Schema &schema) {
     if (!query_results_ptr) {
         spdlog::error("[PrintOutputConsole] Query Results Empty");
@@ -355,8 +355,12 @@ void CompileExecuteQuery(const std::string &query_str,
         compile_times.erase(compile_times.begin());
     }
 
-	spdlog::info("Average Query Execution Time: {} ms", CalculateAverageTime(execution_times));
-	spdlog::info("Average Compile Time: {} ms", CalculateAverageTime(compile_times));
+    double avg_exec_time = CalculateAverageTime(execution_times);
+    double avg_compile_time = CalculateAverageTime(compile_times);
+    double avg_end_to_end_time = avg_compile_time + avg_exec_time;
+	spdlog::info("Average Query Execution Time: {} ms", avg_exec_time);
+	spdlog::info("Average Compile Time: {} ms", avg_compile_time);
+    spdlog::info("Average End to End Time: {} ms", avg_end_to_end_time);
 }
 
 void InitializeDiskAIO(string& workspace) {

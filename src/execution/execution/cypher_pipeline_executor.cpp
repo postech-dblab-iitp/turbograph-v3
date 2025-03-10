@@ -214,7 +214,12 @@ void CypherPipelineExecutor::ExecutePipeline()
 #endif
     StartOperator(pipeline->GetReprSink());
     pipeline->GetSink()->Combine(*context, *local_sink_state);
-    EndOperator(pipeline->GetReprSink(), nullptr);
+	if (pipeline->GetSink()->type == PhysicalOperatorType::PRODUCE_RESULTS) {
+    	EndOperator(pipeline->GetReprSink(), *context->query_results);
+	}
+	else {
+    	EndOperator(pipeline->GetReprSink(), (DataChunk*) nullptr);
+	}
 
     // flush profiler contents
     // TODO operators may need to flush expressionexecutor stats on termination. refer to OperatorState::Finalize()
@@ -294,7 +299,7 @@ OperatorResultType CypherPipelineExecutor::ProcessSingleSourceChunk(DataChunk &s
         StartOperator(pipeline->GetReprSink());
         auto sinkResult = pipeline->GetSink()->Sink(*context, *pipeOutputChunk,
                                                     *local_sink_state);
-        EndOperator(pipeline->GetReprSink(), nullptr);
+        EndOperator(pipeline->GetReprSink(), (DataChunk*) nullptr);
 #ifdef DEBUG_PRINT_OP_INPUT_OUTPUT
         PrintOutputChunk(
             pipeline->GetSink()->ToString(),
@@ -473,7 +478,7 @@ OperatorResultType CypherPipelineExecutor::ExecutePipe(DataChunk &input, idx_t &
 			// record statistics
 			if (opResult == OperatorResultType::POSTPONE_OUTPUT ||
 				opResult == OperatorResultType::OUTPUT_EMPTY) {
-				EndOperator(pipeline->GetReprIdxOperator(current_idx), nullptr);
+				EndOperator(pipeline->GetReprIdxOperator(current_idx), (DataChunk*) nullptr);
 				prev_output_chunk = nullptr;
 			} else {
 				D_ASSERT(output_schema_idx < current_output_chunks->size());
@@ -523,6 +528,12 @@ void CypherPipelineExecutor::EndOperator(CypherPhysicalOperator *op,
                                          DataChunk *chunk)
 {
     context->thread->profiler.EndOperator(chunk);
+}
+
+void CypherPipelineExecutor::EndOperator(CypherPhysicalOperator *op,
+                                         vector<shared_ptr<DataChunk>> &chunks)
+{
+    context->thread->profiler.EndOperator(chunks);
 }
 
 void CypherPipelineExecutor::PrintInputChunk(std::string opname,

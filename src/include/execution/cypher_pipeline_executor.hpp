@@ -106,6 +106,7 @@ public:
 private:
 	void StartOperator(CypherPhysicalOperator *op);
 	void EndOperator(CypherPhysicalOperator *op, DataChunk *chunk);
+	void EndOperator(CypherPhysicalOperator *op, vector<shared_ptr<DataChunk>> &chunks);
 
 	//! Reset the operator index to the first operator
 	void GoToSource(idx_t &current_idx, idx_t initial_idx);

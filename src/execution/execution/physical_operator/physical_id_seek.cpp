@@ -411,6 +411,7 @@ OperatorResultType PhysicalIdSeek::ExecuteLeft(
                                 output_chunk_idx);
 }
 
+// TODO: Remove this function (unused)
 void PhysicalIdSeek::initializeSeek(
     ExecutionContext &context, DataChunk &input,
     vector<unique_ptr<DataChunk>> &chunks, IdSeekState &state, idx_t nodeColIdx,
@@ -433,7 +434,7 @@ void PhysicalIdSeek::initializeSeek(
         chunks[i]->Reset();
     }
     fillSeqnoToEIDIdx(target_eids.size(), target_seqnos_per_extent, state.seqno_to_eid_idx);
-    markInvalidForColumnsToUnseek(input, target_eids, mapping_idxs);
+    markInvalidForColumnsToUnseek(*chunks[0], target_eids, mapping_idxs);
 }
 
 void PhysicalIdSeek::initializeSeek(
@@ -454,7 +455,7 @@ void PhysicalIdSeek::initializeSeek(
     chunk.SetSchemaIdx(input.GetSchemaIdx());
     chunk.Reset();
     fillSeqnoToEIDIdx(target_eids.size(), target_seqnos_per_extent, state.seqno_to_eid_idx);
-    markInvalidForColumnsToUnseek(input, target_eids, mapping_idxs);
+    markInvalidForColumnsToUnseek(chunk, target_eids, mapping_idxs);
 }
 
 void PhysicalIdSeek::InitializeOutputChunks(
@@ -1648,17 +1649,14 @@ void PhysicalIdSeek::buildExpressionExecutors(
     }
 }
 
+// TODO: Optimzie this function (or, is it needed?)
 void PhysicalIdSeek::markInvalidForColumnsToUnseek(DataChunk &chunk, vector<ExtentID> &target_eids, 
                             vector<idx_t> &mapping_idxs) const
 {
-    // Mark all columns invalid first
+    // Mark all inner columns invalid
     for (auto columnIdx = 0; columnIdx < chunk.ColumnCount(); columnIdx++) {
-        chunk.data[columnIdx].SetIsValid(false);
-    }
-    // Mark all outer columns valid
-    for (auto columnIdx : outer_output_col_idxs) {
-        if (columnIdx < chunk.ColumnCount()) {
-            chunk.data[columnIdx].SetIsValid(true);
+        if (isInnerColIdx(columnIdx)) {
+            chunk.data[columnIdx].SetIsValid(false);
         }
     }
     // Mark seek columns valid

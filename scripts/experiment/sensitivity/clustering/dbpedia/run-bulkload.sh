@@ -52,6 +52,8 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
 
             log_file="${log_dir}/dbpedia_${cluster_algo}_${cost_model}_${layering_order}.txt"
             /turbograph-v3/build-release/tools/bulkload \
+                --log-level info \
+                --skip-histogram \
                 --output_dir ${target_dir} \
                 --nodes NODE ${source_dir}/nodes.json \
                 --relationships http://dbpedia.org/ontology/academicAdvisor ${source_dir}/edges_academicAdvisor_6968.csv \

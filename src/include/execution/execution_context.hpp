@@ -35,7 +35,7 @@ public:
 	vector<Schema> *schema_infos;
 	
 	//! if this is the last pipeline, store pointer to query results here
-	vector<unique_ptr<DataChunk>> *query_results;
+	vector<shared_ptr<DataChunk>> *query_results;
 	
 };
 

@@ -162,33 +162,20 @@ public:
         return groups;
     }
 
-    vector<size_t> GetGroupsSize() const {
-        vector<size_t> group_sizes;
-        // reverse iterate
-        for (auto &group : groups) {
-            group_sizes.push_back(group->GetSize());
-        }
-        return group_sizes;
-    }
-
     bool AdvanceGroup() {
         return groups[0]->AdvanceChild();
     }
-  
+
     CypherPhysicalOperator* GetIdxOperator(int idx) const {
-        auto group_sizes = GetGroupsSize();
-        size_t group_idx = 0;
-        size_t local_idx = 0;
         size_t acc_size = 0;
-        for (auto &size : group_sizes) {
+        for (auto &group : groups) {
+            size_t size = group->GetSize();
             if (acc_size + size > idx) {
-                local_idx = idx - acc_size;
-                break;
+                return group->GetIdxOperator(idx - acc_size);
             }
             acc_size += size;
-            group_idx++;
         }
-        return groups[group_idx]->GetIdxOperator(idx);
+        return nullptr;
     }
 
     bool IsSinkSingleton() const {

@@ -5,7 +5,7 @@
 # cost_models=("OURS" "OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE")
 # layering_orders=("ASCENDING" "DESCENDING" "NO_SORT")
 cluster_algorithms=("AGGLOMERATIVE")
-cost_models=("JACCARD")
+cost_models=("OURS")
 layering_orders=("DESCENDING")
 
 # File path to the configuration header
@@ -45,25 +45,27 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
             cd /turbograph-v3/build-release && ninja
 
             source_dir="${source_dir_base}"
-            target_dir="${target_dir_base}/dbpedia_${cluster_algo}_${cost_model}_${layering_order}"
-            
-            rm -rf ${target_dir}
-            mkdir -p ${target_dir}
-            
+            target_dir="${target_dir_base}/basic_${cluster_algo}_${cost_model}_${layering_order}_zipf${zipf_value}"
+
             /turbograph-v3/build-release/tools/store 500GB &
-            /turbograph-v3/build-release/tools/catalog_server ${target_dir} &
             sleep 15
 
-            log_file="${log_dir}/dbpedia_${cluster_algo}_${cost_model}_${layering_order}.txt"
+            log_file="${log_dir}/basic_${cluster_algo}_${cost_model}_${layering_order}_zipf${zipf_value}.txt"
+            # /turbograph-v3/build-release/tools/bulkload \
+            #     --log-level trace \
+            #     --skip-histogram true \
+            #     --output_dir ${target_dir} \
+            #     --nodes Person ${source_dir}/Person-zipf-${zipf_value}.json  \
+            #     --relationships KNOWS ${source_dir}/Person_knows_Person.csv \
+            #     --relationships_backward KNOWS ${source_dir}/Person_knows_Person.csv.backward &> ${log_file}
+
             /turbograph-v3/build-release/tools/bulkload \
-                --log-level debug \
+                --log-level trace \
+                --skip-histogram \
                 --output_dir ${target_dir} \
-                --nodes NODE ${source_dir}/nodes2.json \
-                --relationships http://dbpedia.org/ontology/academicAdvisor ${source_dir}/edges_test.csv \
-                --relationships_backward http://dbpedia.org/ontology/academicAdvisor ${source_dir}/edges_test.csv.backward &> ${log_file}
+                --nodes NODE ${source_dir}/nodes.json &> ${log_file}
 
             pkill -f store
-            pkill -f catalog_server
             sleep 5
         done
     done

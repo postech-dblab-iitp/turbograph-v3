@@ -71,6 +71,24 @@ public:
 	bool HasRowChunk() {
 		return this->has_row_chunk;
 	}
+	bool IsAllInvalid() {
+		bool is_invalid = true;
+		for (auto &col : data) {
+			if (col.GetIsValid()) {
+				is_invalid = false;
+				break;
+			}
+		}
+		return is_invalid;
+	}
+	void IncreaseSize(size_t num_new) {
+		D_ASSERT(IsAllInvalid());
+		size_t new_count = num_new + count;
+		if (new_count > capacity) {
+			capacity = new_count;
+		}
+		count = new_count;
+	}
 
 	DUCKDB_API Value GetValue(idx_t col_idx, idx_t index) const;
 	DUCKDB_API void SetValue(idx_t col_idx, idx_t index, const Value &val);

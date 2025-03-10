@@ -15,11 +15,18 @@ class ProduceResultsState : public LocalSinkState {
     explicit ProduceResultsState(std::vector<uint64_t> projection_mapping, std::vector<std::vector<uint64_t>> projection_mappings)
         : projection_mapping(projection_mapping), projection_mappings(projection_mappings)
     {
+        const size_t INITIAL_SIZE = 10000;
+        resultChunks.reserve(INITIAL_SIZE);
+        emptyChunk = make_shared<DataChunk>();
+        size_t num_columns = projection_mapping.size() != 0 ? 
+            projection_mapping.size() : projection_mappings[0].size();
+        vector<LogicalType> any_types(num_columns, LogicalTypeId::SQLNULL);
+        emptyChunk->InitializeEmpty(any_types);
     }
 
    public:
-    // ChunkCollection resultCollection;
-    vector<unique_ptr<DataChunk>> resultChunks;
+    vector<shared_ptr<DataChunk>> resultChunks;
+    shared_ptr<DataChunk> emptyChunk;
 
     std::vector<uint64_t> projection_mapping;
     std::vector<std::vector<uint64_t>> projection_mappings;
@@ -37,7 +44,13 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext &context,
 {
     auto &state = (ProduceResultsState &)lstate;
 
-    auto copyChunk = make_unique<DataChunk>();
+    // jhha: sugar logic for single column projection speed up
+    if (input.IsAllInvalid()) {
+        state.emptyChunk->IncreaseSize(input.size());
+        return SinkResultType::NEED_MORE_INPUT;
+    }
+
+    auto copyChunk = make_shared<DataChunk>();
     if (projection_mapping.size() == 0 &&
         projection_mappings.size() == 0) {  // projection mapping not provided
         copyChunk->Initialize(types, input, projection_mappings, input.size());
@@ -57,17 +70,15 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext &context,
             vector<bool> column_has_rowvec;
             vector<vector<uint32_t>> rowstore_idx_list_per_depth;
             IdentifyRowVectors(input, types.size(),
-                               column_has_rowvec, rowstore_idx_list_per_depth);
+                            column_has_rowvec, rowstore_idx_list_per_depth);
             copyChunk->Initialize(types, input,
-                                  projection_mappings, column_has_rowvec,
-                                  input.size());
+                                projection_mappings, column_has_rowvec,
+                                input.size());
             // idx_t schema_idx = input.GetSchemaIdx();
             for (idx_t idx = 0; idx < copyChunk->ColumnCount(); idx++) {
                 if (projection_mappings[0][idx] ==
                     std::numeric_limits<uint8_t>::max()) {
-                    // TODO use is_valid flag
-                    FlatVector::Validity(copyChunk->data[idx])
-                        .SetAllInvalid(input.size());
+                    copyChunk->data[idx].SetIsValid(false);
                     continue;
                 }
                 if (column_has_rowvec[idx]) {
@@ -81,7 +92,7 @@ SinkResultType PhysicalProduceResults::Sink(ExecutionContext &context,
             }
             if (copy_rowstore) {
                 CopyRowVectors(input, *copyChunk, column_has_rowvec,
-                               rowstore_idx_list_per_depth);
+                            rowstore_idx_list_per_depth);
             }
             copyChunk->SetSchemaIdx(0);
         }
@@ -99,6 +110,7 @@ void PhysicalProduceResults::Combine(ExecutionContext &context,
                                      LocalSinkState &lstate) const
 {
     auto &state = (ProduceResultsState &)lstate;
+    if (state.emptyChunk->size() > 0) state.resultChunks.push_back(state.emptyChunk);
     context.query_results = &(((ProduceResultsState &)lstate).resultChunks);
     // context.query_results = ((ProduceResultsState &)lstate).resultCollection.ChunksUnsafe();
     // printf("num_nulls = %ld\n", num_nulls);

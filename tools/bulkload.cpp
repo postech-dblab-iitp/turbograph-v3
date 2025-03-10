@@ -36,9 +36,8 @@ using json = nlohmann::json;
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
 
-typedef size_t FileLength;
 typedef string FilePath;
-typedef std::tuple<Labels, FilePath, FileLength> LabeledFile;
+typedef std::tuple<Labels, FilePath> LabeledFile;
 typedef std::pair<idx_t, idx_t> LidPair;
 
 struct InputOptions {
@@ -47,6 +46,7 @@ struct InputOptions {
 	vector<LabeledFile> edge_files_backward;
     std::string output_dir;
 	bool incremental = false;
+	bool standalone = false;
 	bool skip_histogram = false;
     bool load_edge = false;
     bool load_backward_edge = false;
@@ -640,7 +640,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(vector<LabeledFile> &csv_vertex_fil
 		spdlog::debug("[ReadVertexCSVFileAndCreateVertexExtents] InitCSVFile");
 		SUBTIMER_START(ReadSingleVertexCSVFile, "InitCSVFile");
 		GraphSIMDCSVFileParser reader;
-		size_t approximated_num_rows = reader.InitCSVFile(vertex_file_path.c_str(), GraphComponentType::VERTEX, '|', std::get<2>(vertex_file));
+		size_t approximated_num_rows = reader.InitCSVFile(vertex_file_path.c_str(), GraphComponentType::VERTEX, '|');
 
 		if (!reader.GetSchemaFromHeader(key_names, types)) { throw InvalidInputException("Invalid Schema Information"); }
 		key_column_idxs = reader.GetKeyColumnIndexFromHeader();
@@ -692,7 +692,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(vector<LabeledFile> &csv_vertex_fil
 		spdlog::info("[ReadVertexCSVFileAndCreateVertexExtents] Load {} Done", vertex_file_path);
 	}
 	spdlog::debug("[ReadVertexCSVFileAndCreateVertexExtents] Flush Dirty Segments and Delete From Cache");
-	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
+	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache(false);
 	spdlog::info("[ReadVertexCSVFileAndCreateVertexExtents] Load CSV Vertex Files Done");
 }
 
@@ -722,7 +722,7 @@ void ReadVertexJSONFileAndCreateVertexExtents(vector<LabeledFile> &json_vertex_f
 		spdlog::info("[ReadVertexJSONFileAndCreateVertexExtents] Load {} Done", vertex_file_path);
 	}
 	spdlog::debug("[ReadVertexJSONFileAndCreateVertexExtents] Flush Dirty Segments and Delete From Cache");
-	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
+	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache(false);
 	spdlog::info("[ReadVertexJSONFileAndCreateVertexExtents] Load JSON Vertex Files Done");
 }
 
@@ -735,9 +735,7 @@ void ReadVertexFilesAndCreateVertexExtents(BulkloadContext &bulkload_ctx) {
 	if (json_vertex_files.size() > 0) {
 		// Note: we should prevent calling Py_Initialize multple times
 		// Also, note that Py_Initialize can affect disk AIO, leading to unexpected error
-	    // Py_Initialize();
 		ReadVertexJSONFileAndCreateVertexExtents(json_vertex_files, bulkload_ctx);
-		// Py_Finalize();
 	}
 	if (csv_vertex_files.size() > 0) ReadVertexCSVFileAndCreateVertexExtents(csv_vertex_files, bulkload_ctx);
 }
@@ -809,7 +807,7 @@ void ReconstructIDMappings(BulkloadContext &bulkload_ctx) {
 
 		SUBTIMER_START(ReconstructIDMappingForFile, "GraphSIMDCSVFileParser InitCSVFile");
 		GraphSIMDCSVFileParser reader;
-		reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|', std::get<2>(edge_file));
+		reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|');
 		reader.GetSrcColumnInfo(src_column_idx, src_vertex_label);
 		reader.GetDstColumnInfo(dst_column_idx, dst_vertex_label);
 		SUBTIMER_STOP(ReconstructIDMappingForFile, "GraphSIMDCSVFileParser InitCSVFile");
@@ -881,7 +879,7 @@ void ReadFwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files
 
 		spdlog::debug("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] InitCSVFile");
 		SUBTIMER_START(ReadSingleEdgeCSVFile, "InitCSVFile");
-		size_t approximated_num_rows = reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|', std::get<2>(edge_file));
+		size_t approximated_num_rows = reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|');
 		if (!reader.GetSchemaFromHeader(key_names, types)) { throw InvalidInputException("Invalid Schema Information"); }
 		reader.GetSrcColumnInfo(src_column_idx, src_vertex_label);
 		reader.GetDstColumnInfo(dst_column_idx, dst_vertex_label);
@@ -1072,7 +1070,7 @@ void ReadFwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files
 		SUBTIMER_STOP(ReadSingleEdgeCSVFile, "Remaining AppendAdjListChunk");
 	}
 	spdlog::debug("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] Flush Dirty Segments and Delete From Cache");
-	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
+	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache(false);
 	spdlog::info("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] Load CSV Edge Files Done");
 }
 
@@ -1116,7 +1114,7 @@ void ReadBwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files
 
 		spdlog::debug("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] InitCSVFile");
 		SUBTIMER_START(ReadSingleEdgeCSVFile, "InitCSVFile");
-		reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|', std::get<2>(edge_file));
+		reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|');
 		if (!reader.GetSchemaFromHeader(key_names, types)) { throw InvalidInputException("Invalid Schema Information"); }
 		reader.GetDstColumnInfo(src_column_idx, src_vertex_label); // Reverse
 		reader.GetSrcColumnInfo(dst_column_idx, dst_vertex_label); // Reverse
@@ -1283,11 +1281,16 @@ void ReadBwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files
 		SUBTIMER_STOP(ReadSingleEdgeCSVFile, "Remaining AppendAdjListChunk");
 	}
 	spdlog::debug("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] Flush Dirty Segments and Delete From Cache");
-	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache();
+	ChunkCacheManager::ccm->FlushDirtySegmentsAndDeleteFromcache(false);
 	spdlog::info("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] Load CSV Edge Files Done");
 }
 
 void ReadBwdEdgeFilesAndCreateEdgeExtents(BulkloadContext &bulkload_ctx) {
+	if(!bulkload_ctx.input_options.load_backward_edge) {
+		spdlog::info("[ReadBwdEdgeFilesAndCreateEdgeExtents] Skip loading backward edges");
+		return;
+	}
+	
 	vector<LabeledFile> json_edge_files;
 	vector<LabeledFile> csv_edge_files;
 	SeperateFilesByExtension(bulkload_ctx.input_options.edge_files, json_edge_files, csv_edge_files);
@@ -1309,7 +1312,8 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
         ("relationships_backward", po::value<std::vector<std::string>>()->multitoken()->composing(), "Backward relationships input: <label> <file>")
         ("output_dir", po::value<std::string>(), "Output directory")
 		("incremental", po::value<bool>()->default_value(false), "Incremental load")
-		("skip-histogram", po::value<bool>()->default_value(false), "Skip Histogram Generation")
+		("skip-histogram", "Skip Histogram Generation")
+		("standalone", "Run in standalone mode")
         ("log-level", po::value<std::string>(), "Set logging level (trace/debug/info/warn/error)");
 
     po::variables_map vm;
@@ -1324,14 +1328,14 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
     if (vm.count("nodes")) {
         auto nodes = vm["nodes"].as<std::vector<std::string>>();
         for (size_t i = 0; i + 1 < nodes.size(); i += 2) {
-            options.vertex_files.emplace_back(nodes[i], nodes[i + 1], 0);
+            options.vertex_files.emplace_back(nodes[i], nodes[i + 1]);
         }
     }
 
     if (vm.count("relationships")) {
         auto relationships = vm["relationships"].as<std::vector<std::string>>();
         for (size_t i = 0; i + 1 < relationships.size(); i += 2) {
-            options.edge_files.emplace_back(relationships[i], relationships[i + 1], 0);
+            options.edge_files.emplace_back(relationships[i], relationships[i + 1]);
         }
         options.load_edge = true;
     }
@@ -1339,7 +1343,7 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
     if (vm.count("relationships_backward")) {
         auto relationships_backward = vm["relationships_backward"].as<std::vector<std::string>>();
         for (size_t i = 0; i + 1 < relationships_backward.size(); i += 2) {
-            options.edge_files_backward.emplace_back(relationships_backward[i], relationships_backward[i + 1], 0);
+            options.edge_files_backward.emplace_back(relationships_backward[i], relationships_backward[i + 1]);
         }
         options.load_backward_edge = true;
     }
@@ -1356,7 +1360,11 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
 	}
 
 	if (vm.count("skip-histogram")) {
-		options.skip_histogram = vm["skip-histogram"].as<bool>();
+		options.skip_histogram = true;
+	}
+
+	if (vm.count("standalone")) {
+		options.standalone = true;
 	}
 
     if (vm.count("log-level")) {
@@ -1368,6 +1376,7 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
 	spdlog::info("[ParseConfig] Incremental Load: {}", options.incremental);
 	spdlog::info("[ParseConfig] Load Edge: {}", options.load_edge);
 	spdlog::info("[ParseConfig] Load Backward Edge: {}", options.load_backward_edge);
+	spdlog::info("[ParseConfig] Storage Standalone: {}", options.standalone);
 
     spdlog::info("[ParseConfig] Load Following Nodes");
     for (const auto& file : options.vertex_files) {
@@ -1394,6 +1403,7 @@ void RegisterSignalHandler() {
 
 int main(int argc, char** argv) {
 	SCOPED_TIMER_SIMPLE(main, spdlog::level::info, spdlog::level::debug);
+	Py_Initialize();
     SetupLogger();
 	RegisterSignalHandler();
 
@@ -1407,7 +1417,7 @@ int main(int argc, char** argv) {
 	CatalogManager::CreateOrOpenCatalog(options.output_dir);
 	InitializeDiskAio(options.output_dir);
 
-	ChunkCacheManager::ccm = new ChunkCacheManager(options.output_dir.c_str(), true /* standalone */);
+	ChunkCacheManager::ccm = new ChunkCacheManager(options.output_dir.c_str(), options.standalone);
 	std::unique_ptr<DuckDB> database = make_unique<DuckDB>(options.output_dir.c_str());
 	CreateGraphInfo graph_info(DEFAULT_SCHEMA, DEFAULT_GRAPH);
 	BulkloadContext bulkload_context {
@@ -1469,5 +1479,6 @@ int main(int argc, char** argv) {
 	CatalogManager::CloseCatalog();
 	SUBTIMER_STOP(main, "CloseCatalog");
 
+	Py_Finalize();
 	return 0;
 }
