@@ -1,1 +1,1 @@
-MATCH (n:Person) RETURN n.birthday;
+MATCH (n) RETURN n.`http://dbpedia.org/ontology/bedCount`;

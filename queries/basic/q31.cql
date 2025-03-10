@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.browserUsed = "Chrome" RETURN n;
+MATCH (n) WHERE n.`http://dbpedia.org/property/nwidewins` = 1 RETURN n;

@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.firstName = "Khaled" RETURN n;
+MATCH (n) RETURN n.`http://dbpedia.org/ontology/Planet/meanRadius`;

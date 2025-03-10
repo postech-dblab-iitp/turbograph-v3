@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.id > 1500240910867 AND n.id < 18205748391368 RETURN n;
+MATCH (n) WHERE n.`http://dbpedia.org/ontology/wins` > 10 AND n.`http://dbpedia.org/ontology/wins` < 100 RETURN n;

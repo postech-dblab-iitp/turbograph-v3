@@ -1,1 +1,1 @@
-MATCH (n:Person) RETURN n;
+MATCH (n) RETURN n;

@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.birthday > 321433692274 AND n.birthday < 551752884204 RETURN n;
+MATCH (n) WHERE n.`http://dbpedia.org/property/areaWaterPercent` = 0 RETURN n;

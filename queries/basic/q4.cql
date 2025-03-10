@@ -1,1 +1,1 @@
-MATCH (n:Person) RETURN n.lastName;
+MATCH (n) RETURN n.`http://dbpedia.org/property/virtual`;

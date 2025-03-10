@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.browserUsed = "Internet Explorer" RETURN n;
+MATCH (n) RETURN n.`http://dbpedia.org/ontology/nlaId`;

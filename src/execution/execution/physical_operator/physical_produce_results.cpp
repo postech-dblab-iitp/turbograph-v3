@@ -110,7 +110,7 @@ void PhysicalProduceResults::Combine(ExecutionContext &context,
                                      LocalSinkState &lstate) const
 {
     auto &state = (ProduceResultsState &)lstate;
-    state.resultChunks.push_back(state.emptyChunk);
+    if (state.emptyChunk->size() > 0) state.resultChunks.push_back(state.emptyChunk);
     context.query_results = &(((ProduceResultsState &)lstate).resultChunks);
     // context.query_results = ((ProduceResultsState &)lstate).resultCollection.ChunksUnsafe();
     // printf("num_nulls = %ld\n", num_nulls);

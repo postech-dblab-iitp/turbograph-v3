@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.email = "Priyanka6597069804976@hotmail.com" RETURN n;
+MATCH (n) WHERE n.`http://dbpedia.org/property/firstdate` = -115689600000 RETURN n;

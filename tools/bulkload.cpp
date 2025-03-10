@@ -36,9 +36,8 @@ using json = nlohmann::json;
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
 
-typedef size_t FileLength;
 typedef string FilePath;
-typedef std::tuple<Labels, FilePath, FileLength> LabeledFile;
+typedef std::tuple<Labels, FilePath> LabeledFile;
 typedef std::pair<idx_t, idx_t> LidPair;
 
 struct InputOptions {
@@ -641,7 +640,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(vector<LabeledFile> &csv_vertex_fil
 		spdlog::debug("[ReadVertexCSVFileAndCreateVertexExtents] InitCSVFile");
 		SUBTIMER_START(ReadSingleVertexCSVFile, "InitCSVFile");
 		GraphSIMDCSVFileParser reader;
-		size_t approximated_num_rows = reader.InitCSVFile(vertex_file_path.c_str(), GraphComponentType::VERTEX, '|', std::get<2>(vertex_file));
+		size_t approximated_num_rows = reader.InitCSVFile(vertex_file_path.c_str(), GraphComponentType::VERTEX, '|');
 
 		if (!reader.GetSchemaFromHeader(key_names, types)) { throw InvalidInputException("Invalid Schema Information"); }
 		key_column_idxs = reader.GetKeyColumnIndexFromHeader();
@@ -808,7 +807,7 @@ void ReconstructIDMappings(BulkloadContext &bulkload_ctx) {
 
 		SUBTIMER_START(ReconstructIDMappingForFile, "GraphSIMDCSVFileParser InitCSVFile");
 		GraphSIMDCSVFileParser reader;
-		reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|', std::get<2>(edge_file));
+		reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|');
 		reader.GetSrcColumnInfo(src_column_idx, src_vertex_label);
 		reader.GetDstColumnInfo(dst_column_idx, dst_vertex_label);
 		SUBTIMER_STOP(ReconstructIDMappingForFile, "GraphSIMDCSVFileParser InitCSVFile");
@@ -880,7 +879,7 @@ void ReadFwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files
 
 		spdlog::debug("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] InitCSVFile");
 		SUBTIMER_START(ReadSingleEdgeCSVFile, "InitCSVFile");
-		size_t approximated_num_rows = reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|', std::get<2>(edge_file));
+		size_t approximated_num_rows = reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|');
 		if (!reader.GetSchemaFromHeader(key_names, types)) { throw InvalidInputException("Invalid Schema Information"); }
 		reader.GetSrcColumnInfo(src_column_idx, src_vertex_label);
 		reader.GetDstColumnInfo(dst_column_idx, dst_vertex_label);
@@ -1115,7 +1114,7 @@ void ReadBwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files
 
 		spdlog::debug("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] InitCSVFile");
 		SUBTIMER_START(ReadSingleEdgeCSVFile, "InitCSVFile");
-		reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|', std::get<2>(edge_file));
+		reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|');
 		if (!reader.GetSchemaFromHeader(key_names, types)) { throw InvalidInputException("Invalid Schema Information"); }
 		reader.GetDstColumnInfo(src_column_idx, src_vertex_label); // Reverse
 		reader.GetSrcColumnInfo(dst_column_idx, dst_vertex_label); // Reverse
@@ -1313,7 +1312,7 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
         ("relationships_backward", po::value<std::vector<std::string>>()->multitoken()->composing(), "Backward relationships input: <label> <file>")
         ("output_dir", po::value<std::string>(), "Output directory")
 		("incremental", po::value<bool>()->default_value(false), "Incremental load")
-		("skip-histogram", po::value<bool>()->default_value(false), "Skip Histogram Generation")
+		("skip-histogram", "Skip Histogram Generation")
 		("standalone", "Run in standalone mode")
         ("log-level", po::value<std::string>(), "Set logging level (trace/debug/info/warn/error)");
 
@@ -1329,14 +1328,14 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
     if (vm.count("nodes")) {
         auto nodes = vm["nodes"].as<std::vector<std::string>>();
         for (size_t i = 0; i + 1 < nodes.size(); i += 2) {
-            options.vertex_files.emplace_back(nodes[i], nodes[i + 1], 0);
+            options.vertex_files.emplace_back(nodes[i], nodes[i + 1]);
         }
     }
 
     if (vm.count("relationships")) {
         auto relationships = vm["relationships"].as<std::vector<std::string>>();
         for (size_t i = 0; i + 1 < relationships.size(); i += 2) {
-            options.edge_files.emplace_back(relationships[i], relationships[i + 1], 0);
+            options.edge_files.emplace_back(relationships[i], relationships[i + 1]);
         }
         options.load_edge = true;
     }
@@ -1344,7 +1343,7 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
     if (vm.count("relationships_backward")) {
         auto relationships_backward = vm["relationships_backward"].as<std::vector<std::string>>();
         for (size_t i = 0; i + 1 < relationships_backward.size(); i += 2) {
-            options.edge_files_backward.emplace_back(relationships_backward[i], relationships_backward[i + 1], 0);
+            options.edge_files_backward.emplace_back(relationships_backward[i], relationships_backward[i + 1]);
         }
         options.load_backward_edge = true;
     }
@@ -1361,7 +1360,7 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
 	}
 
 	if (vm.count("skip-histogram")) {
-		options.skip_histogram = vm["skip-histogram"].as<bool>();
+		options.skip_histogram = true;
 	}
 
 	if (vm.count("standalone")) {

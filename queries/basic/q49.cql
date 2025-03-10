@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.creationDate > 1288102755545 AND n.creationDate < 1334205061400 RETURN n;
+MATCH (n) WHERE n.`http://dbpedia.org/property/dublinDistanceKm` = 217 RETURN n;

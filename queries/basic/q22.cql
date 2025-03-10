@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.gender = "female" RETURN n;
+MATCH (n) RETURN n.`http://dbpedia.org/property/isni`;

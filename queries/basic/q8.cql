@@ -1,1 +1,1 @@
-MATCH (n:Person) RETURN n.locationIP;
+MATCH (n) RETURN n.`http://dbpedia.org/property/states`;

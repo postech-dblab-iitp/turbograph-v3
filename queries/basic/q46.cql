@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.birthday > 377440326164 AND n.birthday < 603742611067 RETURN n;
+MATCH (n) WHERE n.`http://dbpedia.org/ontology/MeanOfTransportation/diameter` = '1.61' RETURN n;

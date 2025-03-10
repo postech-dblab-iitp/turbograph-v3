@@ -21,7 +21,7 @@ using namespace simdjson;
 #define NEO4J_VERTEX_ID_NAME "id"
 #define COST_MAX 10000000000.00
 #define COST_MIN 0
-#define MAX_THREADS 32
+#define MAX_THREADS 64
 
 // Thresholds
 #define FREQUENCY_THRESHOLD 0.95

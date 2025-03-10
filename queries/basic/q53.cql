@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.creationDate > 1276766834534 AND n.creationDate < 1278001890276 RETURN n;
+MATCH (n) WHERE n.`http://dbpedia.org/property/no` > 321 AND n.`http://dbpedia.org/property/no` < 1296 RETURN n;

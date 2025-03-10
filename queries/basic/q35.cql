@@ -1,1 +1,1 @@
-MATCH (n:Person) WHERE n.speaks = "ta;mr;en" RETURN n;
+MATCH (n) WHERE n.`http://dbpedia.org/property/overallRecord` = 110 RETURN n;
