@@ -597,20 +597,27 @@ public:
   }
 
   size_t CountCSVRows(const char *csv_file_path) {
+      // Open the file
       int fd = open(csv_file_path, O_RDONLY);
       if (fd == -1) {
           throw std::runtime_error("Could not open file.");
       }
 
-      size_t file_size = lseek(fd, 0, SEEK_END);
-      if (file_size == 0) {
+      // Get file size
+      off_t file_size = lseek(fd, 0, SEEK_END);
+      if (file_size == -1) {
+          close(fd);
+          throw std::runtime_error("Could not determine file size.");
+      }
+      
+      if (file_size == 0) {  // Empty file
           close(fd);
           return 0;
       }
-      lseek(fd, 0, SEEK_SET); // Reset file position (not strictly needed here)
 
-      void *mapped = mmap(0, file_size, PROT_READ, MAP_PRIVATE, fd, 0);
-      close(fd);
+      // Memory-map the file
+      void *mapped = mmap(nullptr, file_size, PROT_READ, MAP_PRIVATE, fd, 0);
+      close(fd);  // Safe to close after mmap
       if (mapped == MAP_FAILED) {
           throw std::runtime_error("Memory mapping failed.");
       }
@@ -620,25 +627,31 @@ public:
       size_t i = 0;
 
   #ifdef __AVX2__
+      const size_t chunk_size = 32; // Process 32 bytes per loop
       __m256i newline_vec = _mm256_set1_epi8('\n');
 
-      for (; i + 31 < file_size; i += 32) {
+      // Ensure aligned reads
+      while (i + chunk_size <= static_cast<size_t>(file_size)) {
           __m256i chunk = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(data + i));
           __m256i cmp = _mm256_cmpeq_epi8(chunk, newline_vec);
-          num_rows += _mm256_movemask_epi8(cmp);
+          num_rows += __builtin_popcount(_mm256_movemask_epi8(cmp));  // Use popcount to count 1s
+          i += chunk_size;
       }
   #endif
 
-      // Handle remaining bytes (from i onwards)
-      for (; i < file_size; ++i) {
+      // Process remaining bytes safely
+      for (; i < static_cast<size_t>(file_size); ++i) {
           if (data[i] == '\n') {
               num_rows++;
           }
       }
 
+      // Unmap memory
       munmap(mapped, file_size);
+      
       return num_rows;
   }
+
 
 	bool GetSchemaFromHeader(vector<string> &names, vector<LogicalType> &types) {
 		D_ASSERT(names.empty() && types.empty());
