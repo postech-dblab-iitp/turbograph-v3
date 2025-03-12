@@ -20,7 +20,7 @@ public:
         for (auto i = 0; i < tableIDsToAdd.size(); i++) {
             tableIDs.push_back(tableIDsToAdd[i]);
         }
-        for (auto i = 0; i < numTablesPerPartition.size(); i++) {
+        for (auto i = 0; i < numTablesPerPartitionToAdd.size(); i++) {
             numTablesPerPartition.push_back(numTablesPerPartitionToAdd[i]);
         }
     }
@@ -46,6 +46,8 @@ public:
         // return properties[propertyNameToIdx.at(propertyName)]->copy();
         return properties[propertyKeyIDToIdx.at(propertyKeyID)];
     }
+
+    inline vector<size_t> &getNumTablesPerPartition() { return numTablesPerPartition; }
 
     inline const vector<shared_ptr<Expression>> &getPropertyExpressions() const {
         return properties;

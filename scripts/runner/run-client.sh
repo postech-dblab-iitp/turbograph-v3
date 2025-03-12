@@ -7,7 +7,6 @@ db_dir=$1
 ${BUILD_DIR}/client \
 	--log-level info \
 	--workspace ${db_dir} \
-	--log-level debug \
 	--standalone \
 	--disable-merge-join \
 	--join-order-optimizer exhaustive \

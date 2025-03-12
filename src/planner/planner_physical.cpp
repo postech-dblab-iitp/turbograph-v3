@@ -300,7 +300,6 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
 }
 
 duckdb::CypherPhysicalOperatorGroups *Planner::pTransformEopTableScan(CExpression *plan_expr) {
-#ifdef DYNAMIC_SCHEMA_INSTANTIATION
     CPhysicalTableScan *scan_op = NULL;
     if (plan_expr->Pop()->Eopid() ==
         COperator::EOperatorId::EopPhysicalFilter) {
@@ -316,9 +315,6 @@ duckdb::CypherPhysicalOperatorGroups *Planner::pTransformEopTableScan(CExpressio
     } else {
         return pTransformEopNormalTableScan(plan_expr);
     }
-#else
-    return pTransformEopNormalTableScan(plan_expr);
-#endif
 }
 
 duckdb::CypherPhysicalOperatorGroups *Planner::pTransformEopNormalTableScan(CExpression* plan_expr) {
@@ -755,7 +751,8 @@ Planner::pTransformEopUnionAllForNodeOrEdgeScan(CExpression *plan_expr)
                                            pred_attr_poss, literal_vals);
             }
 
-            D_ASSERT(pred_attr_poss.size() == literal_vals.size() == projection_mapping.size());
+            D_ASSERT(pred_attr_poss.size() == literal_vals.size());
+            D_ASSERT(pred_attr_poss.size() == projection_mapping.size());
             D_ASSERT(literal_vals[0].type().id() != duckdb::LogicalTypeId::VARCHAR);
 
             /* add expression type for pushdown */
