@@ -267,7 +267,7 @@ private:
 	LogicalPlan *lPlanRegularMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanRegularOptionalMatch(const QueryGraphCollection& queryGraphCollection, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanRegularMatchFromSubquery(const QueryGraphCollection& queryGraphCollection, LogicalPlan *outer_plan);
-	LogicalPlan *lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr, bool is_node);
+	LogicalPlan *lPlanNodeOrRelExpr(NodeOrRelExpression *node_rel_expr);
 	LogicalPlan *lPlanPathGet(RelExpression *edge_expr);
 	LogicalPlan *lPlanSelection(const expression_vector& predicates, LogicalPlan *prev_plan);
 	LogicalPlan *lPlanProjection(const expression_vector& expressions, LogicalPlan *prev_plan);
@@ -317,17 +317,8 @@ private:
 	unique_ptr<duckdb::Expression> lExprScalarAllShortestPathExprDuckDB(kuzu::binder::Expression *expression);
 
 	/* Helper functions for generating orca logical plans */
-    LogicalPlan *lPlanNodeOrRelExpr(
-        NodeOrRelExpression *node_rel_expr, const expression_vector &prop_exprs,
-        std::vector<uint64_t> &table_oids, std::vector<size_t> &num_tables_per_part);
 	CExpression *lGetCoalescedGet(NodeOrRelExpression *node_rel_expr, 
 		const expression_vector &prop_exprs, std::vector<uint64_t> &table_oids, uint64_t &repr_oid);
-    LogicalPlan *lPlanNodeOrRelExprWithoutDSI(
-        NodeOrRelExpression *node_expr, const expression_vector &prop_exprs,
-        std::vector<uint64_t> &pruned_table_oids, bool is_node);
-    LogicalPlan *lPlanNodeOrRelExprWithDSI(
-        NodeOrRelExpression *node_expr, const expression_vector &prop_exprs,
-        std::vector<uint64_t> &pruned_table_oids, bool is_node);
     std::pair<CExpression *, CColRefArray *> lExprLogicalGetNodeOrEdge(
         string name, vector<uint64_t> &oids,
         std::vector<std::vector<uint64_t>> *table_oids_in_groups,

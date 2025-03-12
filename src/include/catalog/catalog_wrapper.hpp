@@ -452,7 +452,6 @@ public:
 
         GraphCatalogEntry *gcat = (GraphCatalogEntry *)catalog.GetEntry(
             context, CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA, DEFAULT_GRAPH);
-        constexpr idx_t REPR_IDX = 0;
         PropertySchemaCatalogEntry *ps_cat =
             (PropertySchemaCatalogEntry *)catalog.GetEntry(
                 context, DEFAULT_SCHEMA, table_oids[REPR_IDX]);

@@ -3,8 +3,8 @@
 
 #include <limits>
 #include <string>
-
-// Refer to https://s3.amazonaws.com/artifacts.opencypher.org/railroad/Cypher.html
+#include <numeric>
+#include <functional>
 
 namespace s62 {
 
@@ -238,7 +238,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
                 // A join R
                 if (!is_lhs_bound) {
                     lhs_plan =
-                        lPlanNodeOrRelExpr((NodeOrRelExpression *)lhs, true);
+                        lPlanNodeOrRelExpr((NodeOrRelExpression *)lhs);
                 }
                 else {
                     // lhs bound
@@ -283,7 +283,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
                 edge_plan = is_pathjoin
                                 ? lPlanPathGet((RelExpression *)qedge)
                                 : lPlanNodeOrRelExpr(
-                                      (NodeOrRelExpression *)qedge, false);
+                                      (NodeOrRelExpression *)qedge);
 
                 a_r_join_expr =
                     is_pathjoin
@@ -323,7 +323,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
                     // join necessary
                     if (!is_rhs_bound) {
                         rhs_plan = lPlanNodeOrRelExpr(
-                            (NodeOrRelExpression *)rhs, true);
+                            (NodeOrRelExpression *)rhs);
                     }
                     else {
                         // lhs unbound and rhs bound
@@ -364,7 +364,7 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
             D_ASSERT(qg->getQueryNodes().size() == 1);
 
             LogicalPlan *nodescan_plan = lPlanNodeOrRelExpr(
-                (NodeOrRelExpression *)qg->getQueryNodes()[0].get(), true);
+                (NodeOrRelExpression *)qg->getQueryNodes()[0].get());
             if (qg_plan == nullptr) {
                 qg_plan = nodescan_plan;
             }
@@ -488,7 +488,7 @@ LogicalPlan *Planner::lPlanRegularOptionalMatch(const QueryGraphCollection &qgc,
                 // A join R
                 if (!is_lhs_bound) {
                     lhs_plan =
-                        lPlanNodeOrRelExpr((NodeOrRelExpression *)lhs, true);
+                        lPlanNodeOrRelExpr((NodeOrRelExpression *)lhs);
                 }
                 else {
                     // lhs bound
@@ -532,7 +532,7 @@ LogicalPlan *Planner::lPlanRegularOptionalMatch(const QueryGraphCollection &qgc,
                 edge_plan = is_pathjoin
                                 ? lPlanPathGet((RelExpression *)qedge)
                                 : lPlanNodeOrRelExpr(
-                                      (NodeOrRelExpression *)qedge, false);
+                                      (NodeOrRelExpression *)qedge);
 
                 lhs_plan->getSchema()->appendSchema(edge_plan->getSchema());
                 if (push_selection_pred_into_join) {
@@ -587,7 +587,7 @@ LogicalPlan *Planner::lPlanRegularOptionalMatch(const QueryGraphCollection &qgc,
                         // join necessary
                         if (!is_rhs_bound) {
                             rhs_plan = lPlanNodeOrRelExpr(
-                                (NodeOrRelExpression *)rhs, true);
+                                (NodeOrRelExpression *)rhs);
                         }
                         else {
                             // lhs unbound and rhs bound
@@ -647,7 +647,7 @@ LogicalPlan *Planner::lPlanRegularOptionalMatch(const QueryGraphCollection &qgc,
             D_ASSERT(qg->getQueryNodes().size() == 1);
 
             LogicalPlan *nodescan_plan = lPlanNodeOrRelExpr(
-                (NodeOrRelExpression *)qg->getQueryNodes()[0].get(), true);
+                (NodeOrRelExpression *)qg->getQueryNodes()[0].get());
             if (qg_plan == nullptr) {
                 qg_plan = nodescan_plan;
             }
@@ -718,7 +718,7 @@ LogicalPlan *Planner::lPlanRegularMatchFromSubquery(
             LogicalPlan *rhs_plan;
             if (!is_pathjoin) {
                 edge_plan =
-                    lPlanNodeOrRelExpr((NodeOrRelExpression *)qedge, false);
+                    lPlanNodeOrRelExpr((NodeOrRelExpression *)qedge);
             }
             else {
                 edge_plan = lPlanPathGet((RelExpression *)qedge);
@@ -733,7 +733,7 @@ LogicalPlan *Planner::lPlanRegularMatchFromSubquery(
                 // Join with R
                 if (!is_lhs_bound) {
                     lhs_plan =
-                        lPlanNodeOrRelExpr((NodeOrRelExpression *)lhs, true);
+                        lPlanNodeOrRelExpr((NodeOrRelExpression *)lhs);
                 }
                 else {
                     lhs_plan = qg_plan;
@@ -784,7 +784,7 @@ LogicalPlan *Planner::lPlanRegularMatchFromSubquery(
                 // join case
                 if (!is_rhs_bound) {
                     rhs_plan =
-                        lPlanNodeOrRelExpr((NodeOrRelExpression *)rhs, true);
+                        lPlanNodeOrRelExpr((NodeOrRelExpression *)rhs);
                 }
                 else {
                     rhs_plan = qg_plan;
@@ -833,7 +833,7 @@ LogicalPlan *Planner::lPlanRegularMatchFromSubquery(
                     false);  // Not sure about the logic here. different from SQL
             }
             LogicalPlan *nodescan_plan = lPlanNodeOrRelExpr(
-                (NodeOrRelExpression *)qg->getQueryNodes()[0].get(), true);
+                (NodeOrRelExpression *)qg->getQueryNodes()[0].get());
             if (qg_plan == nullptr) {
                 qg_plan = nodescan_plan;
             }
@@ -1476,46 +1476,22 @@ LogicalPlan *Planner::lPlanSkipOrLimit(BoundProjectionBody *proj_body,
     return prev_plan;
 }
 
-LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_expr,
-                                         bool is_node)
-{
-    auto &table_oids = node_expr->getTableIDs();
-    auto &prop_exprs = node_expr->getPropertyExpressions();
-    GPOS_ASSERT(table_oids.size() >= 1);
-
-    std::vector<uint64_t> pruned_table_oids;
-    lPruneUnnecessaryGraphlets(table_oids, node_expr, prop_exprs,
-                               pruned_table_oids);
-
-    lPruneUnnecessaryColumns(node_expr, prop_exprs, pruned_table_oids);
-
-#ifdef DYNAMIC_SCHEMA_INSTANTIATION
-    // group table_oids
-    if (pruned_table_oids.size() > 1) {
-        return lPlanNodeOrRelExprWithDSI(node_expr, prop_exprs,
-                                         pruned_table_oids, is_node);
-    }
-    else {
-        return lPlanNodeOrRelExprWithoutDSI(node_expr, prop_exprs,
-                                            pruned_table_oids, is_node);
-    }
-#else
-    return lPlanNodeOrRelExprWithoutDSI(node_expr, prop_exprs,
-                                        pruned_table_oids, is_node);
-#endif
-}
-
-LogicalPlan *Planner::lPlanNodeOrRelExpr(
-    NodeOrRelExpression *node_rel_expr, const expression_vector &prop_exprs,
-    std::vector<uint64_t> &table_oids, std::vector<size_t> &num_tables_per_part)
+LogicalPlan *Planner::lPlanNodeOrRelExpr(NodeOrRelExpression *node_rel_expr)
 {
     CMemoryPool *mp = this->memory_pool;
+    auto &table_oids = node_rel_expr->getTableIDs();
+    auto &prop_exprs = node_rel_expr->getPropertyExpressions();
+    auto &num_tables_per_part = node_rel_expr->getNumTablesPerPartition();
+    GPOS_ASSERT(table_oids.size() >= 1);
+    GPOS_ASSERT(prop_exprs.size() >= 1);
+    GPOS_ASSERT(num_tables_per_part.size() >= 1);
+
     std::vector<uint64_t> repr_oids;
     CExpressionArray *coalesced_gets = GPOS_NEW(mp) CExpressionArray(mp);
     for (auto i = 0; i < num_tables_per_part.size(); i++) {
         std::vector<uint64_t> table_oids_in_part(
-            table_oids.begin() + i * num_tables_per_part.size(),
-            table_oids.begin() + i * num_tables_per_part.size() + num_tables_per_part[i]
+            table_oids.begin() + std::accumulate(num_tables_per_part.begin(), num_tables_per_part.begin() + i, 0),
+            table_oids.begin() + std::accumulate(num_tables_per_part.begin(), num_tables_per_part.begin() + i + 1, 0)
         );
 
         uint64_t repr_oid;
@@ -1529,9 +1505,19 @@ LogicalPlan *Planner::lPlanNodeOrRelExpr(
     lBuildSchemaProjectionMapping(repr_oids, node_rel_expr, prop_exprs,
                                   schema_proj_mapping, used_col_idx);
 
-    
+    auto planned_expr = std::move(lExprLogicalGetNodeOrEdge(
+        node_rel_expr->resolveName(), repr_oids, nullptr, used_col_idx,
+        &schema_proj_mapping, true, node_rel_expr->isWholeNodeRequired()));
+    CExpression *plan_expr = planned_expr.first;
+    D_ASSERT(used_col_idx.size() == planned_expr.second->Size());
 
-    return nullptr;
+    LogicalSchema schema;
+    lGenerateNodeOrEdgeSchema(node_rel_expr, prop_exprs, node_rel_expr->isNode(), used_col_idx,
+                              planned_expr.second, schema);
+
+    LogicalPlan *plan = new LogicalPlan(plan_expr, schema);
+    GPOS_ASSERT(!plan->getSchema()->isEmpty());
+    return plan;
 }
 
 CExpression *Planner::lGetCoalescedGet(NodeOrRelExpression *node_rel_expr,
@@ -1558,107 +1544,6 @@ CExpression *Planner::lGetCoalescedGet(NodeOrRelExpression *node_rel_expr,
                                &table_oids,
                                node_rel_expr->isWholeNodeRequired());
     }
-}
-
-LogicalPlan *Planner::lPlanNodeOrRelExprWithoutDSI(
-    NodeOrRelExpression *node_expr, const expression_vector &prop_exprs,
-    std::vector<uint64_t> &pruned_table_oids, bool is_node)
-{
-    map<uint64_t, map<uint64_t, uint64_t>> schema_proj_mapping;
-    std::pair<CExpression *, CColRefArray *> planned_expr;
-    vector<int> used_col_idx;
-    auto node_name = node_expr->getUniqueName();
-    auto node_name_print = node_expr->hasAlias() ? node_expr->getAlias()
-                                                 : node_expr->getUniqueName();
-
-    lBuildSchemaProjectionMapping(pruned_table_oids, node_expr, prop_exprs,
-                                  schema_proj_mapping, used_col_idx);
-
-    planned_expr = std::move(lExprLogicalGetNodeOrEdge(
-        node_name_print, pruned_table_oids, nullptr, used_col_idx,
-        &schema_proj_mapping, true, node_expr->isWholeNodeRequired()));
-    CExpression *plan_expr = planned_expr.first;
-    D_ASSERT(used_col_idx.size() == planned_expr.second->Size());
-
-    LogicalSchema schema;
-    lGenerateNodeOrEdgeSchema(node_expr, prop_exprs, is_node, used_col_idx,
-                              planned_expr.second, schema);
-
-    LogicalPlan *plan = new LogicalPlan(plan_expr, schema);
-    GPOS_ASSERT(!plan->getSchema()->isEmpty());
-    return plan;
-}
-
-LogicalPlan *Planner::lPlanNodeOrRelExprWithDSI(
-    NodeOrRelExpression *node_expr, const expression_vector &prop_exprs,
-    std::vector<uint64_t> &pruned_table_oids, bool is_node)
-{
-    std::vector<uint64_t> prop_key_ids;
-    std::vector<uint64_t> representative_table_oids;
-    std::vector<std::vector<uint64_t>> table_oids_in_groups;
-    std::vector<std::vector<uint64_t>> property_location_in_representative;
-    std::vector<bool> is_each_group_has_temporary_table;
-
-    lGetUsedPropertyIDs(node_expr, prop_exprs, prop_key_ids);
-
-    context->db->GetCatalogWrapper().ConvertTableOidsIntoRepresentativeOids(
-        *context, prop_key_ids, pruned_table_oids, provider,
-        representative_table_oids, table_oids_in_groups,
-        property_location_in_representative, is_each_group_has_temporary_table);
-
-    // add temporary table oid to property expression
-    D_ASSERT(representative_table_oids.size() ==
-             is_each_group_has_temporary_table.size());
-    for (auto i = 0; i < representative_table_oids.size(); i++) {
-        if (!is_each_group_has_temporary_table[i])
-            continue;
-        int col_idx_except_id_col = 0;
-        for (int col_idx = 0; col_idx < prop_exprs.size(); col_idx++) {
-            if (!node_expr->isUsedColumn(col_idx))
-                continue;
-            PropertyExpression *expr =
-                (PropertyExpression *)(prop_exprs[col_idx].get());
-            if (col_idx != 0) {  // exclude _id column
-                if (property_location_in_representative
-                        [i][col_idx_except_id_col] !=
-                    std::numeric_limits<uint64_t>::max()) {
-                    expr->addPropertyID(representative_table_oids[i],
-                                        property_location_in_representative
-                                                [i][col_idx_except_id_col] +
-                                            1);
-                }
-                col_idx_except_id_col++;
-            }
-            else {
-                expr->addPropertyID(representative_table_oids[i], 0);
-            }
-        }
-    }
-
-    map<uint64_t, map<uint64_t, uint64_t>> schema_proj_mapping;
-    std::pair<CExpression *, CColRefArray *> planned_expr;
-    vector<int> used_col_idx;
-    auto node_name_print = node_expr->resolveName();
-
-    lBuildSchemaProjectionMapping(representative_table_oids, node_expr,
-                                  prop_exprs, schema_proj_mapping, used_col_idx,
-                                  true);
-
-    planned_expr = std::move(lExprLogicalGetNodeOrEdge(
-        node_name_print, representative_table_oids, &table_oids_in_groups,
-        used_col_idx, &schema_proj_mapping, true,
-        node_expr->isWholeNodeRequired()));
-    CExpression *plan_expr = planned_expr.first;
-    D_ASSERT(used_col_idx.size() == planned_expr.second->Size());
-
-    // generate node schema
-    LogicalSchema schema;
-    lGenerateNodeOrEdgeSchema(node_expr, prop_exprs, is_node, used_col_idx,
-                              planned_expr.second, schema);
-
-    LogicalPlan *plan = new LogicalPlan(plan_expr, schema);
-    GPOS_ASSERT(!plan->getSchema()->isEmpty());
-    return plan;
 }
 
 std::pair<CExpression *, CColRefArray *> Planner::lExprLogicalGetNodeOrEdge(
@@ -2473,7 +2358,7 @@ void Planner::lPruneUnnecessaryColumns(NodeOrRelExpression *node_expr,
 
 void Planner::lGetUsedPropertyIDs(
     NodeOrRelExpression *node_rel_expr, const expression_vector &prop_exprs,
-        std::vector<uint64_t>& prop_key_ids, bool exclude_pid = true
+        std::vector<uint64_t>& prop_key_ids, bool exclude_pid
 )
 {
     for (int col_idx = 0; col_idx < prop_exprs.size(); col_idx++) {

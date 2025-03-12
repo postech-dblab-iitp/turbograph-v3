@@ -777,7 +777,7 @@ vector<std::string> ObtainIdColumnNames(BulkloadContext &bulkload_ctx, std::stri
 		id_column_names.push_back(id_column_name);
 	}
 
-	return std::move(id_column_names);
+	return id_column_names;
 }
 
 std::string ConstructLidPidRetrievalQuery(BulkloadContext &bulkload_ctx, std::string &vertex_label, vector<std::string> &id_col_names) {
