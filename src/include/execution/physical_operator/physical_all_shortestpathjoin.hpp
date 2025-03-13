@@ -1,7 +1,7 @@
 #ifndef PHYSICAL_ALLSHORTESTPATH_H
 #define PHYSICAL_ALLSHORTESTPATH_H
 
-#include "common/typedef.hpp"
+#include "common/typedefs.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "planner/expression.hpp"
 #include "storage/extent/adjlist_iterator.hpp"

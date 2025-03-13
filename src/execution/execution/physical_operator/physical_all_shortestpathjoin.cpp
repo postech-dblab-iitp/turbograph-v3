@@ -1,5 +1,5 @@
 #include "execution/physical_operator/physical_all_shortestpathjoin.hpp"
-#include "common/typedef.hpp"
+#include "common/typedefs.hpp"
 #include "common/output_util.hpp"
 #include "storage/extent/adjlist_iterator.hpp"
 

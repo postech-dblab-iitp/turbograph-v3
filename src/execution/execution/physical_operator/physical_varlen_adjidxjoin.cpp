@@ -1,5 +1,6 @@
 
-#include "common/typedef.hpp"
+#include "common/typedefs.hpp"
+#include "common/types/expand_direction.hpp"
 
 #include "execution/physical_operator/physical_varlen_adjidxjoin.hpp"
 #include "storage/extent/extent_iterator.hpp"
@@ -18,30 +19,6 @@ namespace duckdb {
 #ifdef CHECK_ISOMORPHISM
 #define CUCKOO_CHECKER
 #endif // CHECK_ISOMORPHISM
-
-// PhysicalVarlenAdjIdxJoin::PhysicalVarlenAdjIdxJoin(Schema& sch,
-// 	std::string srcName, LabelSet srcLabelSet, LabelSet edgeLabelSet, ExpandDirection expandDir, LabelSet tgtLabelSet, JoinType join_type, bool load_eid, bool enumerate)
-// 	: PhysicalVarlenAdjIdxJoin(sch, srcName, srcLabelSet, edgeLabelSet, expandDir, tgtLabelSet, join_type, move(vector<JoinCondition>()), load_eid, enumerate) { }
-
-// PhysicalVarlenAdjIdxJoin::PhysicalVarlenAdjIdxJoin(Schema& sch,
-// 	std::string srcName, LabelSet srcLabelSet, LabelSet edgeLabelSet, ExpandDirection expandDir, LabelSet tgtLabelSet, JoinType join_type, vector<JoinCondition> remaining_conditions_p, bool load_eid, bool enumerate)
-// 	: CypherPhysicalOperator(sch), srcName(srcName), srcLabelSet(srcLabelSet), edgeLabelSet(edgeLabelSet), expandDir(expandDir), tgtLabelSet(tgtLabelSet), join_type(join_type), remaining_conditions(move(remaining_conditions_p)), load_eid(load_eid), enumerate(enumerate) {
-
-// 	// operator rules
-// 	bool check = (enumerate) ? true : (!load_eid);
-// 	D_ASSERT( check && "load_eid should be set to false(=not returning edge ids) when `enumerate` set to `false` (=range)");
-
-// 	D_ASSERT( enumerate == true && "always enumerate for now");
-// 	D_ASSERT( srcLabelSet.size() == 1 && "src label shuld be assigned and be only one for now");
-// 	D_ASSERT( tgtLabelSet.size() <= 1 && "no multiple targets"); // TODO needs support from the storage
-// 	D_ASSERT( edgeLabelSet.size() <= 1 && "no multiple edges Storage API support needed"); // TODO needs support from the storage
-// 	D_ASSERT( enumerate && "need careful debugging on range mode"); // TODO needs support from the storage
-
-// 	D_ASSERT( remaining_conditions.size() == 0 && "currently not support additional predicate" );
-// }
-
-
-
 
 //===--------------------------------------------------------------------===//
 // Operator

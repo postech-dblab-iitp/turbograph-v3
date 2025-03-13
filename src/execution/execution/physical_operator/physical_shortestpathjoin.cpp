@@ -1,6 +1,6 @@
 
 #include "execution/physical_operator/physical_shortestpathjoin.hpp"
-#include "common/typedef.hpp"
+#include "common/typedefs.hpp"
 #include "common/output_util.hpp"
 
 namespace duckdb {

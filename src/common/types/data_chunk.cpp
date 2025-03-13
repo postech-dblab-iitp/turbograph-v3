@@ -1,11 +1,8 @@
 #include "common/types/data_chunk.hpp"
 
 #include "common/array.hpp"
-//#include "common/arrow.hpp"
 #include "common/exception.hpp"
 #include "common/helper.hpp"
-//#include "common/printer.hpp"
-//#include "common/serializer.hpp"
 #include "common/to_string.hpp"
 #include "common/types/date.hpp"
 #include "common/types/interval.hpp"
@@ -16,10 +13,7 @@
 #include "common/unordered_map.hpp"
 #include "common/vector.hpp"
 #include "common/vector_operations/vector_operations.hpp"
-//#include "common/types/arrow_aux_data.hpp"
 #include "common/types/uuid.hpp"
-
-#include "icecream.hpp"
 
 namespace duckdb {
 

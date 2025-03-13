@@ -1,6 +1,7 @@
 #pragma once
-#include "common/typedef.hpp"
 
+#include "common/typedefs.hpp"
+#include "common/types/expand_direction.hpp"
 #include "common/enums/join_type.hpp"
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "storage/extent/adjlist_iterator.hpp"

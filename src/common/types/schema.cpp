@@ -1,54 +1,10 @@
-#include "common/typedef.hpp"
 #include <algorithm>
 #include <iostream>
 #include <map>
 
-#include "common/types.hpp"
-
-#include "icecream.hpp"
+#include "common/types/schema.hpp"
 
 namespace duckdb {
-void LabelSet::insert(std::string input)
-{
-    this->data.insert(input);
-}
-
-//! when a is superset of b, a contains all elems of b, which leads to smaller intersection in label hierarchy
-bool LabelSet::isSupersetOf(const LabelSet &elem)
-{
-
-    // if size bigger, always false
-    if (elem.data.size() > this->data.size())
-        return false;
-    // if same or small, check if all members exist.
-    for (const auto &item : elem.data) {
-        if (this->data.find(item) == this->data.end()) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool LabelSet::contains(const std::string st)
-{
-    return this->data.find(st) != this->data.end();
-}
-
-std::ostream &operator<<(std::ostream &os, const LabelSet &obj)
-{
-    os << "LabelSet(";
-    for (auto item : obj.data) {
-        os << item << ",";
-    }
-    os << ")";
-    return os;
-}
-
-bool operator==(const LabelSet lhs, const LabelSet rhs)
-{
-    // This is a comparison between 'unordered' sets, thus different ordering will return true.
-    return lhs.data == rhs.data;
-}
 
 void Schema::setStoredTypes(std::vector<duckdb::LogicalType> types)
 {
@@ -133,16 +89,4 @@ void Schema::removeColumn(uint64_t col_idx)
     }
 }
 
-void FilteredChunkBuffer::Initialize(vector<LogicalType> types)
-{
-    slice_buffer = make_unique<DataChunk>();
-    slice_buffer->Initialize(types, STANDARD_VECTOR_SIZE);
-    for (auto i = 0; i < FILTERED_CHUNK_BUFFER_SIZE; i++) {
-        auto buffer_chunk = std::make_unique<DataChunk>();
-        buffer_chunk->Initialize(types, STANDARD_VECTOR_SIZE);
-        buffer_chunks[i] = std::move(buffer_chunk);
-    }
-    buffer_idx = 0;
 }
-
-}  // namespace duckdb

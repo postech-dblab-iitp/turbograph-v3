@@ -2,7 +2,7 @@
 #define OUTPUT_UTIL
 
 #include <memory>
-#include "common/typedef.hpp"
+#include "common/typedefs.hpp"
 
 namespace duckdb {
 
