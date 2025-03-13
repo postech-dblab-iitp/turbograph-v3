@@ -156,6 +156,7 @@
 #include "execution/physical_operator/cypher_physical_operator.hpp"
 #include "common/enums/order_type.hpp"
 #include "common/enums/join_type.hpp"
+#include "common/types/schema.hpp"
 #include "planner/joinside.hpp"
 
 #include "planner/logical_plan.hpp"

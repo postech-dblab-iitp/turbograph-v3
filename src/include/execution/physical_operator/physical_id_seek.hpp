@@ -1,5 +1,6 @@
 #pragma once
-#include "common/typedef.hpp"
+#include "common/typedefs.hpp"
+#include "common/types/partial_schema.hpp"
 
 #include "common/enums/join_type.hpp"
 #include "common/types/value.hpp"
@@ -11,7 +12,6 @@ namespace duckdb {
 typedef double NullRatio;
 typedef double Skewness;
 
-class PartialSchema;
 class IdSeekState;
 class PhysicalIdSeek : public CypherPhysicalOperator {
    private:

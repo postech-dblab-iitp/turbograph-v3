@@ -1,19 +1,16 @@
 #include "common/types/vector.hpp"
-
+#include "common/types/partial_schema.hpp"
 #include "common/algorithm.hpp"
 #include "common/assert.hpp"
 #include "common/exception.hpp"
 #include "common/operator/comparison_operators.hpp"
 #include "common/pair.hpp"
-//#include "common/printer.hpp"
-//#include "common/serializer.hpp"
 #include "common/types/null_value.hpp"
 #include "common/types/sel_cache.hpp"
 #include "common/types/vector_cache.hpp"
 #include "common/types/rowcol_type.hpp"
 #include "common/vector_operations/vector_operations.hpp"
-#include "common/typedef.hpp"
-//#include "storage/buffer/buffer_handle.hpp"
+#include "common/typedefs.hpp"
 
 #include <cstring> // strlen() on Solaris
 #include "icecream.hpp"

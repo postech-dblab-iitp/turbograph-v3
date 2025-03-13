@@ -1,13 +1,14 @@
 #ifndef EXTENT_ITERATOR_H
 #define EXTENT_ITERATOR_H
 
-#include "common/typedef.hpp"
+#include "common/typedefs.hpp"
 #include "common/common.hpp"
 #include "common/vector.hpp"
 #include "common/unordered_map.hpp"
 #include "common/types.hpp"
 #include "common/vector_size.hpp"
 #include "common/types/data_chunk.hpp"
+#include "common/types/filtered_data_chunk.hpp"
 #include "common/types/selection_vector.hpp"
 #include "storage/extent/compression/compression_function.hpp"
 #include "storage/extent/compression/compression_header.hpp"

@@ -1,6 +1,6 @@
 #pragma once
-#include "common/typedef.hpp"
-
+#include "common/typedefs.hpp"
+#include "common/types/filter_value.hpp"
 #include "storage/graph_storage_wrapper.hpp"
 #include "main/client_context.hpp"
 #include "planner/expression.hpp"

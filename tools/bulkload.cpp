@@ -23,7 +23,7 @@
 #include "parser/parsed_data/create_property_schema_info.hpp"
 #include "parser/parsed_data/create_extent_info.hpp"
 #include "parser/parsed_data/create_chunkdefinition_info.hpp"
-#include "common/typedef.hpp"
+#include "common/typedefs.hpp"
 #include "common/range.hpp"
 #include "common/logger.hpp"
 #include "common/graph_csv_reader.hpp"

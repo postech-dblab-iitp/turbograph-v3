@@ -3,7 +3,7 @@
 #include <cmath>
 #include <numeric>
 #include <queue>
-#include "common/typedef.hpp"
+#include "common/typedefs.hpp"
 
 // catalog related
 #include "catalog/catalog.hpp"

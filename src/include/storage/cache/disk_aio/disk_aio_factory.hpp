@@ -10,7 +10,7 @@
 #include <fcntl.h>
 #include <string>
 
-#include "common/typedef.hpp"
+#include "common/typedefs.hpp"
 #include "disk_aio.hpp"
 #include "storage/cache/disk_aio/disk_aio_request.hpp"
 #include "storage/cache/disk_aio/eXDB_dist_internal.hpp"

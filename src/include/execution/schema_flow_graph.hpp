@@ -5,8 +5,8 @@
 #include "common/common.hpp"
 #include "common/enums/physical_operator_type.hpp"
 #include "common/vector.hpp"
-
-#include "common/typedef.hpp"
+#include "common/typedefs.hpp"
+#include "common/types/schema.hpp"
 
 namespace duckdb {
 
