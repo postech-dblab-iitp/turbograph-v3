@@ -18,6 +18,6 @@ public:
 	//! whether or not the parsing was successful. If the parsing was
 	//! successful, the parsed statements will be stored in the statements
 	//! variable.
-	void ParseQuery(const string &query);
+	void ParseQuery(string &query);
 };
 } // namespace duckdb
