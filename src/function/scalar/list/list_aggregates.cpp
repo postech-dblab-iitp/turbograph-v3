@@ -192,7 +192,7 @@
 // 	// find a matching aggregate function
 // 	string error;
 // 	auto best_function_idx = Function::BindFunction(func->name, func->functions, types, error);
-// 	if (best_function_idx == DConstants::INVALID_INDEX) {
+// 	if (best_function_idx == DConstants::INVALID_IDX) {
 // 		throw BinderException("No matching aggregate function");
 // 	}
 

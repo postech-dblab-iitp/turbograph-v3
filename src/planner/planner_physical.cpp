@@ -206,7 +206,7 @@ Planner::pTraverseTransformPhysicalPlan(CExpression *plan_expr)
                 }
                 else {
                     GPOS_ASSERT(false);
-                    throw NotImplementedException("Schemaless adjidxjoin case");
+                    throw duckdb::NotImplementedException("Schemaless adjidxjoin case");
                 }
             }
             else {
@@ -2265,7 +2265,7 @@ void Planner::
     duckdb::LogicalType pred_attr_type;
     if (has_filter && do_filter_pushdown) {
         GPOS_ASSERT(false);
-        throw NotImplementedException("InnerIdxNLJoin for Filter case");
+        throw duckdb::NotImplementedException("InnerIdxNLJoin for Filter case");
     }
 
     /* Generate operator and push */
@@ -2275,7 +2275,7 @@ void Planner::
     if (!do_filter_pushdown) {
         if (has_filter) {
             GPOS_ASSERT(false);
-            throw NotImplementedException("InnerIdxNLJoin for Filter case");
+            throw duckdb::NotImplementedException("InnerIdxNLJoin for Filter case");
         }
         else {
             duckdb::CypherPhysicalOperator *op = new duckdb::PhysicalIdSeek(
@@ -2287,7 +2287,7 @@ void Planner::
     }
     else {
         GPOS_ASSERT(false);
-        throw NotImplementedException("InnerIdxNLJoin for Filter case");
+        throw duckdb::NotImplementedException("InnerIdxNLJoin for Filter case");
     }
 
     pBuildSchemaFlowGraphForUnaryOperator(tmp_schema);
@@ -2561,7 +2561,7 @@ void Planner::
     /* Generate operators */
     if (has_filter && do_filter_pushdown) {
         GPOS_ASSERT(false);
-        throw NotImplementedException("InnerIdxNLJoin for Filter case");
+        throw duckdb::NotImplementedException("InnerIdxNLJoin for Filter case");
     }
 
     if (seperate_filter_from_condition) {
@@ -2631,7 +2631,7 @@ void Planner::
     }
     else {
         GPOS_ASSERT(false);
-        throw NotImplementedException("InnerIdxNLJoin for Filter case");
+        throw duckdb::NotImplementedException("InnerIdxNLJoin for Filter case");
     }
 }
 
@@ -3015,7 +3015,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekDSI(CExpression *plan_expr
     duckdb::LogicalType pred_attr_type;
     if (has_filter && do_filter_pushdown) {
         GPOS_ASSERT(false);
-        throw NotImplementedException("InnerIdxNLJoin for Filter case");
+        throw duckdb::NotImplementedException("InnerIdxNLJoin for Filter case");
     }
 
     /* Generate operator and push */
@@ -3094,7 +3094,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekDSI(CExpression *plan_expr
     }
     else {
         GPOS_ASSERT(false);
-        throw NotImplementedException("InnerIdxNLJoin for Filter case");
+        throw duckdb::NotImplementedException("InnerIdxNLJoin for Filter case");
     }
 
     return result;
@@ -5264,7 +5264,7 @@ void Planner::pConvertLocalFilterExprToUnionAllFilterExpr(
             break;
         default:
             GPOS_ASSERT(false);
-            throw InternalException(
+            throw duckdb::InternalException(
                 "Attempting to execute expression of unknown type!");
     }
 }
@@ -5351,7 +5351,7 @@ void Planner::pShiftFilterPredInnerColumnIndices(
             break;
         default:
             GPOS_ASSERT(false);
-            throw InternalException(
+            throw duckdb::InternalException(
                 "Attempting to execute expression of unknown type!");
     }
 }
@@ -5971,7 +5971,7 @@ void Planner::pGetIdentIndices(unique_ptr<duckdb::Expression> &unique_expr,
         break;
     }
     default:
-        throw NotImplementedException("Attempting to execute expression of unknown type!");
+        throw duckdb::NotImplementedException("Attempting to execute expression of unknown type!");
     }
 }
 

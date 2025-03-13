@@ -5,7 +5,6 @@
 #include <limits>
 #include <map>
 #include <string>
-#include <spdlog/spdlog.h>
 
 namespace s62 {
 
@@ -146,7 +145,7 @@ CQueryContext *Planner::_orcaGenQueryCtxt(CMemoryPool *mp,
     return result;
 }
 
-void Planner::execute(kuzu::binder::BoundStatement *bound_statement)
+void Planner::execute(BoundStatement *bound_statement)
 {
     // reset previous context
     this->reset();

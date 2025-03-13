@@ -40,7 +40,7 @@ idx_t TableCatalogEntry::GetColumnIndex(string &column_name, bool if_exists) {
 		entry = name_map.find(StringUtil::Lower(column_name));
 		if (entry == name_map.end()) {
 			if (if_exists) {
-				return DConstants::INVALID_INDEX;
+				return DConstants::INVALID_IDX;
 			}
 			throw BinderException("Table \"%s\" does not have a column with name \"%s\"", name, column_name);
 		}
@@ -259,7 +259,7 @@ unique_ptr<CatalogEntry> TableCatalogEntry::RemoveColumn(ClientContext &context,
 	auto create_info = make_unique<CreateTableInfo>(schema->name, name);
 	create_info->temporary = temporary;
 	idx_t removed_index = GetColumnIndex(info.removed_column, info.if_exists);
-	if (removed_index == DConstants::INVALID_INDEX) {
+	if (removed_index == DConstants::INVALID_IDX) {
 		return nullptr;
 	}
 	for (idx_t i = 0; i < columns.size(); i++) {
@@ -311,7 +311,7 @@ unique_ptr<CatalogEntry> TableCatalogEntry::RemoveColumn(ClientContext &context,
 		case ConstraintType::UNIQUE: {
 			auto copy = constraint->Copy();
 			auto &unique = (UniqueConstraint &)*copy;
-			if (unique.index != DConstants::INVALID_INDEX) {
+			if (unique.index != DConstants::INVALID_IDX) {
 				if (unique.index == removed_index) {
 					throw CatalogException(
 					    "Cannot drop column \"%s\" because there is a UNIQUE constraint that depends on it",
@@ -554,7 +554,7 @@ string TableCatalogEntry::ToSQL() {
 		} else if (constraint->type == ConstraintType::UNIQUE) {
 			auto &pk = (UniqueConstraint &)*constraint;
 			vector<string> constraint_columns = pk.columns;
-			if (pk.index != DConstants::INVALID_INDEX) {
+			if (pk.index != DConstants::INVALID_IDX) {
 				// no columns specified: single column constraint
 				if (pk.is_primary_key) {
 					pk_columns.insert(pk.index);
@@ -660,14 +660,14 @@ void TableCatalogEntry::CommitAlter(AlterInfo &info) {
 	if (column_name.empty()) {
 		return;
 	}
-	idx_t removed_index = DConstants::INVALID_INDEX;
+	idx_t removed_index = DConstants::INVALID_IDX;
 	for (idx_t i = 0; i < columns.size(); i++) {
 		if (columns[i].name == column_name) {
 			removed_index = i;
 			break;
 		}
 	}
-	D_ASSERT(removed_index != DConstants::INVALID_INDEX);
+	D_ASSERT(removed_index != DConstants::INVALID_IDX);
 	storage->CommitDropColumn(removed_index);
 }
 

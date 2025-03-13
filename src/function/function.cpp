@@ -287,7 +287,7 @@ static int64_t BindFunctionCost(SimpleFunction &func, vector<LogicalType> &argum
 template <class T>
 static idx_t BindFunctionFromArguments(const string &name, vector<T> &functions, vector<LogicalType> &arguments,
                                        string &error) {
-	idx_t best_function = DConstants::INVALID_INDEX;
+	idx_t best_function = DConstants::INVALID_IDX;
 	int64_t lowest_cost = NumericLimits<int64_t>::Maximum();
 	vector<idx_t> conflicting_functions;
 	for (idx_t f_idx = 0; f_idx < functions.size(); f_idx++) {
@@ -323,9 +323,9 @@ static idx_t BindFunctionFromArguments(const string &name, vector<T> &functions,
 		    StringUtil::Format("Could not choose a best candidate function for the function call \"%s\". In order to "
 		                       "select one, please add explicit type casts.\n\tCandidate functions:\n%s",
 		                       call_str, candidate_str);
-		return DConstants::INVALID_INDEX;
+		return DConstants::INVALID_IDX;
 	}
-	if (best_function == DConstants::INVALID_INDEX) {
+	if (best_function == DConstants::INVALID_IDX) {
 		// no matching function was found, throw an error
 		string call_str = Function::CallToString(name, arguments);
 		string candidate_str = "";
@@ -335,7 +335,7 @@ static idx_t BindFunctionFromArguments(const string &name, vector<T> &functions,
 		error = StringUtil::Format("No function matches the given name and argument types '%s'. You might need to add "
 		                           "explicit type casts.\n\tCandidate functions:\n%s",
 		                           call_str, candidate_str);
-		return DConstants::INVALID_INDEX;
+		return DConstants::INVALID_IDX;
 	}
 	return best_function;
 }
@@ -361,7 +361,7 @@ idx_t Function::BindFunction(const string &name, vector<TableFunction> &function
 // 		types.push_back(value.type());
 // 	}
 // 	idx_t entry = BindFunctionFromArguments(name, functions, types, error);
-// 	if (entry == DConstants::INVALID_INDEX) {
+// 	if (entry == DConstants::INVALID_IDX) {
 // 		throw BinderException(error);
 // 	}
 // 	auto &candidate_function = functions[entry];
@@ -461,7 +461,7 @@ void BaseScalarFunction::CastToFunctionArguments(vector<unique_ptr<Expression>> 
 //                                                                        string &error, bool is_operator) {
 // 	// bind the function
 // 	idx_t best_function = Function::BindFunction(func.name, func.functions, children, error);
-// 	if (best_function == DConstants::INVALID_INDEX) {
+// 	if (best_function == DConstants::INVALID_IDX) {
 // 		return nullptr;
 // 	}
 // 	// found a matching function!

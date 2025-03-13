@@ -6,12 +6,10 @@
 #include "storage/cache/chunk_cache_manager.h"
 #include "catalog/catalog_wrapper.hpp"
 #include "planner/planner.hpp"
+#include "parser/parser.hpp"
 #include "main/client_context.hpp"
 #include "main/database.hpp"
 #include "optimizer/orca/gpopt/tbgppdbwrappers.hpp"
-#include "CypherLexer.h"
-#include "kuzu/parser/transformer.h"
-#include "kuzu/binder/binder.h"
 #include "gpopt/mdcache/CMDCache.h"
 #include "common/types/decimal.hpp"
 #include "parser/parsed_data/create_schema_info.hpp"
@@ -20,7 +18,7 @@
 #include "common/types/decimal.hpp"
 
 using namespace duckdb;
-using namespace antlr4;
+// using namespace antlr4;
 using namespace gpopt;
 
 // Database
@@ -340,20 +338,13 @@ s62_state s62_close_property(s62_property *property) {
 }
 
 static void s62_compile_query(string query) {
-	auto inputStream = ANTLRInputStream(query);
-    auto cypherLexer = CypherLexer(&inputStream);
-    auto tokens = CommonTokenStream(&cypherLexer);
-    tokens.fill();
-
-    auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
-    kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
-    auto statement = transformer.transform();
+    auto statements = Parser::ParseQuery(query);
     
-    auto binder = kuzu::binder::Binder(client.get());
-    auto boundStatement = binder.bind(*statement);
-    kuzu::binder::BoundStatement * bst = boundStatement.get();
+    // auto binder = kuzu::binder::Binder(client.get());
+    // auto boundStatement = binder.bind(*statement);
+    // kuzu::binder::BoundStatement * bst = boundStatement.get();
 
-	planner->execute(bst);
+	// planner->execute(bst);
 }
 
 static void s62_get_label_name_type_from_ccolref(OID col_oid, s62_property *new_property) {

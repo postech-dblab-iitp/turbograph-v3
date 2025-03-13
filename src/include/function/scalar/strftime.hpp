@@ -111,7 +111,7 @@ public:
 	struct ParseResult {
 		int32_t data[7];
 		string error_message;
-		idx_t error_position = DConstants::INVALID_INDEX;
+		idx_t error_position = DConstants::INVALID_IDX;
 
 		date_t ToDate();
 		timestamp_t ToTimestamp();

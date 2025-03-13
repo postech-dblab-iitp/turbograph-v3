@@ -1,4 +1,4 @@
-add_subdirectory(kuzu)
+# add_subdirectory(kuzu)
 add_subdirectory(mdprovider)
 add_subdirectory(orca)
 

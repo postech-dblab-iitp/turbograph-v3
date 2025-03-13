@@ -1145,7 +1145,7 @@ StrpTimeFormat::ParseResult StrpTimeFormat::Parse(const string &format_string, c
 }
 
 string StrpTimeFormat::FormatStrpTimeError(const string &input, idx_t position) {
-	if (position == DConstants::INVALID_INDEX) {
+	if (position == DConstants::INVALID_IDX) {
 		return string();
 	}
 	return input + "\n" + string(position, ' ') + "^";

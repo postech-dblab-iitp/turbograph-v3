@@ -2,8 +2,8 @@
 
 #include "gpos/memory/CMemoryPool.h"
 
-#include "kuzu/common/types/types.h"
-#include "kuzu/common/types/literal.h"
+// #include "kuzu/common/types/types.h"
+// #include "kuzu/common/types/literal.h"
 
 #include "common/assert.hpp"
 #include "common/types.hpp"
@@ -22,120 +22,120 @@ public:
 
 	// kuzu literal -> in mp
 	// TODO may need to apply templates if necessary
-	static void SerializeKUZULiteralIntoOrcaByteArray(uint32_t type_id, kuzu::common::Literal* kuzu_literal, void*& out_mem_ptr, uint64_t& out_length) {
+	// static void SerializeKUZULiteralIntoOrcaByteArray(uint32_t type_id, kuzu::common::Literal* kuzu_literal, void*& out_mem_ptr, uint64_t& out_length) {
 
-		// DataType kuzu_type = kuzu_literal->dataType;
-		// D_ASSERT( type_id == LOGICAL_TYPE_BASE_ID + (OID)kuzu_type.typeID);
-		DataTypeID data_type_id = DataTypeID((type_id - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES);
+	// 	// DataType kuzu_type = kuzu_literal->dataType;
+	// 	// D_ASSERT( type_id == LOGICAL_TYPE_BASE_ID + (OID)kuzu_type.typeID);
+	// 	DataTypeID data_type_id = DataTypeID((type_id - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES);
 
-		switch (data_type_id) {
-			case DataTypeID::INTEGER: {
-				out_length = 4;
-				int32_t* mem_ptr = (int32_t*) malloc(out_length);
-				(*mem_ptr) = kuzu_literal->val.int32Val;
-				out_mem_ptr = (void*)mem_ptr;
-				break;
-			}
-			case DataTypeID::INT64: {
-				out_length = 8;
-				int64_t* mem_ptr = (int64_t*) malloc(out_length);
-				(*mem_ptr) = kuzu_literal->val.int64Val;
-				out_mem_ptr = (void*)mem_ptr;
-				break;
-			}
-			case DataTypeID::UINTEGER: {
-				out_length = 4;
-				uint32_t* mem_ptr = (uint32_t*) malloc(out_length);
-				(*mem_ptr) = kuzu_literal->val.uint32Val;
-				out_mem_ptr = (void*)mem_ptr;
-				break;
-			}
-			case DataTypeID::UBIGINT: {
-				out_length = 8;
-				uint64_t* mem_ptr = (uint64_t*) malloc(out_length);
-				(*mem_ptr) = kuzu_literal->val.uint64Val;
-				out_mem_ptr = (void*)mem_ptr;
-				break;
-			}
-			case DataTypeID::HUGEINT: {
-				// jhha: currently, think hugeint as int64
-				out_length = 8;
-				int64_t* mem_ptr = (int64_t*) malloc(out_length);
-				(*mem_ptr) = kuzu_literal->val.uint64Val;
-				out_mem_ptr = (void*)mem_ptr;
-				break;
-			}
-			case DataTypeID::DOUBLE: {
-				out_length = 8;
-				double* mem_ptr = (double*) malloc(out_length);
-				(*mem_ptr) = kuzu_literal->val.doubleVal;
-				out_mem_ptr = (void*)mem_ptr;
-				break;
-			}
-			case DataTypeID::STRING: {
-				out_length = strlen(kuzu_literal->strVal.c_str())+1;	// add null term
-				char* mem_ptr = (char*) malloc(out_length);
-				memcpy(mem_ptr, (char*)kuzu_literal->strVal.c_str(), out_length);
-				out_mem_ptr = (void*)mem_ptr;
-				break;
-			}
-			case DataTypeID::BOOLEAN: {
-				out_length = 1;
-				int8_t val = kuzu_literal->val.booleanVal ? 1 : 0;
-				char *mem_ptr = (char*) malloc(out_length);
-				(*mem_ptr) = val;
-				out_mem_ptr = (void*)mem_ptr;
-				break;
-			}
-			case DataTypeID::DATE: {
-				out_length = 4;
-				int32_t val = kuzu_literal->val.dateVal.days;
-				int32_t *mem_ptr = (int32_t *)malloc(out_length);
-				(*mem_ptr) = val;
-				out_mem_ptr = (void *)mem_ptr;
-				break;
-			}
-			case DataTypeID::DECIMAL: { // TODO decimal temporary
-				out_length = 8;
-				int64_t* mem_ptr = (int64_t*) malloc(out_length);
-				(*mem_ptr) = kuzu_literal->val.int64Val;
-				out_mem_ptr = (void*)mem_ptr;
-				break;
-			}
-			case DataTypeID::LIST: {
-				switch (kuzu_literal->dataType.childType->typeID) {
-				case DataTypeID::STRING: {
-					uint32_t num_strings = kuzu_literal->listVal.size();
-					out_length += sizeof(uint32_t);
-					for (auto i = 0; i < num_strings; i++) {
-						out_length += sizeof(uint32_t);
-						out_length += kuzu_literal->listVal[i].strVal.size();
-					}
-					char *mem_ptr = (char *)malloc(out_length);
+	// 	switch (data_type_id) {
+	// 		case DataTypeID::INTEGER: {
+	// 			out_length = 4;
+	// 			int32_t* mem_ptr = (int32_t*) malloc(out_length);
+	// 			(*mem_ptr) = kuzu_literal->val.int32Val;
+	// 			out_mem_ptr = (void*)mem_ptr;
+	// 			break;
+	// 		}
+	// 		case DataTypeID::INT64: {
+	// 			out_length = 8;
+	// 			int64_t* mem_ptr = (int64_t*) malloc(out_length);
+	// 			(*mem_ptr) = kuzu_literal->val.int64Val;
+	// 			out_mem_ptr = (void*)mem_ptr;
+	// 			break;
+	// 		}
+	// 		case DataTypeID::UINTEGER: {
+	// 			out_length = 4;
+	// 			uint32_t* mem_ptr = (uint32_t*) malloc(out_length);
+	// 			(*mem_ptr) = kuzu_literal->val.uint32Val;
+	// 			out_mem_ptr = (void*)mem_ptr;
+	// 			break;
+	// 		}
+	// 		case DataTypeID::UBIGINT: {
+	// 			out_length = 8;
+	// 			uint64_t* mem_ptr = (uint64_t*) malloc(out_length);
+	// 			(*mem_ptr) = kuzu_literal->val.uint64Val;
+	// 			out_mem_ptr = (void*)mem_ptr;
+	// 			break;
+	// 		}
+	// 		case DataTypeID::HUGEINT: {
+	// 			// jhha: currently, think hugeint as int64
+	// 			out_length = 8;
+	// 			int64_t* mem_ptr = (int64_t*) malloc(out_length);
+	// 			(*mem_ptr) = kuzu_literal->val.uint64Val;
+	// 			out_mem_ptr = (void*)mem_ptr;
+	// 			break;
+	// 		}
+	// 		case DataTypeID::DOUBLE: {
+	// 			out_length = 8;
+	// 			double* mem_ptr = (double*) malloc(out_length);
+	// 			(*mem_ptr) = kuzu_literal->val.doubleVal;
+	// 			out_mem_ptr = (void*)mem_ptr;
+	// 			break;
+	// 		}
+	// 		case DataTypeID::STRING: {
+	// 			out_length = strlen(kuzu_literal->strVal.c_str())+1;	// add null term
+	// 			char* mem_ptr = (char*) malloc(out_length);
+	// 			memcpy(mem_ptr, (char*)kuzu_literal->strVal.c_str(), out_length);
+	// 			out_mem_ptr = (void*)mem_ptr;
+	// 			break;
+	// 		}
+	// 		case DataTypeID::BOOLEAN: {
+	// 			out_length = 1;
+	// 			int8_t val = kuzu_literal->val.booleanVal ? 1 : 0;
+	// 			char *mem_ptr = (char*) malloc(out_length);
+	// 			(*mem_ptr) = val;
+	// 			out_mem_ptr = (void*)mem_ptr;
+	// 			break;
+	// 		}
+	// 		case DataTypeID::DATE: {
+	// 			out_length = 4;
+	// 			int32_t val = kuzu_literal->val.dateVal.days;
+	// 			int32_t *mem_ptr = (int32_t *)malloc(out_length);
+	// 			(*mem_ptr) = val;
+	// 			out_mem_ptr = (void *)mem_ptr;
+	// 			break;
+	// 		}
+	// 		case DataTypeID::DECIMAL: { // TODO decimal temporary
+	// 			out_length = 8;
+	// 			int64_t* mem_ptr = (int64_t*) malloc(out_length);
+	// 			(*mem_ptr) = kuzu_literal->val.int64Val;
+	// 			out_mem_ptr = (void*)mem_ptr;
+	// 			break;
+	// 		}
+	// 		case DataTypeID::LIST: {
+	// 			switch (kuzu_literal->dataType.childType->typeID) {
+	// 			case DataTypeID::STRING: {
+	// 				uint32_t num_strings = kuzu_literal->listVal.size();
+	// 				out_length += sizeof(uint32_t);
+	// 				for (auto i = 0; i < num_strings; i++) {
+	// 					out_length += sizeof(uint32_t);
+	// 					out_length += kuzu_literal->listVal[i].strVal.size();
+	// 				}
+	// 				char *mem_ptr = (char *)malloc(out_length);
 
-					uint32_t accm_bytes = 0;
-					memcpy(mem_ptr, &num_strings, sizeof(uint32_t));
-					accm_bytes += sizeof(uint32_t);
-					for (auto i = 0; i < num_strings; i++) {
-						uint32_t str_size = kuzu_literal->listVal[i].strVal.size();
-						memcpy(mem_ptr + accm_bytes, &str_size, sizeof(uint32_t));
-						accm_bytes += sizeof(uint32_t);
-						memcpy(mem_ptr + accm_bytes, (char *)kuzu_literal->listVal[i].strVal.c_str(), str_size);
-						accm_bytes += str_size;
-					}
-					out_mem_ptr = (void *)mem_ptr;
-					break;
-				}
-				default:
-					D_ASSERT(false);
-				}
-				break;
-			}
-			default:
-				D_ASSERT(false);
-		}
-		return;
-	}
+	// 				uint32_t accm_bytes = 0;
+	// 				memcpy(mem_ptr, &num_strings, sizeof(uint32_t));
+	// 				accm_bytes += sizeof(uint32_t);
+	// 				for (auto i = 0; i < num_strings; i++) {
+	// 					uint32_t str_size = kuzu_literal->listVal[i].strVal.size();
+	// 					memcpy(mem_ptr + accm_bytes, &str_size, sizeof(uint32_t));
+	// 					accm_bytes += sizeof(uint32_t);
+	// 					memcpy(mem_ptr + accm_bytes, (char *)kuzu_literal->listVal[i].strVal.c_str(), str_size);
+	// 					accm_bytes += str_size;
+	// 				}
+	// 				out_mem_ptr = (void *)mem_ptr;
+	// 				break;
+	// 			}
+	// 			default:
+	// 				D_ASSERT(false);
+	// 			}
+	// 			break;
+	// 		}
+	// 		default:
+	// 			D_ASSERT(false);
+	// 	}
+	// 	return;
+	// }
 
 	// datum mp -> duckdb value
 		// TODO api should not copy return value

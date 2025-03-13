@@ -5,16 +5,13 @@
 #include "nlohmann/json.hpp"	// TODO remove json and use that of boost
 #include "common/logger.hpp"
 #include "execution/cypher_pipeline.hpp"
+#include "parser/parser.hpp"
 #include "execution/cypher_pipeline_executor.hpp"
 #include "main/database.hpp"
 #include "main/client_context.hpp"
 #include "storage/statistics/histogram_generator.hpp"
 #include "storage/cache/chunk_cache_manager.h"
 #include "planner/planner.hpp"
-#include "CypherLexer.h"
-#include "kuzu/parser/transformer.h"
-#include "kuzu/binder/binder.h"
-#include "kuzu/parser/antlr_parser/kuzu_cypher_parser.h"
 #include "catalog/catalog_wrapper.hpp"
 #include "optimizer/orca/gpopt/tbgppdbwrappers.hpp"
 #include <readline/readline.h>
@@ -22,7 +19,6 @@
 #include <readline/rlstdc.h>
 #include <readline/rltypedefs.h>
 
-using namespace antlr4;
 using namespace gpopt;
 using namespace duckdb;
 using json = nlohmann::json;
@@ -186,33 +182,22 @@ std::string GetQueryString(std::string &prompt) {
 }
 
 void CompileQuery(const string& query, std::shared_ptr<ClientContext> client, s62::Planner& planner, double &compile_elapsed_time) {
-	SCOPED_TIMER(CompileQuery, spdlog::level::info, spdlog::level::debug, compile_elapsed_time);
-	auto inputStream = ANTLRInputStream(query);
+	// SCOPED_TIMER(CompileQuery, spdlog::level::info, spdlog::level::debug, compile_elapsed_time);
+	// auto inputStream = ANTLRInputStream(query);
 
-	SUBTIMER_START(CompileQuery, "Lexing");
-	auto cypherLexer = CypherLexer(&inputStream);
-	auto tokens = CommonTokenStream(&cypherLexer);
-	tokens.fill();
-	SUBTIMER_STOP(CompileQuery, "Lexing");
+    // SUBTIMER_START(CompileQuery, "ParseQuery");
+    // auto statements = Parser::ParseQuery(query);
+    // SUBTIMER_STOP(CompileQuery, "ParseQuery");
 	
-	SUBTIMER_START(CompileQuery, "Parse");
-	auto kuzuCypherParser = kuzu::parser::KuzuCypherParser(&tokens);
-	SUBTIMER_STOP(CompileQuery, "Parse");
+	// SUBTIMER_START(CompileQuery, "Bind");
+    // kuzu::binder::Binder binder(client.get());
+	// auto boundStatement = binder.bind(*statement);
+	// kuzu::binder::BoundStatement *bst = boundStatement.get();
+	// SUBTIMER_STOP(CompileQuery, "Bind");
 
-	SUBTIMER_START(CompileQuery, "Transform");
-	kuzu::parser::Transformer transformer(*kuzuCypherParser.oC_Cypher());
-	auto statement = transformer.transform();
-	SUBTIMER_STOP(CompileQuery, "Transform");
-	
-	SUBTIMER_START(CompileQuery, "Bind");
-    kuzu::binder::Binder binder(client.get());
-	auto boundStatement = binder.bind(*statement);
-	kuzu::binder::BoundStatement *bst = boundStatement.get();
-	SUBTIMER_STOP(CompileQuery, "Bind");
-
-	SUBTIMER_START(CompileQuery, "Orca Compile");
-	planner.execute(bst);
-	SUBTIMER_STOP(CompileQuery, "Orca Compile");
+	// SUBTIMER_START(CompileQuery, "Orca Compile");
+	// planner.execute(bst);
+	// SUBTIMER_STOP(CompileQuery, "Orca Compile");
 }
 
 void ExecuteQuery(const string& query, std::shared_ptr<ClientContext> client, ClientOptions& options, vector<duckdb::CypherPipelineExecutor *>& executors, double &exec_elapsed_time) {	
@@ -410,10 +395,8 @@ void ProcessQueryInteractive(std::shared_ptr<ClientContext>& client, ClientOptio
 		try {
 			query_str.pop_back();
 			ProcessQuery(query_str, client, options, planner);
-		} catch (const duckdb::Exception& e) {
-			spdlog::error("DuckDB Exception: {}", e.what());
 		} catch (const std::exception& e) {
-			spdlog::error("Unexpected Exception: {} (Type: {})", e.what(), typeid(e).name());
+			spdlog::error(e.what());
 		}
 	}
 }

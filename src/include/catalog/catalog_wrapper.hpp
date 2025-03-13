@@ -159,7 +159,7 @@ public:
         idx_t agg_funcset_idx =
             Function::BindFunction(func_name, agg_funcset, arguments, error_msg);
         
-        if (agg_funcset_idx == DConstants::INVALID_INDEX) { throw InvalidInputException("Unsupported agg func"); }
+        if (agg_funcset_idx == DConstants::INVALID_IDX) { throw InvalidInputException("Unsupported agg func"); }
 
         idx_t aggfunc_mdid = FUNCTION_BASE_ID + (aggfunc_cat->GetOid() * FUNC_GROUP_SIZE) + agg_funcset_idx;
         return aggfunc_mdid;
@@ -178,7 +178,7 @@ public:
         idx_t scalar_funcset_idx =
             Function::BindFunction(func_name, scalar_funcset, arguments, error_msg);
             
-        if (scalar_funcset_idx == DConstants::INVALID_INDEX) { throw InvalidInputException("Unsupported scalar func"); }
+        if (scalar_funcset_idx == DConstants::INVALID_IDX) { throw InvalidInputException("Unsupported scalar func"); }
         idx_t scalarfunc_mdid = FUNCTION_BASE_ID + (scalarfunc_cat->GetOid() * FUNC_GROUP_SIZE) + scalar_funcset_idx;
         return scalarfunc_mdid;
     }

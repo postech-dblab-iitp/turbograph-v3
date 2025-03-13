@@ -19,7 +19,7 @@ public:
 	DUCKDB_API UniqueConstraint(vector<string> columns, bool is_primary_key);
 
 	//! The index of the column for which this constraint holds. Only used when the constraint relates to a single
-	//! column, equal to DConstants::INVALID_INDEX if not used
+	//! column, equal to DConstants::INVALID_IDX if not used
 	uint64_t index;
 	//! The set of columns for which this constraint holds by name. Only used when the index field is not used.
 	vector<string> columns;

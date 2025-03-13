@@ -1,7 +1,8 @@
 #pragma once
 
-#include "common/cast.h"
-#include "common/enums/statement_type.h"
+#include "common/common.hpp"
+#include "common/enums/statement_type.hpp"
+#include "common/exception.hpp"
 
 namespace duckdb {
 
@@ -23,14 +24,14 @@ public:
 	string query;
 
 protected:
-	SQLStatement(const SQLStatement &other) = default;
+	CypherStatement(const CypherStatement &other) = default;
 
 public:
 	virtual string ToString() const {
 		throw InternalException("ToString not supported for this type of SQLStatement");
 	}
 	//! Create a copy of this SelectStatement
-	virtual unique_ptr<SQLStatement> Copy() const = 0;
+	virtual unique_ptr<CypherStatement> Copy() const = 0;
 };
 
 } // namespace parser

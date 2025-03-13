@@ -73,7 +73,7 @@ extern const double PI;
 
 struct DConstants {
 	//! The value used to signify an invalid index entry
-	static constexpr const idx_t INVALID_INDEX = idx_t(-1);
+	static constexpr const idx_t INVALID_IDX = idx_t(-1);
 };
 
 struct Storage {

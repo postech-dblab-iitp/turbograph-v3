@@ -10,7 +10,7 @@ UniqueConstraint::UniqueConstraint(uint64_t index, bool is_primary_key)
     : Constraint(ConstraintType::UNIQUE), index(index), is_primary_key(is_primary_key) {
 }
 UniqueConstraint::UniqueConstraint(vector<string> columns, bool is_primary_key)
-    : Constraint(ConstraintType::UNIQUE), index(DConstants::INVALID_INDEX), columns(move(columns)),
+    : Constraint(ConstraintType::UNIQUE), index(DConstants::INVALID_IDX), columns(move(columns)),
       is_primary_key(is_primary_key) {
 }
 
@@ -26,7 +26,7 @@ string UniqueConstraint::ToString() const {
 }
 
 unique_ptr<Constraint> UniqueConstraint::Copy() const {
-	if (index == DConstants::INVALID_INDEX) {
+	if (index == DConstants::INVALID_IDX) {
 		return make_unique<UniqueConstraint>(columns, is_primary_key);
 	} else {
 		auto result = make_unique<UniqueConstraint>(index, is_primary_key);
@@ -47,7 +47,7 @@ unique_ptr<Constraint> UniqueConstraint::Deserialize(FieldReader &source) {
 	auto index = source.ReadRequired<uint64_t>();
 	auto columns = source.ReadRequiredList<string>();
 
-	if (index != DConstants::INVALID_INDEX) {
+	if (index != DConstants::INVALID_IDX) {
 		// single column parsed constraint
 		auto result = make_unique<UniqueConstraint>(index, is_primary_key);
 		result->columns = move(columns);
