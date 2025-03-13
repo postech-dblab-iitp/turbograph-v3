@@ -283,10 +283,6 @@ public:
                 part_cat->GetPropertySchemaIndex();
             auto part_property_names =
                 part_cat->GetUniversalPropertyKeyNames();
-
-            for (int i = 0; i < part_property_names->size(); i++) {
-                std::cout << "Property name: " << part_property_names->at(i) << std::endl;
-            }
             
             if (universal_schema_ids.empty()) {
                 universal_schema_ids.reserve(part_universal_schema_ids->size());

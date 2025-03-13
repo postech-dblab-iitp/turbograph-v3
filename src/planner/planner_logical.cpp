@@ -192,16 +192,6 @@ LogicalPlan *Planner::lPlanRegularMatch(const QueryGraphCollection &qgc,
                                         LogicalPlan *prev_plan)
 {
     LogicalPlan *plan = nullptr;
-
-    // maintain snapshot of the prev. schema, which is used for optional match
-    s62::LogicalSchema *prev_plan_schema;
-    if (prev_plan == nullptr) {
-        prev_plan_schema = new s62::LogicalSchema();
-    }
-    else {
-        prev_plan_schema = prev_plan->getSchema();
-    }
-
     LogicalPlan *qg_plan = prev_plan;
 
     GPOS_ASSERT(qgc.getNumQueryGraphs() > 0);
@@ -1563,7 +1553,6 @@ std::pair<CExpression *, CColRefArray *> Planner::lExprLogicalGetNodeOrEdge(
     // generate type infos to the projected schema
     vector<pair<gpmd::IMDId *, gpos::INT>>
         union_schema_types;  // mdid type and type modifier for both types
-    vector<CColRef *> union_schema_colrefs;
     CColRefArray *union_output_array = GPOS_NEW(mp) CColRefArray(mp);
 
     for (int i = 0; i < used_col_idx.size(); i++) {
@@ -1621,8 +1610,7 @@ std::pair<CExpression *, CColRefArray *> Planner::lExprLogicalGetNodeOrEdge(
             }
             GPOS_ASSERT(project_col_ids.size() > 0);
             auto proj_result = lExprScalarAddSchemaConformProject(
-                expr, project_col_ids, &union_schema_types,
-                union_schema_colrefs);
+                expr, project_col_ids, &union_schema_types);
             expr = proj_result.first;
             output_array = proj_result.second;
         }
@@ -1800,8 +1788,7 @@ CExpression *Planner::lExprLogicalUnionAllWithMapping(CExpression *lhs,
 std::pair<CExpression *, CColRefArray *>
 Planner::lExprScalarAddSchemaConformProject(
     CExpression *relation, vector<uint64_t> &col_ids_to_project,
-    vector<pair<gpmd::IMDId *, gpos::INT>> *target_schema_types,
-    vector<CColRef *> &union_schema_colrefs)
+    vector<pair<gpmd::IMDId *, gpos::INT>> *target_schema_types)
 {
     // col_ids_to_project may include std::numeric_limits<uint64_t>::max(),
     // which indicates null projection
@@ -1819,7 +1806,6 @@ Planner::lExprScalarAddSchemaConformProject(
             GPOS_ASSERT(target_schema_types != nullptr);
             // project null column
             auto &type_info = (*target_schema_types)[target_col_id];
-            // CColRef *new_colref = union_schema_colrefs[target_col_id];
             CExpression *null_expr = CUtils::PexprScalarConstNull(
                 mp, lGetMDAccessor()->RetrieveType(type_info.first),
                 type_info.second);
@@ -1865,18 +1851,13 @@ Planner::lExprScalarAddSchemaConformProject(
             else {
                 new_colref = col_factory->PcrCopy(colref);
                 new_colref->SetPrevId(colref->Id());
-                // CColRefTable *colref_table = (CColRefTable *)colref;
-                // new_colref = col_factory->PcrCreate(colref_table->RetrieveType(), colref_table->TypeModifier(),
-                // 	colref_table->GetMdidTable(), colref_table->AttrNum(), colref_table->IsNullable(),
-                // 	colref->Name());
+                
                 CExpression *ident_expr = GPOS_NEW(mp)
                     CExpression(mp, GPOS_NEW(mp) CScalarIdent(mp, colref));
                 scalar_proj_elem = GPOS_NEW(mp) CExpression(
                     mp, GPOS_NEW(mp) CScalarProjectElement(mp, new_colref),
                     ident_expr);  // ident element do not assign new colref id
 
-                // colref->MarkAsUsed();
-                // new_colref->MarkAsUsed();
                 proj_array->Append(scalar_proj_elem);
                 output_col_array->Append(new_colref);
             }
@@ -1889,7 +1870,6 @@ Planner::lExprScalarAddSchemaConformProject(
         CExpression(mp, GPOS_NEW(mp) CScalarProjectList(mp), proj_array);
     CExpression *proj_expr = GPOS_NEW(mp) CExpression(
         mp, GPOS_NEW(mp) CLogicalProjectColumnar(mp), relation, pexprPrjList);
-    // CExpression *proj_expr = relation;
 
     return make_pair(proj_expr, output_col_array);
 }

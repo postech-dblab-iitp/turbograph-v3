@@ -122,6 +122,8 @@ public:
 	//! get id for new physical operator
 	idx_t GetNewPhyiscalOpId();
 
+	DUCKDB_API Catalog &GetCatalog();
+
 
 	/*
 	//! Issue a query, returning a QueryResult. The QueryResult can be either a StreamQueryResult or a

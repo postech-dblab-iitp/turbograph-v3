@@ -158,7 +158,7 @@
 #include "common/enums/join_type.hpp"
 #include "planner/joinside.hpp"
 
-#include "planner/logical_plan.hpp"
+#include "converter/c2o/logical_plan.hpp"
 #include "planner/value_ser_des.hpp"
 #include "optimizer/mdprovider/MDProviderTBGPP.h"
 
@@ -356,8 +356,7 @@ private:
 
     std::pair<CExpression *, CColRefArray *> lExprScalarAddSchemaConformProject(
         CExpression *relation, vector<uint64_t> &col_ids_to_project,
-        vector<pair<IMDId *, gpos::INT>> *target_schema_types,
-        vector<CColRef *> &union_schema_colrefs);
+        vector<pair<IMDId *, gpos::INT>> *target_schema_types);
     CExpression *lExprLogicalJoin(CExpression *lhs, CExpression *rhs,
                                   CColRef *lhs_colref, CColRef *rhs_colref,
                                   gpopt::COperator::EOperatorId join_op,

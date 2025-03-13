@@ -6,9 +6,13 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <limits>
+#include <algorithm>
 
-#include "gpopt/base/CColRefSet.h"
 #include "gpos/base.h"
+#include "gpopt/base/CColRefSet.h"
+#include "gpopt/base/CColumnFactory.h"
+#include "gpopt/base/COptCtxt.h"
 
 #include "common/assert.hpp"
 
@@ -27,28 +31,6 @@ class LogicalSchema {
         bound_edges = set<string>();
     }
     ~LogicalSchema() {}
-
-    // void copySchema(LogicalSchema* old_schema, CColRefArray* selected_cols = NULL) {
-    // 	if(selected_cols == NULL) {
-    // 		// copy all
-    // 		schema = old_schema->schema;
-    // 		bound_nodes = old_schema->bound_nodes;
-    // 		bound_edges = old_schema->bound_edges;
-    // 		return;
-    // 	}
-    // 	for(gpos::ULONG idx = 0; idx < selected_cols->Size(); idx++) {
-    // 		CColRef* colref = selected_cols->operator[](idx);
-    // 		int orig_idx = old_schema->getIdxOfColRef(colref);
-    // 		auto& col = old_schema->schema[orig_idx];
-    // 		schema.push_back(col);
-    // 		if( old_schema->isNodeBound(std::get<0>(col)) ) {
-    // 			bound_nodes.insert(std::get<0>(col));
-    // 		}
-    // 		if( old_schema->isEdgeBound(std::get<0>(col)) ) {
-    // 			bound_edges.insert(std::get<0>(col));
-    // 		}
-    // 	}
-    // }
 
     void copyNodeFrom(LogicalSchema *old_schema, std::string node_name)
     {
@@ -275,14 +257,6 @@ class LogicalSchema {
     void appendKey(string &k1, uint64_t &k2, CColRef *colref, bool is_node,
                    bool is_edge)
     {
-        // size_t dot_pos = k2.find_first_of(".");
-        // // make sure the poisition is valid
-        // if (dot_pos != string::npos) {
-        //     auto prefix = k2.substr(0, dot_pos);
-        //     if (prefix == k1)
-        //         k2 = k2.substr(dot_pos + 1);
-        // }
-
         D_ASSERT(k2 != std::numeric_limits<uint64_t>::max());
         D_ASSERT(!(is_node && is_edge));
         if (is_node) {

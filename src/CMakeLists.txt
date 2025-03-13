@@ -7,6 +7,7 @@ add_subdirectory(optimizer)
 add_subdirectory(parser)
 add_subdirectory(planner)
 add_subdirectory(storage)
+add_subdirectory(converter)
 
 set(S62GDB_SYSTEM_LIBS ${CMAKE_DL_LIBS})
 

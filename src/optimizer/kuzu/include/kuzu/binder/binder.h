@@ -6,7 +6,6 @@
 #include "kuzu/parser/query/regular_query.h"
 #include "kuzu/binder/query_normalizer.h"
 
-#include "main/database.hpp"
 #include "main/client_context.hpp"
 
 #include "kuzu/function/built_in_vector_operations.h"
@@ -43,7 +42,7 @@ class Binder {
         builtInAggregateFunctions =
             std::make_unique<BuiltInAggregateFunctions>();
         graph_catalog_entry =
-            (duckdb::GraphCatalogEntry *)client->db->GetCatalog().GetEntry(
+            (duckdb::GraphCatalogEntry *)client->GetCatalog().GetEntry(
                 *client, duckdb::CatalogType::GRAPH_ENTRY, DEFAULT_SCHEMA,
                 DEFAULT_GRAPH);
     }

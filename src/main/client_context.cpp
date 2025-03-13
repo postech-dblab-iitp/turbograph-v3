@@ -102,6 +102,9 @@ idx_t ClientContext::GetNewPhyiscalOpId() {
 	return ClientData::Get(*this).physical_op_counter++;
 }
 
+Catalog &ClientContext::GetCatalog() {
+	return db->GetCatalog();
+}
 
 /*
 void ClientContext::Destroy() {
