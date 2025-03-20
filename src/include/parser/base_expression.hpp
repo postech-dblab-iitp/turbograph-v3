@@ -85,6 +85,18 @@ public:
 		return this->Equals(&rhs);
 	}
 
+	inline void SetAlias(string alias) {
+		this->alias = alias;
+	}
+
+	inline bool HasAlias() const {
+		return !alias.empty();
+	}
+
+	inline string GetAlias() const {
+		return alias;
+	}
+
 	virtual void Verify() const;
 };
 

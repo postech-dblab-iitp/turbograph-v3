@@ -10,11 +10,11 @@
 
 #include "parser/parsed_data/copy_info.hpp"
 #include "parser/query_node.hpp"
-#include "parser/sql_statement.hpp"
+#include "parser/cypher_statement.hpp"
 
 namespace duckdb {
 
-class CopyStatement : public SQLStatement {
+class CopyStatement : public CypherStatement {
 public:
 	CopyStatement();
 
@@ -26,6 +26,6 @@ protected:
 	CopyStatement(const CopyStatement &other);
 
 public:
-	unique_ptr<SQLStatement> Copy() const override;
+	unique_ptr<CypherStatement> Copy() const override;
 };
 } // namespace duckdb

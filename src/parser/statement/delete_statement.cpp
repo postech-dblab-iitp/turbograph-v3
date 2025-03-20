@@ -3,10 +3,10 @@
 
 namespace duckdb {
 
-DeleteStatement::DeleteStatement() : SQLStatement(StatementType::DELETE_STATEMENT) {
+DeleteStatement::DeleteStatement() : CypherStatement(StatementType::DELETE_STATEMENT) {
 }
 
-DeleteStatement::DeleteStatement(const DeleteStatement &other) : SQLStatement(other), table(other.table->Copy()) {
+DeleteStatement::DeleteStatement(const DeleteStatement &other) : CypherStatement(other), table(other.table->Copy()) {
 	if (other.condition) {
 		condition = other.condition->Copy();
 	}
@@ -46,7 +46,7 @@ string DeleteStatement::ToString() const {
 	return result;
 }
 
-unique_ptr<SQLStatement> DeleteStatement::Copy() const {
+unique_ptr<CypherStatement> DeleteStatement::Copy() const {
 	return unique_ptr<DeleteStatement>(new DeleteStatement(*this));
 }
 

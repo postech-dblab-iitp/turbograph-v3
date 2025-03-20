@@ -2,13 +2,13 @@
 
 namespace duckdb {
 
-AlterStatement::AlterStatement() : SQLStatement(StatementType::ALTER_STATEMENT) {
+AlterStatement::AlterStatement() : CypherStatement(StatementType::ALTER_STATEMENT) {
 }
 
-AlterStatement::AlterStatement(const AlterStatement &other) : SQLStatement(other), info(other.info->Copy()) {
+AlterStatement::AlterStatement(const AlterStatement &other) : CypherStatement(other), info(other.info->Copy()) {
 }
 
-unique_ptr<SQLStatement> AlterStatement::Copy() const {
+unique_ptr<CypherStatement> AlterStatement::Copy() const {
 	return unique_ptr<AlterStatement>(new AlterStatement(*this));
 }
 

@@ -25,7 +25,7 @@ public:
 		auto result = make_unique<CreatePartitionInfo>(schema, partition);
 		CopyProperties(*result);
 		//if (query) {
-		//	result->query = unique_ptr_cast<SQLStatement, SelectStatement>(query->Copy());
+		//	result->query = unique_ptr_cast<CypherStatement, SelectStatement>(query->Copy());
 		//}
 		return move(result);
 	}

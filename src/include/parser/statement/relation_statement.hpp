@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include "parser/sql_statement.hpp"
+#include "parser/cypher_statement.hpp"
 //#include "main/relation.hpp"
 
 namespace duckdb {
 
-// class RelationStatement : public SQLStatement {
+// class RelationStatement : public CypherStatement {
 // public:
 // 	explicit RelationStatement(shared_ptr<Relation> relation);
 
@@ -23,7 +23,7 @@ namespace duckdb {
 // 	RelationStatement(const RelationStatement &other) = default;
 
 // public:
-// 	unique_ptr<SQLStatement> Copy() const override;
+// 	unique_ptr<CypherStatement> Copy() const override;
 // };
 
 } // namespace duckdb

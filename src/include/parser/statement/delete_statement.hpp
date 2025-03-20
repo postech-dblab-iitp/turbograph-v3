@@ -9,13 +9,13 @@
 #pragma once
 
 #include "parser/parsed_expression.hpp"
-#include "parser/sql_statement.hpp"
+#include "parser/cypher_statement.hpp"
 #include "parser/tableref.hpp"
 #include "parser/query_node.hpp"
 
 namespace duckdb {
 
-class DeleteStatement : public SQLStatement {
+class DeleteStatement : public CypherStatement {
 public:
 	DeleteStatement();
 
@@ -31,7 +31,7 @@ protected:
 
 public:
 	string ToString() const override;
-	unique_ptr<SQLStatement> Copy() const override;
+	unique_ptr<CypherStatement> Copy() const override;
 };
 
 } // namespace duckdb

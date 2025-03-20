@@ -545,10 +545,10 @@ string LogicalType::ToString() const {
 		return "DECIMAL(" + std::to_string(width) + "," + std::to_string(scale) + ")";
 	}
 	case LogicalTypeId::ENUM: {
-		//return KeywordHelper::WriteOptionallyQuoted(EnumType::GetTypeName(*this));
+		return KeywordHelper::WriteOptionallyQuoted(EnumType::GetTypeName(*this));
 	}
 	case LogicalTypeId::USER: {
-		//return KeywordHelper::WriteOptionallyQuoted(UserType::GetTypeName(*this));
+		return KeywordHelper::WriteOptionallyQuoted(UserType::GetTypeName(*this));
 	}
 	case LogicalTypeId::AGGREGATE_STATE: {
 		return AggregateStateType::GetTypeName(*this);

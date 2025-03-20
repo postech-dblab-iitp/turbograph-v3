@@ -3,11 +3,11 @@
 
 namespace duckdb {
 
-UpdateStatement::UpdateStatement() : SQLStatement(StatementType::UPDATE_STATEMENT) {
+UpdateStatement::UpdateStatement() : CypherStatement(StatementType::UPDATE_STATEMENT) {
 }
 
 UpdateStatement::UpdateStatement(const UpdateStatement &other)
-    : SQLStatement(other), table(other.table->Copy()), columns(other.columns) {
+    : CypherStatement(other), table(other.table->Copy()), columns(other.columns) {
 	if (other.condition) {
 		condition = other.condition->Copy();
 	}
@@ -53,7 +53,7 @@ string UpdateStatement::ToString() const {
 	return result;
 }
 
-unique_ptr<SQLStatement> UpdateStatement::Copy() const {
+unique_ptr<CypherStatement> UpdateStatement::Copy() const {
 	return unique_ptr<UpdateStatement>(new UpdateStatement(*this));
 }
 

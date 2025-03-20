@@ -2,13 +2,13 @@
 
 namespace duckdb {
 
-ShowStatement::ShowStatement() : SQLStatement(StatementType::SHOW_STATEMENT), info(make_unique<ShowSelectInfo>()) {
+ShowStatement::ShowStatement() : CypherStatement(StatementType::SHOW_STATEMENT), info(make_unique<ShowSelectInfo>()) {
 }
 
-ShowStatement::ShowStatement(const ShowStatement &other) : SQLStatement(other), info(other.info->Copy()) {
+ShowStatement::ShowStatement(const ShowStatement &other) : CypherStatement(other), info(other.info->Copy()) {
 }
 
-unique_ptr<SQLStatement> ShowStatement::Copy() const {
+unique_ptr<CypherStatement> ShowStatement::Copy() const {
 	return unique_ptr<ShowStatement>(new ShowStatement(*this));
 }
 

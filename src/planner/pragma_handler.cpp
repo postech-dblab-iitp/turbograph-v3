@@ -18,8 +18,8 @@
 // PragmaHandler::PragmaHandler(ClientContext &context) : context(context) {
 // }
 
-// void PragmaHandler::HandlePragmaStatementsInternal(vector<unique_ptr<SQLStatement>> &statements) {
-// 	vector<unique_ptr<SQLStatement>> new_statements;
+// void PragmaHandler::HandlePragmaStatementsInternal(vector<unique_ptr<CypherStatement>> &statements) {
+// 	vector<unique_ptr<CypherStatement>> new_statements;
 // 	for (idx_t i = 0; i < statements.size(); i++) {
 // 		if (statements[i]->type == StatementType::PRAGMA_STATEMENT) {
 // 			// PRAGMA statement: check if we need to replace it by a new set of statements
@@ -42,7 +42,7 @@
 // 	statements = move(new_statements);
 // }
 
-// void PragmaHandler::HandlePragmaStatements(ClientContextLock &lock, vector<unique_ptr<SQLStatement>> &statements) {
+// void PragmaHandler::HandlePragmaStatements(ClientContextLock &lock, vector<unique_ptr<CypherStatement>> &statements) {
 // 	// first check if there are any pragma statements
 // 	bool found_pragma = false;
 // 	for (idx_t i = 0; i < statements.size(); i++) {
@@ -58,7 +58,7 @@
 // 	context.RunFunctionInTransactionInternal(lock, [&]() { HandlePragmaStatementsInternal(statements); });
 // }
 
-// string PragmaHandler::HandlePragma(SQLStatement *statement) { // PragmaInfo &info
+// string PragmaHandler::HandlePragma(CypherStatement *statement) { // PragmaInfo &info
 // 	auto info = *((PragmaStatement &)*statement).info;
 // 	auto entry =
 // 	    Catalog::GetCatalog(context).GetEntry<PragmaFunctionCatalogEntry>(context, DEFAULT_SCHEMA, info.name, false);

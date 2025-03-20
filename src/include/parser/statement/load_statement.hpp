@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include "parser/sql_statement.hpp"
+#include "parser/cypher_statement.hpp"
 #include "parser/parsed_data/load_info.hpp"
 
 namespace duckdb {
 
-class LoadStatement : public SQLStatement {
+class LoadStatement : public CypherStatement {
 public:
 	LoadStatement();
 
@@ -21,7 +21,7 @@ protected:
 	LoadStatement(const LoadStatement &other);
 
 public:
-	unique_ptr<SQLStatement> Copy() const override;
+	unique_ptr<CypherStatement> Copy() const override;
 
 	unique_ptr<LoadInfo> info;
 };

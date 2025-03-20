@@ -8,13 +8,13 @@
 
 // #pragma once
 
-// #include "parser/sql_statement.hpp"
+// #include "parser/cypher_statement.hpp"
 // #include "parser/parsed_data/pragma_info.hpp"
 // #include "parser/parsed_expression.hpp"
 
 // namespace duckdb {
 
-// class PragmaStatement : public SQLStatement {
+// class PragmaStatement : public CypherStatement {
 // public:
 // 	PragmaStatement();
 
@@ -24,7 +24,7 @@
 // 	PragmaStatement(const PragmaStatement &other);
 
 // public:
-// 	unique_ptr<SQLStatement> Copy() const override;
+// 	unique_ptr<CypherStatement> Copy() const override;
 // };
 
 // } // namespace duckdb

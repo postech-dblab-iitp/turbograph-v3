@@ -182,12 +182,11 @@ std::string GetQueryString(std::string &prompt) {
 }
 
 void CompileQuery(const string& query, std::shared_ptr<ClientContext> client, s62::Planner& planner, double &compile_elapsed_time) {
-	// SCOPED_TIMER(CompileQuery, spdlog::level::info, spdlog::level::debug, compile_elapsed_time);
-	// auto inputStream = ANTLRInputStream(query);
+	SCOPED_TIMER(CompileQuery, spdlog::level::info, spdlog::level::debug, compile_elapsed_time);
 
-    // SUBTIMER_START(CompileQuery, "ParseQuery");
-    // auto statements = Parser::ParseQuery(query);
-    // SUBTIMER_STOP(CompileQuery, "ParseQuery");
+    SUBTIMER_START(CompileQuery, "ParseQuery");
+    auto statements = Parser::ParseQuery(query);
+    SUBTIMER_STOP(CompileQuery, "ParseQuery");
 	
 	// SUBTIMER_START(CompileQuery, "Bind");
     // kuzu::binder::Binder binder(client.get());

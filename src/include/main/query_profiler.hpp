@@ -26,7 +26,7 @@ namespace duckdb {
 class ClientContext;
 class ExpressionExecutor;
 class CypherPhysicalOperator;
-class SQLStatement;
+class CypherStatement;
 
 //! The ExpressionInfo keeps information related to an expression
 struct ExpressionInfo {

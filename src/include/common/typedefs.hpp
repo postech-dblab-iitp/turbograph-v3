@@ -55,6 +55,8 @@ typedef uint64_t ChunkID;
 
 typedef std::string Label;
 typedef std::string Labels;
+typedef std::string NodeLabel;
+typedef std::string EdgeType;
 typedef std::vector<std::string> PropertyKeys;
 
 }  // namespace duckdb

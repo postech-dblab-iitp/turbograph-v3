@@ -6,11 +6,11 @@
 
 namespace duckdb {
 
+//! CypherStatement is the base class of any type of Cypher statement.
 class CypherStatement {
 public:
 	explicit CypherStatement(StatementType type) : type(type) {};
-	virtual ~CypherStatement() {
-	}
+	virtual ~CypherStatement() = default;
 
 	//! The statement type
 	StatementType type;
@@ -28,10 +28,9 @@ protected:
 
 public:
 	virtual string ToString() const {
-		throw InternalException("ToString not supported for this type of SQLStatement");
+		throw InternalException("ToString not supported for this type of CypherStatement");
 	}
-	//! Create a copy of this SelectStatement
+	//! Create a copy of this Statement
 	virtual unique_ptr<CypherStatement> Copy() const = 0;
 };
-
-} // namespace parser
+} // namespace duckdb

@@ -15,7 +15,7 @@
 // namespace duckdb {
 // class ClientContext;
 // class ClientContextLock;
-// class SQLStatement;
+// class CypherStatement;
 // struct PragmaInfo;
 
 // //! Pragma handler is responsible for converting certain pragma statements into new queries
@@ -23,15 +23,15 @@
 // public:
 // 	explicit PragmaHandler(ClientContext &context);
 
-// 	void HandlePragmaStatements(ClientContextLock &lock, vector<unique_ptr<SQLStatement>> &statements);
+// 	void HandlePragmaStatements(ClientContextLock &lock, vector<unique_ptr<CypherStatement>> &statements);
 
 // private:
 // 	ClientContext &context;
 
 // private:
 // 	//! Handles a pragma statement, (potentially) returning a new statement to replace the current one
-// 	string HandlePragma(SQLStatement *statement);
+// 	string HandlePragma(CypherStatement *statement);
 
-// 	void HandlePragmaStatementsInternal(vector<unique_ptr<SQLStatement>> &statements);
+// 	void HandlePragmaStatementsInternal(vector<unique_ptr<CypherStatement>> &statements);
 // };
 // } // namespace duckdb

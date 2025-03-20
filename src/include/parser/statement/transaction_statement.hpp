@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include "parser/sql_statement.hpp"
+#include "parser/cypher_statement.hpp"
 #include "parser/parsed_data/transaction_info.hpp"
 
 namespace duckdb {
 
-class TransactionStatement : public SQLStatement {
+class TransactionStatement : public CypherStatement {
 public:
 	explicit TransactionStatement(TransactionType type);
 
@@ -23,6 +23,6 @@ protected:
 	TransactionStatement(const TransactionStatement &other);
 
 public:
-	unique_ptr<SQLStatement> Copy() const override;
+	unique_ptr<CypherStatement> Copy() const override;
 };
 } // namespace duckdb

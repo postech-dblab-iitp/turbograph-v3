@@ -35,7 +35,7 @@ public:
 		CopyProperties(*result);
 		result->aliases = aliases;
 		result->types = types;
-		result->query = unique_ptr_cast<SQLStatement, SelectStatement>(query->Copy());
+		result->query = unique_ptr_cast<CypherStatement, SelectStatement>(query->Copy());
 		return move(result);
 	}
 };

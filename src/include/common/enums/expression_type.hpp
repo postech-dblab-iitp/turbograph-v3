@@ -132,7 +132,8 @@ enum class ExpressionType : uint8_t {
 	PLACEHOLDER = 202,
 	COLUMN_REF = 203,
 	FUNCTION_REF = 204,
-	TABLE_REF = 205,
+	VARIABLE = 205,
+	PROPERTY = 206,
 
 	// -----------------------------
 	// Miscellaneous
@@ -172,6 +173,8 @@ enum class ExpressionClass : uint8_t {
 	LAMBDA = 17,
 	POSITIONAL_REFERENCE = 18,
 	BETWEEN = 19,
+	PROPERTY = 20,
+	VARIABLE = 21,
 	//===--------------------------------------------------------------------===//
 	// Bound Expressions
 	//===--------------------------------------------------------------------===//

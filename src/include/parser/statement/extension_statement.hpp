@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include "parser/sql_statement.hpp"
+#include "parser/cypher_statement.hpp"
 ///#include "parser/parser_extension.hpp"
 
 namespace duckdb {
 
-// class ExtensionStatement : public SQLStatement {
+// class ExtensionStatement : public CypherStatement {
 // public:
 // 	ExtensionStatement(ParserExtension extension, unique_ptr<ParserExtensionParseData> parse_data);
 
@@ -23,7 +23,7 @@ namespace duckdb {
 // 	unique_ptr<ParserExtensionParseData> parse_data;
 
 // public:
-// 	unique_ptr<SQLStatement> Copy() const override;
+// 	unique_ptr<CypherStatement> Copy() const override;
 // };
 
 } // namespace duckdb

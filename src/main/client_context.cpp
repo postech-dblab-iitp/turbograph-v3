@@ -275,7 +275,7 @@ unique_ptr<QueryResult> ClientContext::FetchResultInternal(ClientContextLock &lo
 }
 
 shared_ptr<PreparedStatementData> ClientContext::CreatePreparedStatement(ClientContextLock &lock, const string &query,
-                                                                         unique_ptr<SQLStatement> statement,
+                                                                         unique_ptr<CypherStatement> statement,
                                                                          vector<Value> *values) {
 	StatementType statement_type = statement->type;
 	auto result = make_shared<PreparedStatementData>(statement_type);
@@ -396,12 +396,12 @@ void ClientContext::InitialCleanup(ClientContextLock &lock) {
 	interrupted = false;
 }
 
-vector<unique_ptr<SQLStatement>> ClientContext::ParseStatements(const string &query) {
+vector<unique_ptr<CypherStatement>> ClientContext::ParseStatements(const string &query) {
 	auto lock = LockContext();
 	return ParseStatementsInternal(*lock, query);
 }
 
-vector<unique_ptr<SQLStatement>> ClientContext::ParseStatementsInternal(ClientContextLock &lock, const string &query) {
+vector<unique_ptr<CypherStatement>> ClientContext::ParseStatementsInternal(ClientContextLock &lock, const string &query) {
 	Parser parser(GetParserOptions());
 	parser.ParseQuery(query);
 
@@ -411,7 +411,7 @@ vector<unique_ptr<SQLStatement>> ClientContext::ParseStatementsInternal(ClientCo
 	return move(parser.statements);
 }
 
-void ClientContext::HandlePragmaStatements(vector<unique_ptr<SQLStatement>> &statements) {
+void ClientContext::HandlePragmaStatements(vector<unique_ptr<CypherStatement>> &statements) {
 	auto lock = LockContext();
 
 	PragmaHandler handler(*this);
@@ -448,7 +448,7 @@ unique_ptr<LogicalOperator> ClientContext::ExtractPlan(const string &query) {
 }
 
 unique_ptr<PreparedStatement> ClientContext::PrepareInternal(ClientContextLock &lock,
-                                                             unique_ptr<SQLStatement> statement) {
+                                                             unique_ptr<CypherStatement> statement) {
 	auto n_param = statement->n_param;
 	auto statement_query = statement->query;
 	shared_ptr<PreparedStatementData> prepared_data;
@@ -459,7 +459,7 @@ unique_ptr<PreparedStatement> ClientContext::PrepareInternal(ClientContextLock &
 	return make_unique<PreparedStatement>(shared_from_this(), move(prepared_data), move(statement_query), n_param);
 }
 
-unique_ptr<PreparedStatement> ClientContext::Prepare(unique_ptr<SQLStatement> statement) {
+unique_ptr<PreparedStatement> ClientContext::Prepare(unique_ptr<CypherStatement> statement) {
 	auto lock = LockContext();
 	// prepare the query
 	try {
@@ -518,7 +518,7 @@ unique_ptr<QueryResult> ClientContext::Execute(const string &query, shared_ptr<P
 }
 
 unique_ptr<PendingQueryResult> ClientContext::PendingStatementInternal(ClientContextLock &lock, const string &query,
-                                                                       unique_ptr<SQLStatement> statement) {
+                                                                       unique_ptr<CypherStatement> statement) {
 	// prepare the query for execution
 	auto prepared = CreatePreparedStatement(lock, query, move(statement));
 	// by default, no values are bound
@@ -528,7 +528,7 @@ unique_ptr<PendingQueryResult> ClientContext::PendingStatementInternal(ClientCon
 }
 
 unique_ptr<QueryResult> ClientContext::RunStatementInternal(ClientContextLock &lock, const string &query,
-                                                            unique_ptr<SQLStatement> statement,
+                                                            unique_ptr<CypherStatement> statement,
                                                             bool allow_stream_result, bool verify) {
 	auto pending = PendingQueryInternal(lock, move(statement), verify);
 	if (!pending->success) {
@@ -544,7 +544,7 @@ bool ClientContext::IsActiveResult(ClientContextLock &lock, BaseQueryResult *res
 	return active_query->open_result == result;
 }
 
-static bool IsExplainAnalyze(SQLStatement *statement) {
+static bool IsExplainAnalyze(CypherStatement *statement) {
 	if (!statement) {
 		return false;
 	}
@@ -556,7 +556,7 @@ static bool IsExplainAnalyze(SQLStatement *statement) {
 }
 
 unique_ptr<PendingQueryResult> ClientContext::PendingStatementOrPreparedStatementInternal(
-    ClientContextLock &lock, const string &query, unique_ptr<SQLStatement> statement,
+    ClientContextLock &lock, const string &query, unique_ptr<CypherStatement> statement,
     shared_ptr<PreparedStatementData> &prepared, vector<Value> *values) {
 	// check if we are on AutoCommit. In this case we should start a transaction.
 	if (statement && config.query_verification_enabled) {
@@ -599,7 +599,7 @@ unique_ptr<PendingQueryResult> ClientContext::PendingStatementOrPreparedStatemen
 
 unique_ptr<PendingQueryResult>
 ClientContext::PendingStatementOrPreparedStatement(ClientContextLock &lock, const string &query,
-                                                   unique_ptr<SQLStatement> statement,
+                                                   unique_ptr<CypherStatement> statement,
                                                    shared_ptr<PreparedStatementData> &prepared, vector<Value> *values) {
 	unique_ptr<PendingQueryResult> result;
 
@@ -666,7 +666,7 @@ void ClientContext::LogQueryInternal(ClientContextLock &, const string &query) {
 	client_data->log_query_writer->Sync();
 }
 
-unique_ptr<QueryResult> ClientContext::Query(unique_ptr<SQLStatement> statement, bool allow_stream_result) {
+unique_ptr<QueryResult> ClientContext::Query(unique_ptr<CypherStatement> statement, bool allow_stream_result) {
 	auto pending_query = PendingQuery(move(statement));
 	return pending_query->Execute(allow_stream_result);
 }
@@ -675,7 +675,7 @@ unique_ptr<QueryResult> ClientContext::Query(const string &query, bool allow_str
 	auto lock = LockContext();
 
 	string error;
-	vector<unique_ptr<SQLStatement>> statements;
+	vector<unique_ptr<CypherStatement>> statements;
 	if (!ParseStatements(*lock, query, statements, error)) {
 		return make_unique<MaterializedQueryResult>(move(error));
 	}
@@ -712,7 +712,7 @@ unique_ptr<QueryResult> ClientContext::Query(const string &query, bool allow_str
 }
 
 bool ClientContext::ParseStatements(ClientContextLock &lock, const string &query,
-                                    vector<unique_ptr<SQLStatement>> &result, string &error) {
+                                    vector<unique_ptr<CypherStatement>> &result, string &error) {
 	try {
 		InitialCleanup(lock);
 		// parse the query and transform it into a set of statements
@@ -728,7 +728,7 @@ unique_ptr<PendingQueryResult> ClientContext::PendingQuery(const string &query) 
 	auto lock = LockContext();
 
 	string error;
-	vector<unique_ptr<SQLStatement>> statements;
+	vector<unique_ptr<CypherStatement>> statements;
 	if (!ParseStatements(*lock, query, statements, error)) {
 		return make_unique<PendingQueryResult>(move(error));
 	}
@@ -738,13 +738,13 @@ unique_ptr<PendingQueryResult> ClientContext::PendingQuery(const string &query) 
 	return PendingQueryInternal(*lock, move(statements[0]));
 }
 
-unique_ptr<PendingQueryResult> ClientContext::PendingQuery(unique_ptr<SQLStatement> statement) {
+unique_ptr<PendingQueryResult> ClientContext::PendingQuery(unique_ptr<CypherStatement> statement) {
 	auto lock = LockContext();
 	return PendingQueryInternal(*lock, move(statement));
 }
 
 unique_ptr<PendingQueryResult> ClientContext::PendingQueryInternal(ClientContextLock &lock,
-                                                                   unique_ptr<SQLStatement> statement, bool verify) {
+                                                                   unique_ptr<CypherStatement> statement, bool verify) {
 	auto query = statement->query;
 	shared_ptr<PreparedStatementData> prepared;
 	if (verify) {
@@ -777,7 +777,7 @@ struct VerifyStatement {
 	const vector<unique_ptr<ParsedExpression>> &select_list;
 };
 
-string ClientContext::VerifyQuery(ClientContextLock &lock, const string &query, unique_ptr<SQLStatement> statement) {
+string ClientContext::VerifyQuery(ClientContextLock &lock, const string &query, unique_ptr<CypherStatement> statement) {
 	D_ASSERT(statement->type == StatementType::SELECT_STATEMENT);
 	// aggressive query verification
 
@@ -793,8 +793,8 @@ string ClientContext::VerifyQuery(ClientContextLock &lock, const string &query, 
 
 	// copy the statement
 	auto select_stmt = (SelectStatement *)statement.get();
-	auto copied_stmt = unique_ptr_cast<SQLStatement, SelectStatement>(select_stmt->Copy());
-	auto unoptimized_stmt = unique_ptr_cast<SQLStatement, SelectStatement>(select_stmt->Copy());
+	auto copied_stmt = unique_ptr_cast<CypherStatement, SelectStatement>(select_stmt->Copy());
+	auto unoptimized_stmt = unique_ptr_cast<CypherStatement, SelectStatement>(select_stmt->Copy());
 
 	BufferedSerializer serializer;
 	select_stmt->Serialize(serializer);
@@ -807,11 +807,11 @@ string ClientContext::VerifyQuery(ClientContextLock &lock, const string &query, 
 	D_ASSERT(parser.statements[0]->type == StatementType::SELECT_STATEMENT);
 	auto parsed_statement = move(parser.statements[0]);
 
-	verify_statements.emplace_back(unique_ptr_cast<SQLStatement, SelectStatement>(move(statement)),
+	verify_statements.emplace_back(unique_ptr_cast<CypherStatement, SelectStatement>(move(statement)),
 	                               "Original statement");
 	verify_statements.emplace_back(move(copied_stmt), "Copied statement");
 	verify_statements.emplace_back(move(deserialized_stmt), "Deserialized statement");
-	verify_statements.emplace_back(unique_ptr_cast<SQLStatement, SelectStatement>(move(parsed_statement)),
+	verify_statements.emplace_back(unique_ptr_cast<CypherStatement, SelectStatement>(move(parsed_statement)),
 	                               "Parsed statement", false);
 
 	// all the statements should be equal

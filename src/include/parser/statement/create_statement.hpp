@@ -9,11 +9,11 @@
 #pragma once
 
 #include "parser/parsed_data/create_info.hpp"
-#include "parser/sql_statement.hpp"
+#include "parser/cypher_statement.hpp"
 
 namespace duckdb {
 
-class CreateStatement : public SQLStatement {
+class CreateStatement : public CypherStatement {
 public:
 	CreateStatement();
 
@@ -23,7 +23,7 @@ protected:
 	CreateStatement(const CreateStatement &other);
 
 public:
-	unique_ptr<SQLStatement> Copy() const override;
+	unique_ptr<CypherStatement> Copy() const override;
 };
 
 } // namespace duckdb

@@ -101,8 +101,10 @@ string ExpressionTypeToString(ExpressionType type) {
 		return "COLUMN_REF";
 	case ExpressionType::FUNCTION_REF:
 		return "FUNCTION_REF";
-	case ExpressionType::TABLE_REF:
-		return "TABLE_REF";
+	case ExpressionType::VARIABLE:
+		return "VARIABLE";
+	case ExpressionType::PROPERTY:
+		return "PROPERTY";
 	case ExpressionType::CAST:
 		return "CAST";
 	case ExpressionType::COMPARE_NOT_IN:
@@ -241,8 +243,10 @@ string ExpressionTypeToOrcaString(ExpressionType type) {
 		return "COLUMN_REF";
 	case ExpressionType::FUNCTION_REF:
 		return "FUNCTION_REF";
-	case ExpressionType::TABLE_REF:
-		return "TABLE_REF";
+	case ExpressionType::VARIABLE:
+		return "VARIABLE";
+	case ExpressionType::PROPERTY:
+		return "PROPERTY";
 	case ExpressionType::CAST:
 		return "CAST";
 	case ExpressionType::COMPARE_NOT_IN:

@@ -18,7 +18,7 @@ CommonTableExpressionMap CommonTableExpressionMap::Copy() const {
 		for (auto &al : kv.second->aliases) {
 			kv_info->aliases.push_back(al);
 		}
-		kv_info->query = unique_ptr_cast<SQLStatement, SelectStatement>(kv.second->query->Copy());
+		kv_info->query = unique_ptr_cast<CypherStatement, SelectStatement>(kv.second->query->Copy());
 		res.map[kv.first] = move(kv_info);
 	}
 	return res;
@@ -145,7 +145,7 @@ void QueryNode::CopyProperties(QueryNode &other) const {
 		for (auto &al : kv.second->aliases) {
 			kv_info->aliases.push_back(al);
 		}
-		kv_info->query = unique_ptr_cast<SQLStatement, SelectStatement>(kv.second->query->Copy());
+		kv_info->query = unique_ptr_cast<CypherStatement, SelectStatement>(kv.second->query->Copy());
 		other.cte_map.map[kv.first] = move(kv_info);
 	}
 }

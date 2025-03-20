@@ -1,5 +1,5 @@
 #include "parser/query_error_context.hpp"
-#include "parser/sql_statement.hpp"
+#include "parser/cypher_statement.hpp"
 #include "common/string_util.hpp"
 #include "common/to_string.hpp"
 

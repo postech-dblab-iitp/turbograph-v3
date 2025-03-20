@@ -4,10 +4,10 @@
 
 namespace duckdb {
 
-SelectStatement::SelectStatement(const SelectStatement &other) : SQLStatement(other), node(other.node->Copy()) {
+SelectStatement::SelectStatement(const SelectStatement &other) : CypherStatement(other), node(other.node->Copy()) {
 }
 
-unique_ptr<SQLStatement> SelectStatement::Copy() const {
+unique_ptr<CypherStatement> SelectStatement::Copy() const {
 	return unique_ptr<SelectStatement>(new SelectStatement(*this));
 }
 
@@ -21,7 +21,7 @@ unique_ptr<SelectStatement> SelectStatement::Deserialize(Deserializer &source) {
 	return result;
 }
 
-bool SelectStatement::Equals(const SQLStatement *other_p) const {
+bool SelectStatement::Equals(const CypherStatement *other_p) const {
 	if (type != other_p->type) {
 		return false;
 	}

@@ -369,4 +369,17 @@ bool StringUtil::CILessThan(const string &s1, const string &s2) {
 	return (charmap[u1] - charmap[u2]) < 0;
 }
 
+std::string StringUtil::RemoveEscapedCharacters(const std::string& input) {
+    std::string resultStr;
+    for (auto i = 1u; i < input.length() - 1; i++) {
+        // Antlr4 already guarantees that the character followed by the escaped character is
+        // valid. So we can safely skip the escaped character.
+        if (input[i] == '\\') {
+            i++;
+        }
+        resultStr += input[i];
+    }
+    return resultStr;
+}
+
 } // namespace duckdb

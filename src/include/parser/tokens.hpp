@@ -13,7 +13,7 @@ namespace duckdb {
 //===--------------------------------------------------------------------===//
 // Statements
 //===--------------------------------------------------------------------===//
-class SQLStatement;
+class CypherStatement;
 
 class AlterStatement;
 class CallStatement;
@@ -45,6 +45,25 @@ class SelectNode;
 class SetOperationNode;
 class RecursiveCTENode;
 
+
+//===--------------------------------------------------------------------===//
+// Query
+//===--------------------------------------------------------------------===//
+
+class RegularQuery;
+class SingleQuery;
+class QueryPart;
+class UpdatingClause;
+class ReadingClause;
+class WithClause;
+class ReturnClause;
+class ProjectionBody;
+class PatternElement;
+class NodePattern;
+class PatternElementChain;
+class RelPattern;
+struct YieldVariable;
+
 //===--------------------------------------------------------------------===//
 // Expressions
 //===--------------------------------------------------------------------===//
@@ -63,9 +82,12 @@ class FunctionExpression;
 class LambdaExpression;
 class OperatorExpression;
 class ParameterExpression;
+class NamedParameterExpression;
 class PositionalReferenceExpression;
+class PropertyExpression;
 class StarExpression;
 class SubqueryExpression;
+class VariableExpression;
 class WindowExpression;
 
 //===--------------------------------------------------------------------===//

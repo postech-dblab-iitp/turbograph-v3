@@ -15,7 +15,7 @@
 namespace duckdb {
 class ExpressionListRef;
 
-class InsertStatement : public SQLStatement {
+class InsertStatement : public CypherStatement {
 public:
 	InsertStatement();
 
@@ -40,7 +40,7 @@ protected:
 
 public:
 	string ToString() const override;
-	unique_ptr<SQLStatement> Copy() const override;
+	unique_ptr<CypherStatement> Copy() const override;
 
 	//! If the INSERT statement is inserted DIRECTLY from a values list (i.e. INSERT INTO tbl VALUES (...)) this returns
 	//! the expression list Otherwise, this returns NULL

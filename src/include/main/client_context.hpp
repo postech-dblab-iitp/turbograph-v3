@@ -130,13 +130,13 @@ public:
 	//! MaterializedQueryResult. The StreamQueryResult will only be returned in the case of a successful SELECT
 	//! statement.
 	// DUCKDB_API unique_ptr<QueryResult> Query(const string &query, bool allow_stream_result);
-	// DUCKDB_API unique_ptr<QueryResult> Query(unique_ptr<SQLStatement> statement, bool allow_stream_result);
+	// DUCKDB_API unique_ptr<QueryResult> Query(unique_ptr<CypherStatement> statement, bool allow_stream_result);
 
 	// //! Issues a query to the database and returns a Pending Query Result. Note that "query" may only contain
 	// //! a single statement.
 	// DUCKDB_API unique_ptr<PendingQueryResult> PendingQuery(const string &query);
 	// //! Issues a query to the database and returns a Pending Query Result
-	// DUCKDB_API unique_ptr<PendingQueryResult> PendingQuery(unique_ptr<SQLStatement> statement);
+	// DUCKDB_API unique_ptr<PendingQueryResult> PendingQuery(unique_ptr<CypherStatement> statement);
 
 	// //! Destroy the client context
 	// DUCKDB_API void Destroy();
@@ -155,7 +155,7 @@ public:
 	// //! Prepare a query
 	// DUCKDB_API unique_ptr<PreparedStatement> Prepare(const string &query);
 	// //! Directly prepare a SQL statement
-	// DUCKDB_API unique_ptr<PreparedStatement> Prepare(unique_ptr<SQLStatement> statement);
+	// DUCKDB_API unique_ptr<PreparedStatement> Prepare(unique_ptr<CypherStatement> statement);
 
 	// //! Create a pending query result from a prepared statement with the given name and set of parameters
 	// //! It is possible that the prepared statement will be re-bound. This will generally happen if the catalog is
@@ -176,11 +176,11 @@ public:
 	// DUCKDB_API void RegisterFunction(CreateFunctionInfo *info);
 
 	// //! Parse statements from a query
-	// DUCKDB_API vector<unique_ptr<SQLStatement>> ParseStatements(const string &query);
+	// DUCKDB_API vector<unique_ptr<CypherStatement>> ParseStatements(const string &query);
 
 	// //! Extract the logical plan of a query
 	// DUCKDB_API unique_ptr<LogicalOperator> ExtractPlan(const string &query);
-	// DUCKDB_API void HandlePragmaStatements(vector<unique_ptr<SQLStatement>> &statements);
+	// DUCKDB_API void HandlePragmaStatements(vector<unique_ptr<CypherStatement>> &statements);
 
 	// //! Runs a function with a valid transaction context, potentially starting a transaction if the context is in auto
 	// //! commit mode.
@@ -210,19 +210,19 @@ public:
 
 private:
 	//! Parse statements and resolve pragmas from a query
-	/*bool ParseStatements(ClientContextLock &lock, const string &query, vector<unique_ptr<SQLStatement>> &result,
+	/*bool ParseStatements(ClientContextLock &lock, const string &query, vector<unique_ptr<CypherStatement>> &result,
 	                     string &error);
 	//! Issues a query to the database and returns a Pending Query Result
-	unique_ptr<PendingQueryResult> PendingQueryInternal(ClientContextLock &lock, unique_ptr<SQLStatement> statement,
+	unique_ptr<PendingQueryResult> PendingQueryInternal(ClientContextLock &lock, unique_ptr<CypherStatement> statement,
 	                                                    bool verify = true);
 	unique_ptr<QueryResult> ExecutePendingQueryInternal(ClientContextLock &lock, PendingQueryResult &query,
 	                                                    bool allow_stream_result);
 
 	//! Parse statements from a query
-	vector<unique_ptr<SQLStatement>> ParseStatementsInternal(ClientContextLock &lock, const string &query);
+	vector<unique_ptr<CypherStatement>> ParseStatementsInternal(ClientContextLock &lock, const string &query);
 	//! Perform aggressive query verification of a SELECT statement. Only called when query_verification_enabled is
 	//! true.
-	string VerifyQuery(ClientContextLock &lock, const string &query, unique_ptr<SQLStatement> statement);
+	string VerifyQuery(ClientContextLock &lock, const string &query, unique_ptr<CypherStatement> statement);
 
 	void InitialCleanup(ClientContextLock &lock);
 	//! Internal clean up, does not lock. Caller must hold the context_lock.
@@ -230,7 +230,7 @@ private:
 	                     bool invalidate_transaction = false);
 	string FinalizeQuery(ClientContextLock &lock, bool success);
 	unique_ptr<PendingQueryResult> PendingStatementOrPreparedStatement(ClientContextLock &lock, const string &query,
-	                                                                   unique_ptr<SQLStatement> statement,
+	                                                                   unique_ptr<CypherStatement> statement,
 	                                                                   shared_ptr<PreparedStatementData> &prepared,
 	                                                                   vector<Value> *values);
 	unique_ptr<PendingQueryResult> PendingPreparedStatement(ClientContextLock &lock,
@@ -239,14 +239,14 @@ private:
 
 	//! Internally prepare a SQL statement. Caller must hold the context_lock.
 	shared_ptr<PreparedStatementData> CreatePreparedStatement(ClientContextLock &lock, const string &query,
-	                                                          unique_ptr<SQLStatement> statement,
+	                                                          unique_ptr<CypherStatement> statement,
 	                                                          vector<Value> *values = nullptr);
 	unique_ptr<PendingQueryResult> PendingStatementInternal(ClientContextLock &lock, const string &query,
-	                                                        unique_ptr<SQLStatement> statement);
+	                                                        unique_ptr<CypherStatement> statement);
 	unique_ptr<QueryResult> RunStatementInternal(ClientContextLock &lock, const string &query,
-	                                             unique_ptr<SQLStatement> statement, bool allow_stream_result,
+	                                             unique_ptr<CypherStatement> statement, bool allow_stream_result,
 	                                             bool verify = true);
-	unique_ptr<PreparedStatement> PrepareInternal(ClientContextLock &lock, unique_ptr<SQLStatement> statement);
+	unique_ptr<PreparedStatement> PrepareInternal(ClientContextLock &lock, unique_ptr<CypherStatement> statement);
 	void LogQueryInternal(ClientContextLock &lock, const string &query);
 
 	unique_ptr<QueryResult> FetchResultInternal(ClientContextLock &lock, PendingQueryResult &pending,
@@ -265,7 +265,7 @@ private:
 
 	unique_ptr<PendingQueryResult>
 	PendingStatementOrPreparedStatementInternal(ClientContextLock &lock, const string &query,
-	                                            unique_ptr<SQLStatement> statement,
+	                                            unique_ptr<CypherStatement> statement,
 	                                            shared_ptr<PreparedStatementData> &prepared, vector<Value> *values);
 
 	unique_ptr<PendingQueryResult> PendingQueryPreparedInternal(ClientContextLock &lock, const string &query,

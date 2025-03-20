@@ -3,10 +3,10 @@
 namespace duckdb {
 
 // RelationStatement::RelationStatement(shared_ptr<Relation> relation)
-//     : SQLStatement(StatementType::RELATION_STATEMENT), relation(move(relation)) {
+//     : CypherStatement(StatementType::RELATION_STATEMENT), relation(move(relation)) {
 // }
 
-// unique_ptr<SQLStatement> RelationStatement::Copy() const {
+// unique_ptr<CypherStatement> RelationStatement::Copy() const {
 // 	return unique_ptr<RelationStatement>(new RelationStatement(*this));
 // }
 

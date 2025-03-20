@@ -9,12 +9,12 @@
 // #pragma once
 
 // #include "parser/parsed_expression.hpp"
-// #include "parser/sql_statement.hpp"
+// #include "parser/cypher_statement.hpp"
 // #include "parser/parsed_data/vacuum_info.hpp"
 
 // namespace duckdb {
 
-// class VacuumStatement : public SQLStatement {
+// class VacuumStatement : public CypherStatement {
 // public:
 // 	explicit VacuumStatement(const VacuumOptions &options);
 
@@ -24,7 +24,7 @@
 // 	VacuumStatement(const VacuumStatement &other);
 
 // public:
-// 	unique_ptr<SQLStatement> Copy() const override;
+// 	unique_ptr<CypherStatement> Copy() const override;
 // };
 
 // } // namespace duckdb

@@ -9,21 +9,21 @@
 #pragma once
 
 #include "parser/parsed_expression.hpp"
-#include "parser/sql_statement.hpp"
+#include "parser/cypher_statement.hpp"
 
 namespace duckdb {
 
-class PrepareStatement : public SQLStatement {
+class PrepareStatement : public CypherStatement {
 public:
 	PrepareStatement();
 
-	unique_ptr<SQLStatement> statement;
+	unique_ptr<CypherStatement> statement;
 	string name;
 
 protected:
 	PrepareStatement(const PrepareStatement &other);
 
 public:
-	unique_ptr<SQLStatement> Copy() const override;
+	unique_ptr<CypherStatement> Copy() const override;
 };
 } // namespace duckdb

@@ -4,12 +4,12 @@
 
 namespace duckdb {
 
-InsertStatement::InsertStatement() : SQLStatement(StatementType::INSERT_STATEMENT), schema(DEFAULT_SCHEMA) {
+InsertStatement::InsertStatement() : CypherStatement(StatementType::INSERT_STATEMENT), schema(DEFAULT_SCHEMA) {
 }
 
 InsertStatement::InsertStatement(const InsertStatement &other)
-    : SQLStatement(other),
-      select_statement(unique_ptr_cast<SQLStatement, SelectStatement>(other.select_statement->Copy())),
+    : CypherStatement(other),
+      select_statement(unique_ptr_cast<CypherStatement, SelectStatement>(other.select_statement->Copy())),
       columns(other.columns), table(other.table), schema(other.schema) {
 	cte_map = other.cte_map.Copy();
 }
@@ -52,7 +52,7 @@ string InsertStatement::ToString() const {
 	return result;
 }
 
-unique_ptr<SQLStatement> InsertStatement::Copy() const {
+unique_ptr<CypherStatement> InsertStatement::Copy() const {
 	return unique_ptr<InsertStatement>(new InsertStatement(*this));
 }
 

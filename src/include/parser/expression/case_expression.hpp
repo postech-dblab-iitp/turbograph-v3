@@ -23,6 +23,7 @@ class CaseExpression : public ParsedExpression {
 public:
 	DUCKDB_API CaseExpression();
 
+	unique_ptr<ParsedExpression> optional_case_expr;
 	vector<CaseCheck> case_checks;
 	unique_ptr<ParsedExpression> else_expr;
 
@@ -40,12 +41,22 @@ public:
 	template <class T, class BASE>
 	static string ToString(const T &entry) {
 		string case_str = "CASE ";
+		if (entry.optional_case_expr) {
+			case_str += "(" + entry.optional_case_expr->ToString() + ")";
+		}
 		for (auto &check : entry.case_checks) {
 			case_str += " WHEN (" + check.when_expr->ToString() + ")";
 			case_str += " THEN (" + check.then_expr->ToString() + ")";
 		}
-		case_str += " ELSE " + entry.else_expr->ToString();
+		if (entry.else_expr) {
+			case_str += " ELSE (" + entry.else_expr->ToString() + ")";
+		}
 		case_str += " END";
+
+		if (entry.HasAlias()) {
+			case_str += " AS " + entry.GetAlias();
+		}
+		
 		return case_str;
 	}
 };

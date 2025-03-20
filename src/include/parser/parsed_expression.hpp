@@ -11,6 +11,7 @@
 #include "parser/base_expression.hpp"
 #include "common/vector.hpp"
 #include "common/string_util.hpp"
+#include "common/copy_constructors.hpp"
 #include "parser/qualified_name.hpp"
 #include "parser/expression_util.hpp"
 
@@ -19,6 +20,12 @@ class Serializer;
 class Deserializer;
 class FieldWriter;
 class FieldReader;
+
+class ParsedExpression;
+using ParsedExpressions = std::vector<std::unique_ptr<ParsedExpression>>;
+using ParsedExpressionPair =
+    std::pair<std::unique_ptr<ParsedExpression>, std::unique_ptr<ParsedExpression>>;
+using ParsedPropertyKeyValue = std::pair<std::string, std::unique_ptr<ParsedExpression>>;
 
 //!  The ParsedExpression class is a base class that can represent any expression
 //!  part of a SQL statement.

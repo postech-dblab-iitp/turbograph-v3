@@ -1939,7 +1939,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_e
     if (has_filter && do_filter_pushdown) {
         CColumnFactory *col_factory = COptCtxt::PoctxtFromTLS()->Pcf();
         CColRef *lhs_colref_o = col_factory->LookupColRef(
-            ((CScalarIdent *)filter_pred_expr->operator[](0)->Pop())
+            ((CScalarIdent *)filter_pred_expr->operator[](1)->Pop())
                 ->Pcr()
                 ->Id());
         CColRefTable *lhs_colref = (CColRefTable *)lhs_colref_o;

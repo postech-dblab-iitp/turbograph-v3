@@ -10,11 +10,11 @@
 
 #include "parser/column_definition.hpp"
 #include "parser/parsed_data/alter_table_info.hpp"
-#include "parser/sql_statement.hpp"
+#include "parser/cypher_statement.hpp"
 
 namespace duckdb {
 
-class AlterStatement : public SQLStatement {
+class AlterStatement : public CypherStatement {
 public:
 	AlterStatement();
 
@@ -24,7 +24,7 @@ protected:
 	AlterStatement(const AlterStatement &other);
 
 public:
-	unique_ptr<SQLStatement> Copy() const override;
+	unique_ptr<CypherStatement> Copy() const override;
 };
 
 } // namespace duckdb

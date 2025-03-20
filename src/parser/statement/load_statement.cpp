@@ -2,13 +2,13 @@
 
 namespace duckdb {
 
-LoadStatement::LoadStatement() : SQLStatement(StatementType::LOAD_STATEMENT) {
+LoadStatement::LoadStatement() : CypherStatement(StatementType::LOAD_STATEMENT) {
 }
 
-LoadStatement::LoadStatement(const LoadStatement &other) : SQLStatement(other), info(other.info->Copy()) {
+LoadStatement::LoadStatement(const LoadStatement &other) : CypherStatement(other), info(other.info->Copy()) {
 }
 
-unique_ptr<SQLStatement> LoadStatement::Copy() const {
+unique_ptr<CypherStatement> LoadStatement::Copy() const {
 	return unique_ptr<LoadStatement>(new LoadStatement(*this));
 }
 

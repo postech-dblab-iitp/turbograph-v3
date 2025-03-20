@@ -23,6 +23,7 @@ public:
 	BoundCaseExpression(unique_ptr<Expression> when_expr, unique_ptr<Expression> then_expr,
 	                    unique_ptr<Expression> else_expr);
 
+	unique_ptr<Expression> optional_case_expr;
 	vector<BoundCaseCheck> case_checks;
 	unique_ptr<Expression> else_expr;
 
@@ -33,4 +34,5 @@ public:
 
 	unique_ptr<Expression> Copy() override;
 };
+
 } // namespace duckdb

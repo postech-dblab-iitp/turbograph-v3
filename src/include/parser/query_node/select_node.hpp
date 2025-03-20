@@ -10,7 +10,7 @@
 
 #include "parser/parsed_expression.hpp"
 #include "parser/query_node.hpp"
-#include "parser/sql_statement.hpp"
+#include "parser/cypher_statement.hpp"
 #include "parser/tableref.hpp"
 #include "parser/parsed_data/sample_options.hpp"
 #include "parser/group_by_node.hpp"

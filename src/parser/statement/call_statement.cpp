@@ -2,13 +2,13 @@
 
 namespace duckdb {
 
-CallStatement::CallStatement() : SQLStatement(StatementType::CALL_STATEMENT) {
+CallStatement::CallStatement() : CypherStatement(StatementType::CALL_STATEMENT) {
 }
 
-CallStatement::CallStatement(const CallStatement &other) : SQLStatement(other), function(other.function->Copy()) {
+CallStatement::CallStatement(const CallStatement &other) : CypherStatement(other), function(other.function->Copy()) {
 }
 
-unique_ptr<SQLStatement> CallStatement::Copy() const {
+unique_ptr<CypherStatement> CallStatement::Copy() const {
 	return unique_ptr<CallStatement>(new CallStatement(*this));
 }
 

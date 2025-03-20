@@ -137,6 +137,9 @@ public:
 
 	//! Case insensitive compare
 	DUCKDB_API static bool CILessThan(const string &l1, const string &l2);
+
+	//! Remove escaped characters from a string
+	DUCKDB_API static std::string RemoveEscapedCharacters(const std::string& input);
 };
 
 } // namespace duckdb

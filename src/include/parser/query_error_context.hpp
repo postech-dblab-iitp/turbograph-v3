@@ -13,16 +13,16 @@
 #include "common/exception_format_value.hpp"
 
 namespace duckdb {
-class SQLStatement;
+class CypherStatement;
 
 class QueryErrorContext {
 public:
-	explicit QueryErrorContext(SQLStatement *statement_ = nullptr, idx_t query_location_ = DConstants::INVALID_IDX)
+	explicit QueryErrorContext(CypherStatement *statement_ = nullptr, idx_t query_location_ = DConstants::INVALID_IDX)
 	    : statement(statement_), query_location(query_location_) {
 	}
 
 	//! The query statement
-	SQLStatement *statement;
+	CypherStatement *statement;
 	//! The location in which the error should be thrown
 	idx_t query_location;
 
