@@ -42,6 +42,28 @@ public:
         throw InternalException("Copy not supported for this type of CypherStatement");
     }
 
+    bool Equals(const CypherStatement *other) const {
+        // compare singleQueries and isUnionAll
+        if (other->type != type) {
+            return false;
+        }
+        auto otherRegularQuery = (RegularQuery *)other;
+        if (singleQueries.size() != otherRegularQuery->singleQueries.size()) {
+            return false;
+        }
+        for (size_t i = 0; i < singleQueries.size(); ++i) {
+            if (singleQueries[i] != otherRegularQuery->singleQueries[i]) {
+                return false;
+            }
+        }
+        for (size_t i = 0; i < isUnionAll.size(); ++i) {
+            if (isUnionAll[i] != otherRegularQuery->isUnionAll[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 private:
     std::vector<std::unique_ptr<SingleQuery>> singleQueries;
     std::vector<bool> isUnionAll;

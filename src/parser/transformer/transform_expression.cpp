@@ -2,6 +2,7 @@
 #include "common/operator/cast_operators.hpp"
 #include "parser/query/graph_pattern/node_pattern.hpp"
 #include "parser/query/graph_pattern/pattern_element.hpp"
+#include "parser/query/reading_clause/match_clause.hpp"
 #include "parser/expression/list.hpp"
 
 namespace duckdb {
@@ -452,30 +453,24 @@ unique_ptr<ParsedExpression> Transformer::transformFunctionParameterExpression(
 unique_ptr<ParsedExpression> Transformer::transformPathPattern(CypherParser::OC_PathPatternsContext &ctx) {
     throw ParserException("Path pattern is not supported.");
     return nullptr;
-    
-    // auto subquery_expr = make_unique<SubqueryExpression>(SubqueryType::EXISTS);
-    
-    // auto pattern_element = PatternElement(transformNodePattern(*ctx.oC_NodePattern()));
-    // for (auto &chain : ctx.oC_PatternElementChain()) {
-    //     pattern_element.addPatternElementChain(transformPatternElementChain(*chain));
-    // }
-    
-    // subquery_expr->subquery = move(pattern_element);
-    // return subquery_expr;
 }
 
 unique_ptr<ParsedExpression> Transformer::transformExistCountSubquery(CypherParser::OC_ExistCountSubqueryContext &ctx) {
-    throw ParserException("Exist count subquery is not supported.");
-    return nullptr;
+    auto subquery_type = ctx.EXISTS() ? SubqueryType::EXISTS : SubqueryType::COUNT;
+    auto subquery_expr = make_unique<SubqueryExpression>();
 
-    // auto subquery_type = ctx.EXISTS() ? SubqueryType::EXISTS : SubqueryType::SCALAR;
-    // auto subquery_expr = make_unique<SubqueryExpression>(subquery_type);
+    auto match_clause =
+        make_unique<MatchClause>(transformPattern(*ctx.oC_Pattern()), MatchClauseType::MATCH);
+    if (ctx.oC_Where()) {
+        match_clause->setWherePredicate(transformWhere(*ctx.oC_Where()));
+    }
 
-    // subquery_expr->subquery = transformPattern(*ctx.oC_Pattern());
-    // if (ctx.oC_Where()) {
-    //     subquery_expr->where_clause = transformWhere(*ctx.oC_Where());
-    // }
-    // return subquery_expr;
+    auto single_query = std::make_unique<SingleQuery>();
+    single_query->addReadingClause(std::unique_ptr<ReadingClause>(std::move(match_clause)));
+
+    subquery_expr->subquery = std::make_unique<RegularQuery>(std::move(single_query));
+    subquery_expr->subquery_type = subquery_type;
+    return subquery_expr;
 }
 
 unique_ptr<ParsedExpression> Transformer::transformOcQuantifier(CypherParser::OC_QuantifierContext &ctx) {

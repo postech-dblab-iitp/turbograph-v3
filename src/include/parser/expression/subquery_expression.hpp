@@ -10,7 +10,7 @@
 
 #include "common/enums/subquery_type.hpp"
 #include "parser/parsed_expression.hpp"
-#include "parser/statement/select_statement.hpp"
+#include "parser/query/regular_query.hpp"
 
 namespace duckdb {
 
@@ -20,14 +20,9 @@ public:
 	SubqueryExpression();
 
 	//! The actual subquery
-	unique_ptr<SelectStatement> subquery;
+	unique_ptr<RegularQuery> subquery;
 	//! The subquery type
 	SubqueryType subquery_type;
-	//! the child expression to compare with (in case of IN, ANY, ALL operators, empty for EXISTS queries and scalar
-	//! subquery)
-	unique_ptr<ParsedExpression> child;
-	//! The comparison type of the child expression with the subquery (in case of ANY, ALL operators), empty otherwise
-	ExpressionType comparison_type;
 
 public:
 	bool HasSubquery() const override {

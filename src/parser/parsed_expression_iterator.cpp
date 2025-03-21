@@ -98,9 +98,6 @@ void ParsedExpressionIterator::EnumerateChildren(
 	}
 	case ExpressionClass::SUBQUERY: {
 		auto &subquery_expr = (SubqueryExpression &)expr;
-		if (subquery_expr.child) {
-			callback(subquery_expr.child);
-		}
 		break;
 	}
 	case ExpressionClass::WINDOW: {
