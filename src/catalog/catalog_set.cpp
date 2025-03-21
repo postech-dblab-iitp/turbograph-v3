@@ -665,36 +665,6 @@ void CatalogSet::UpdateTimestamp(CatalogEntry *entry, transaction_t timestamp) {
 	//mapping[entry->name]->timestamp = timestamp;
 }
 
-void CatalogSet::AdjustEnumDependency(CatalogEntry *entry, ColumnDefinition &column, bool remove) {
-	D_ASSERT(false);
-	/*CatalogEntry *enum_type_catalog = (CatalogEntry *)EnumType::GetCatalog(column.type);
-	if (enum_type_catalog) {
-		if (remove) {
-			catalog.dependency_manager->dependents_map[enum_type_catalog].erase(entry->parent);
-			catalog.dependency_manager->dependencies_map[entry->parent].erase(enum_type_catalog);
-		} else {
-			catalog.dependency_manager->dependents_map[enum_type_catalog].insert(entry);
-			catalog.dependency_manager->dependencies_map[entry].insert(enum_type_catalog);
-		}
-	}*/
-}
-
-/*void CatalogSet::AdjustDependency(CatalogEntry *entry, TableCatalogEntry *table, ColumnDefinition &column,
-                                  bool remove) {
-	bool found = false;
-	if (column.type.id() == LogicalTypeId::ENUM) {
-		for (auto &old_column : table->columns) {
-			if (old_column.name == column.name && old_column.type.id() != LogicalTypeId::ENUM) {
-				AdjustEnumDependency(entry, column, remove);
-				found = true;
-			}
-		}
-		if (!found) {
-			AdjustEnumDependency(entry, column, remove);
-		}
-	}
-}*/
-
 void CatalogSet::AdjustTableDependencies(CatalogEntry *entry) {
 	D_ASSERT(false);
 	/*if (entry->type == CatalogType::TABLE_ENTRY && entry->parent->type == CatalogType::TABLE_ENTRY) {

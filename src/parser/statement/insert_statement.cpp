@@ -1,5 +1,4 @@
 #include "parser/statement/insert_statement.hpp"
-#include "parser/query_node/select_node.hpp"
 #include "parser/tableref/expressionlistref.hpp"
 
 namespace duckdb {
@@ -57,29 +56,30 @@ unique_ptr<CypherStatement> InsertStatement::Copy() const {
 }
 
 ExpressionListRef *InsertStatement::GetValuesList() const {
-	if (select_statement->node->type != QueryNodeType::SELECT_NODE) {
-		return nullptr;
-	}
-	auto &node = (SelectNode &)*select_statement->node;
-	if (node.where_clause || node.qualify || node.having) {
-		return nullptr;
-	}
-	if (!node.cte_map.map.empty()) {
-		return nullptr;
-	}
-	if (!node.groups.grouping_sets.empty()) {
-		return nullptr;
-	}
-	if (node.aggregate_handling != AggregateHandling::STANDARD_HANDLING) {
-		return nullptr;
-	}
-	if (node.select_list.size() != 1 || node.select_list[0]->type != ExpressionType::STAR) {
-		return nullptr;
-	}
-	if (!node.from_table || node.from_table->type != TableReferenceType::EXPRESSION_LIST) {
-		return nullptr;
-	}
-	return (ExpressionListRef *)node.from_table.get();
+	return nullptr;
+	// if (select_statement->node->type != QueryNodeType::SELECT_NODE) {
+	// 	return nullptr;
+	// }
+	// auto &node = (SelectNode &)*select_statement->node;
+	// if (node.where_clause || node.qualify || node.having) {
+	// 	return nullptr;
+	// }
+	// if (!node.cte_map.map.empty()) {
+	// 	return nullptr;
+	// }
+	// if (!node.groups.grouping_sets.empty()) {
+	// 	return nullptr;
+	// }
+	// if (node.aggregate_handling != AggregateHandling::STANDARD_HANDLING) {
+	// 	return nullptr;
+	// }
+	// if (node.select_list.size() != 1 || node.select_list[0]->type != ExpressionType::STAR) {
+	// 	return nullptr;
+	// }
+	// if (!node.from_table || node.from_table->type != TableReferenceType::EXPRESSION_LIST) {
+	// 	return nullptr;
+	// }
+	// return (ExpressionListRef *)node.from_table.get();
 }
 
 } // namespace duckdb

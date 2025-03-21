@@ -1,5 +1,4 @@
 #include "parser/statement/update_statement.hpp"
-#include "parser/query_node/select_node.hpp"
 
 namespace duckdb {
 

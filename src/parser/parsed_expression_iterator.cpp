@@ -2,9 +2,6 @@
 
 #include "parser/expression/list.hpp"
 #include "parser/query_node.hpp"
-#include "parser/query_node/recursive_cte_node.hpp"
-#include "parser/query_node/select_node.hpp"
-#include "parser/query_node/set_operation_node.hpp"
 #include "parser/tableref/list.hpp"
 
 namespace duckdb {
@@ -238,39 +235,6 @@ void ParsedExpressionIterator::EnumerateTableRefChildren(
 void ParsedExpressionIterator::EnumerateQueryNodeChildren(
     QueryNode &node, const std::function<void(unique_ptr<ParsedExpression> &child)> &callback) {
 	switch (node.type) {
-	case QueryNodeType::RECURSIVE_CTE_NODE: {
-		auto &rcte_node = (RecursiveCTENode &)node;
-		EnumerateQueryNodeChildren(*rcte_node.left, callback);
-		EnumerateQueryNodeChildren(*rcte_node.right, callback);
-		break;
-	}
-	case QueryNodeType::SELECT_NODE: {
-		auto &sel_node = (SelectNode &)node;
-		for (idx_t i = 0; i < sel_node.select_list.size(); i++) {
-			callback(sel_node.select_list[i]);
-		}
-		for (idx_t i = 0; i < sel_node.groups.group_expressions.size(); i++) {
-			callback(sel_node.groups.group_expressions[i]);
-		}
-		if (sel_node.where_clause) {
-			callback(sel_node.where_clause);
-		}
-		if (sel_node.having) {
-			callback(sel_node.having);
-		}
-		if (sel_node.qualify) {
-			callback(sel_node.qualify);
-		}
-
-		EnumerateTableRefChildren(*sel_node.from_table.get(), callback);
-		break;
-	}
-	case QueryNodeType::SET_OPERATION_NODE: {
-		auto &setop_node = (SetOperationNode &)node;
-		EnumerateQueryNodeChildren(*setop_node.left, callback);
-		EnumerateQueryNodeChildren(*setop_node.right, callback);
-		break;
-	}
 	default:
 		throw NotImplementedException("QueryNode type not implemented for traversal");
 	}

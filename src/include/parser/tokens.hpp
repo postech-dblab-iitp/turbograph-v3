@@ -41,10 +41,6 @@ class LoadStatement;
 // Query Node
 //===--------------------------------------------------------------------===//
 class QueryNode;
-class SelectNode;
-class SetOperationNode;
-class RecursiveCTENode;
-
 
 //===--------------------------------------------------------------------===//
 // Query

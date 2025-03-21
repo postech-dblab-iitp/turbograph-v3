@@ -228,14 +228,14 @@ public:
 	//! Returns the schema object with the specified name, or throws an exception if it does not exist
 	DUCKDB_API SchemaCatalogEntry *GetSchema(ClientContext &context, const string &name = DEFAULT_SCHEMA,
 	                                         bool if_exists = false);
-	                                         //QueryErrorContext error_context = QueryErrorContext());
+	                                         
 	//! Scans all the schemas in the system one-by-one, invoking the callback for each entry
 	DUCKDB_API void ScanSchemas(ClientContext &context, std::function<void(CatalogEntry *)> callback);
 	//! Gets the "schema.name" entry of the specified type, if if_exists=true returns nullptr if entry does not exist,
 	//! otherwise an exception is thrown
 	DUCKDB_API CatalogEntry *GetEntry(ClientContext &context, CatalogType type, const string &schema,
 	                                  const string &name, bool if_exists = false);
-	                                  //QueryErrorContext error_context = QueryErrorContext());
+	                                  
 	DUCKDB_API CatalogEntry *GetFuncEntry(ClientContext &context, CatalogType type, const string &schema,
 	                                  const string &name, bool if_exists = false);
 	DUCKDB_API CatalogEntry *GetEntry(ClientContext &context, const string &schema, idx_t oid, bool if_exists = false);
@@ -246,7 +246,7 @@ public:
 
 	template <class T>
 	T *GetEntry(ClientContext &context, const string &schema_name, const string &name, bool if_exists = false);
-	            //QueryErrorContext error_context = QueryErrorContext());
+	            
 
 	//! Append a scalar or aggregate function to the catalog
 	DUCKDB_API CatalogEntry *AddFunction(ClientContext &context, CreateFunctionInfo *info);
@@ -265,14 +265,9 @@ private:
 private:
 	//! A variation of GetEntry that returns an associated schema as well.
 	CatalogEntryLookup LookupEntry(ClientContext &context, CatalogType type, const string &schema, const string &name,
-	                               bool if_exists = false);//, QueryErrorContext error_context = QueryErrorContext());
+	                               bool if_exists = false);
 	CatalogEntryLookup LookupFuncEntry(ClientContext &context, CatalogType type, const string &schema, const string &name,
 	                               bool if_exists = false);
-
-	//! Return an exception with did-you-mean suggestion.
-	//CatalogException CreateMissingEntryException(ClientContext &context, const string &entry_name, CatalogType type,
-	//                                             const vector<SchemaCatalogEntry *> &schemas);
-	                                             //QueryErrorContext error_context);
 
 	//! Return the close entry name, the distance and the belonging schema.
 	SimilarCatalogEntry SimilarEntryInSchemas(ClientContext &context, const string &entry_name, CatalogType type,
@@ -283,46 +278,18 @@ private:
 
 template <>
 DUCKDB_API GraphCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                                bool if_exists);//, QueryErrorContext error_context);
+                                                bool if_exists);
 template <>
 DUCKDB_API PartitionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
-                                                   const string &name, bool if_exists);//, QueryErrorContext error_context);
+                                                   const string &name, bool if_exists);
 template <>
 DUCKDB_API PropertySchemaCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
-                                                   const string &name, bool if_exists);//, QueryErrorContext error_context);
+                                                   const string &name, bool if_exists);
 template <>
 DUCKDB_API ExtentCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
-                                                   const string &name, bool if_exists);//, QueryErrorContext error_context);
+                                                   const string &name, bool if_exists);
 template <>
 DUCKDB_API ChunkDefinitionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
-                                                   const string &name, bool if_exists);//, QueryErrorContext error_context);
-
-/*
-template <>
-DUCKDB_API TableCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                                bool if_exists);//, QueryErrorContext error_context);
-template <>
-DUCKDB_API SequenceCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
-                                                   const string &name, bool if_exists);//, QueryErrorContext error_context);
-template <>
-DUCKDB_API TableFunctionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
-                                                        const string &name, bool if_exists);
-                                                        //QueryErrorContext error_context);
-template <>
-DUCKDB_API CopyFunctionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
-                                                       const string &name, bool if_exists);
-                                                       //QueryErrorContext error_context);
-template <>
-DUCKDB_API PragmaFunctionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
-                                                         const string &name, bool if_exists);
-                                                         //QueryErrorContext error_context);
-template <>
-DUCKDB_API AggregateFunctionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name,
-                                                            const string &name, bool if_exists);
-                                                            //QueryErrorContext error_context);
-template <>
-DUCKDB_API CollateCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                                  bool if_exists);//, QueryErrorContext error_context);
-*/
+                                                   const string &name, bool if_exists);
 
 } // namespace duckdb

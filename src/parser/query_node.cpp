@@ -1,8 +1,4 @@
 #include "parser/query_node.hpp"
-
-#include "parser/query_node/select_node.hpp"
-#include "parser/query_node/set_operation_node.hpp"
-#include "parser/query_node/recursive_cte_node.hpp"
 #include "common/limits.hpp"
 #include "common/field_writer.hpp"
 
@@ -184,15 +180,6 @@ unique_ptr<QueryNode> QueryNode::Deserialize(Deserializer &main_source) {
 	}
 	unique_ptr<QueryNode> result;
 	switch (type) {
-	case QueryNodeType::SELECT_NODE:
-		result = SelectNode::Deserialize(reader);
-		break;
-	case QueryNodeType::SET_OPERATION_NODE:
-		result = SetOperationNode::Deserialize(reader);
-		break;
-	case QueryNodeType::RECURSIVE_CTE_NODE:
-		result = RecursiveCTENode::Deserialize(reader);
-		break;
 	default:
 		throw SerializationException("Could not deserialize Query Node: unknown type!");
 	}

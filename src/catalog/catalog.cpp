@@ -450,33 +450,8 @@ SimilarCatalogEntry Catalog::SimilarEntryInSchemas(ClientContext &context, const
 	return {most_similar.first, most_similar.second, schema_of_most_similar};
 }
 
-/*CatalogException Catalog::CreateMissingEntryException(ClientContext &context, const string &entry_name,
-                                                      CatalogType type, const vector<SchemaCatalogEntry *> &schemas) {
-                                                      //QueryErrorContext error_context) {
-	auto entry = SimilarEntryInSchemas(context, entry_name, type, schemas);
-
-	vector<SchemaCatalogEntry *> unseen_schemas;
-	this->schemas->Scan([&schemas, &unseen_schemas](CatalogEntry *entry) {
-		auto schema_entry = (SchemaCatalogEntry *)entry;
-		if (std::find(schemas.begin(), schemas.end(), schema_entry) == schemas.end()) {
-			unseen_schemas.emplace_back(schema_entry);
-		}
-	});
-	auto unseen_entry = SimilarEntryInSchemas(context, entry_name, type, unseen_schemas);
-
-	string did_you_mean;
-	if (unseen_entry.Found() && unseen_entry.distance < entry.distance) {
-		did_you_mean = "\nDid you mean \"" + unseen_entry.GetQualifiedName() + "\"?";
-	} else if (entry.Found()) {
-		did_you_mean = "\nDid you mean \"" + entry.name + "\"?";
-	}
-
-	return CatalogException(error_context.FormatError("%s with name %s does not exist!%s", CatalogTypeToString(type),
-	                                                  entry_name, did_you_mean));
-}*/
-
 CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type, const string &schema_name,
-                                        const string &name, bool if_exists) { //, QueryErrorContext error_context) {
+                                        const string &name, bool if_exists) {
 	if (!schema_name.empty()) {
 		auto schema = GetSchema(context, schema_name, if_exists);//, error_context);
 
@@ -522,7 +497,7 @@ CatalogEntryLookup Catalog::LookupEntry(ClientContext &context, CatalogType type
 }
 
 CatalogEntryLookup Catalog::LookupFuncEntry(ClientContext &context, CatalogType type, const string &schema_name,
-                                        const string &name, bool if_exists) { //, QueryErrorContext error_context) {
+                                        const string &name, bool if_exists) {
 	auto entry = functions->GetEntry(context, name);
 	if (!entry && !if_exists) {
 		D_ASSERT(false);
@@ -545,7 +520,7 @@ CatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema, co
 }
 
 CatalogEntry *Catalog::GetEntry(ClientContext &context, CatalogType type, const string &schema_name, const string &name,
-                                bool if_exists) { //, QueryErrorContext error_context) {
+                                bool if_exists) {
 	//return LookupEntry(context, type, schema_name, name, if_exists, error_context).entry;
 	return LookupEntry(context, type, schema_name, name, if_exists).entry;
 }
@@ -587,94 +562,33 @@ CatalogEntry *Catalog::GetFuncEntry(ClientContext &context, const string &schema
 
 template <>
 GraphCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                     bool if_exists) { //, QueryErrorContext error_context) {
+                                     bool if_exists) {
 	return (GraphCatalogEntry*) GetEntry(context, CatalogType::GRAPH_ENTRY, schema_name, name, if_exists);
 }
 
 template <>
 PartitionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                     bool if_exists) { //, QueryErrorContext error_context) {
+                                     bool if_exists) {
 return (PartitionCatalogEntry*) GetEntry(context, CatalogType::PARTITION_ENTRY, schema_name, name, if_exists);
 }
 
 template <>
 PropertySchemaCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                     bool if_exists) { //, QueryErrorContext error_context) {
+                                     bool if_exists) {
 return (PropertySchemaCatalogEntry*) GetEntry(context, CatalogType::PROPERTY_SCHEMA_ENTRY, schema_name, name, if_exists);
 }
 
 template <>
 ExtentCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                     bool if_exists) { //, QueryErrorContext error_context) {
+                                     bool if_exists) {
 return (ExtentCatalogEntry*) GetEntry(context, CatalogType::EXTENT_ENTRY, schema_name, name, if_exists);
 }
 
 template <>
 ChunkDefinitionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                     bool if_exists) { //, QueryErrorContext error_context) {
+                                     bool if_exists) {
 return (ChunkDefinitionCatalogEntry*) GetEntry(context, CatalogType::CHUNKDEFINITION_ENTRY, schema_name, name, if_exists);
 }
-
-
-/*
-template <>
-TableCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                     bool if_exists, QueryErrorContext error_context) {
-	auto entry = GetEntry(context, CatalogType::TABLE_ENTRY, schema_name, name, if_exists);
-	if (!entry) {
-		return nullptr;
-	}
-	if (entry->type != CatalogType::TABLE_ENTRY) {
-		throw CatalogException(error_context.FormatError("%s is not a table", name));
-	}
-	return (TableCatalogEntry *)entry;
-}
-
-template <>
-SequenceCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                        bool if_exists, QueryErrorContext error_context) {
-	return (SequenceCatalogEntry *)GetEntry(context, CatalogType::SEQUENCE_ENTRY, schema_name, name, if_exists,
-	                                        error_context);
-}
-
-template <>
-TableFunctionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                             bool if_exists, QueryErrorContext error_context) {
-	return (TableFunctionCatalogEntry *)GetEntry(context, CatalogType::TABLE_FUNCTION_ENTRY, schema_name, name,
-	                                             if_exists, error_context);
-}
-
-template <>
-CopyFunctionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                            bool if_exists, QueryErrorContext error_context) {
-	return (CopyFunctionCatalogEntry *)GetEntry(context, CatalogType::COPY_FUNCTION_ENTRY, schema_name, name, if_exists,
-	                                            error_context);
-}
-
-template <>
-PragmaFunctionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                              bool if_exists, QueryErrorContext error_context) {
-	return (PragmaFunctionCatalogEntry *)GetEntry(context, CatalogType::PRAGMA_FUNCTION_ENTRY, schema_name, name,
-	                                              if_exists, error_context);
-}
-
-template <>
-AggregateFunctionCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                                 bool if_exists, QueryErrorContext error_context) {
-	auto entry = GetEntry(context, CatalogType::AGGREGATE_FUNCTION_ENTRY, schema_name, name, if_exists, error_context);
-	if (entry->type != CatalogType::AGGREGATE_FUNCTION_ENTRY) {
-		throw CatalogException(error_context.FormatError("%s is not an aggregate function", name));
-	}
-	return (AggregateFunctionCatalogEntry *)entry;
-}
-
-template <>
-CollateCatalogEntry *Catalog::GetEntry(ClientContext &context, const string &schema_name, const string &name,
-                                       bool if_exists, QueryErrorContext error_context) {
-	return (CollateCatalogEntry *)GetEntry(context, CatalogType::COLLATION_ENTRY, schema_name, name, if_exists,
-	                                       error_context);
-}
-*/
 
 void Catalog::Alter(ClientContext &context, AlterInfo *info) {
 	D_ASSERT(false);
