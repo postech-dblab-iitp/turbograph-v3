@@ -47,6 +47,8 @@ typedef idx_t VertexLabelID;
 typedef idx_t EdgeTypeID;
 typedef uint64_t ChunkID;
 
+typedef uint64_t CatalogObjectID;
+
 #define GET_EXTENT_SEQNO_FROM_EID(eid) (eid & 0xFFFF);
 #define GET_PARTITION_ID_FROM_EID(eid) (eid >> 16);
 #define GET_EID_FROM_PARTITION_ID_AND_SEQNO(pid, seqno) ((pid << 16) | seqno);

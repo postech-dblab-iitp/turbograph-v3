@@ -18,6 +18,26 @@ class BoundSelectNode;
 class BoundSetOperationNode;
 class BoundRecursiveCTENode;
 
+
+//===--------------------------------------------------------------------===//
+// Query
+//===--------------------------------------------------------------------===//
+
+class BoundRegularQuery;
+class NormalizedSingleQuery;
+class NormalizedQueryPart;
+class BoundNodePattern;
+class BoundRelPattern;
+class BoundPattern;
+class QueryGraph;
+class QueryGraphCollection;
+class BoundMatchClause;
+class BoundReadingClause;
+class BoundUnwindClause;
+class BoundProjectionBody;
+class BoundReturnClause;
+class BoundWithClause;
+
 //===--------------------------------------------------------------------===//
 // Expressions
 //===--------------------------------------------------------------------===//

@@ -47,6 +47,9 @@ vector<shared_ptr<CypherStatement>> Parser::ParseQuery(string query) {
 
     Transformer transformer(*s62CypherParser.ku_Statements());
     auto statements = transformer.transform();
+    if (statements.size() > 1) {
+        throw ParserException("Cannot parse multiple statements at once.");
+    }
     for (auto& statement : statements) {
         spdlog::debug("[ParseQuery] transformed statement");
         spdlog::debug("\t" + statement->ToString());

@@ -14,6 +14,9 @@
 namespace duckdb {
 class BaseStatistics;
 
+class Expression;
+using Expressions = std::vector<std::shared_ptr<Expression>>;
+
 //!  The Expression class represents a bound Expression with a return type
 class Expression : public BaseExpression {
 public:

@@ -12,6 +12,7 @@
 #include "storage/statistics/histogram_generator.hpp"
 #include "storage/cache/chunk_cache_manager.h"
 #include "planner/planner.hpp"
+#include "planner/binder.hpp"
 #include "catalog/catalog_wrapper.hpp"
 #include "optimizer/orca/gpopt/tbgppdbwrappers.hpp"
 #include <readline/readline.h>
@@ -188,11 +189,10 @@ void CompileQuery(const string& query, std::shared_ptr<ClientContext> client, s6
     auto statements = Parser::ParseQuery(query);
     SUBTIMER_STOP(CompileQuery, "ParseQuery");
 	
-	// SUBTIMER_START(CompileQuery, "Bind");
-    // kuzu::binder::Binder binder(client.get());
-	// auto boundStatement = binder.bind(*statement);
-	// kuzu::binder::BoundStatement *bst = boundStatement.get();
-	// SUBTIMER_STOP(CompileQuery, "Bind");
+	SUBTIMER_START(CompileQuery, "Bind");
+    Binder binder(client);
+	auto boundStatement = binder.bind(*(statements[0].get()));
+	SUBTIMER_STOP(CompileQuery, "Bind");
 
 	// SUBTIMER_START(CompileQuery, "Orca Compile");
 	// planner.execute(bst);

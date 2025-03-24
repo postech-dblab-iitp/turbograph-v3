@@ -1,21 +1,27 @@
-// //===----------------------------------------------------------------------===//
-// //                         DuckDB
-// //
-// // duckdb/planner/bound_statement.hpp
-// //
-// //
-// //===----------------------------------------------------------------------===//
+#pragma once
 
-// #pragma once
+#include "common/enums/statement_type.hpp"
+#include "common/exception.hpp"
+#include "planner/bound_statement_result.hpp"
 
-// #include "planner/logical_operator.hpp"
+namespace duckdb {
 
-// namespace duckdb {
+class BoundStatement {
+public:
+    BoundStatement(StatementType type, std::shared_ptr<BoundStatementResult> statementResult)
+        : type{type}, statementResult{std::move(statementResult)} {}
 
-// struct BoundStatement {
-// 	unique_ptr<LogicalOperator> plan;
-// 	vector<LogicalType> types;
-// 	vector<string> names;
-// };
+    virtual ~BoundStatement() = default;
 
-// } // namespace duckdb
+    StatementType getStatementType() const { return type; }
+
+    std::shared_ptr<BoundStatementResult> getStatementResult() const { return statementResult; }
+
+    BoundStatementResult* getStatementResultUnsafe() { return statementResult.get(); }
+
+private:
+    StatementType type;
+    std::shared_ptr<BoundStatementResult> statementResult;
+};
+
+}

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace duckdb {
 
@@ -25,7 +26,7 @@ enum class MatchClauseType : uint8_t {
     OPTIONAL_MATCH = 1,
 };
 
-string ClauseTypeToString(ClauseType clauseType) {
+inline std::string ClauseTypeToString(ClauseType clauseType) {
     switch (clauseType) {
         case ClauseType::SET: return "SET";
         case ClauseType::DELETE_: return "DELETE";
