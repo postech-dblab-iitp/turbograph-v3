@@ -10,7 +10,9 @@ public:
     explicit BoundStatementResult(Expressions columns, std::vector<std::string> columnNames)
         : columns{std::move(columns)}, columnNames{std::move(columnNames)} {}
 
-    static BoundStatementResult createEmptyResult() { return BoundStatementResult(); }
+    static std::shared_ptr<BoundStatementResult> createEmptyResult() { 
+        return std::make_shared<BoundStatementResult>();
+    }
 
     void addColumn(const std::string& columnName, std::shared_ptr<Expression> column) {
         columns.push_back(std::move(column));

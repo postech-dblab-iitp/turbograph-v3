@@ -181,8 +181,8 @@ class QueryGraphCollection {
 public:
     QueryGraphCollection() = default;
 
-    void addAndMergeQueryGraphIfConnected(std::unique_ptr<QueryGraph> queryGraphToAdd) {
-        auto newQueryGraphSet = std::vector<std::unique_ptr<QueryGraph>>();
+    void addAndMergeQueryGraphIfConnected(std::shared_ptr<QueryGraph> queryGraphToAdd) {
+        auto newQueryGraphSet = std::vector<std::shared_ptr<QueryGraph>>();
         for (auto i = 0u; i < queryGraphs.size(); i++) {
             auto queryGraph = std::move(queryGraphs[i]);
             if (queryGraph->isConnected(*queryGraphToAdd.get())) {
@@ -236,7 +236,7 @@ public:
     }
 
 private:
-    std::vector<std::unique_ptr<QueryGraph>> mergeGraphs(idx_t baseGraphIdx) {
+    std::vector<std::shared_ptr<QueryGraph>> mergeGraphs(idx_t baseGraphIdx) {
         auto& baseGraph = queryGraphs[baseGraphIdx];
         std::unordered_set<idx_t> mergedGraphIndices;
         mergedGraphIndices.insert(baseGraphIdx);
@@ -259,7 +259,7 @@ private:
             baseGraph->merge(*queryGraphs[graphToMergeIdx].get());
             mergedGraphIndices.insert(graphToMergeIdx);
         }
-        std::vector<std::unique_ptr<QueryGraph>> finalGraphs;
+        std::vector<std::shared_ptr<QueryGraph>> finalGraphs;
         for (auto i = 0u; i < queryGraphs.size(); ++i) {
             if (i == baseGraphIdx) {
                 finalGraphs.push_back(baseGraph);
@@ -274,11 +274,11 @@ private:
     }
 
 private:
-    std::vector<std::unique_ptr<QueryGraph>> queryGraphs;
+    std::vector<std::shared_ptr<QueryGraph>> queryGraphs;
 };
 
 struct BoundGraphPattern {
-    QueryGraphCollection queryGraphCollection;
+    std::shared_ptr<QueryGraphCollection> queryGraphCollection;
     std::shared_ptr<Expression> where;
 
     BoundGraphPattern() = default;

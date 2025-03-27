@@ -11,6 +11,7 @@
 #include "planner/expression/bound_lambda_expression.hpp"
 #include "planner/expression/bound_operator_expression.hpp"
 #include "planner/expression/bound_parameter_expression.hpp"
+#include "planner/expression/bound_pattern_element_expression.hpp"
 #include "planner/expression/bound_reference_expression.hpp"
 #include "planner/expression/bound_subquery_expression.hpp"
 #include "planner/expression/bound_unnest_expression.hpp"

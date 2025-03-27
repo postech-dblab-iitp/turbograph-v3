@@ -10,22 +10,21 @@ class NormalizedQueryPart {
 public:
     NormalizedQueryPart() = default;
 
-    void addReadingClause(std::unique_ptr<BoundReadingClause> boundReadingClause) {
+    void addReadingClause(std::shared_ptr<BoundReadingClause> boundReadingClause) {
         readingClauses.push_back(std::move(boundReadingClause));
     }
     bool hasReadingClause() const { return !readingClauses.empty(); }
     uint32_t getNumReadingClause() const { return readingClauses.size(); }
-    BoundReadingClause* getReadingClause(uint32_t idx) const { return readingClauses[idx].get(); }
+    std::shared_ptr<BoundReadingClause> getReadingClause(uint32_t idx) const { 
+        return readingClauses[idx]; 
+    }
 
-    void setProjectionBody(std::unique_ptr<BoundProjectionBody> boundProjectionBody) {
+    void setProjectionBody(std::shared_ptr<BoundProjectionBody> boundProjectionBody) {
         projectionBody = std::move(boundProjectionBody);
     }
     bool hasProjectionBody() const { return projectionBody != nullptr; }
-    BoundProjectionBody* getProjectionBodyUnsafe() {
-        return projectionBody.get();
-    }
-    const BoundProjectionBody* getProjectionBody() const {
-        return projectionBody.get();
+    std::shared_ptr<BoundProjectionBody> getProjectionBody() {
+        return projectionBody;
     }
 
     bool hasProjectionBodyPredicate() const { return projectionBodyPredicate != nullptr; }
@@ -37,8 +36,8 @@ public:
     }
 
 private:
-    std::vector<std::unique_ptr<BoundReadingClause>> readingClauses;
-    std::unique_ptr<BoundProjectionBody> projectionBody;
+    std::vector<std::shared_ptr<BoundReadingClause>> readingClauses;
+    std::shared_ptr<BoundProjectionBody> projectionBody;
     std::shared_ptr<Expression> projectionBodyPredicate;
 };
 

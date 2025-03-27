@@ -8,20 +8,20 @@ namespace duckdb {
 
 class BoundReturnClause {
 public:
-    explicit BoundReturnClause(std::unique_ptr<BoundProjectionBody> projectionBody)
+    explicit BoundReturnClause(std::shared_ptr<BoundProjectionBody> projectionBody)
         : projectionBody{std::move(projectionBody)} {}
-    BoundReturnClause(std::unique_ptr<BoundProjectionBody> projectionBody, 
-        std::unique_ptr<BoundStatementResult> statementResult)
+    BoundReturnClause(std::shared_ptr<BoundProjectionBody> projectionBody, 
+        std::shared_ptr<BoundStatementResult> statementResult)
         : projectionBody{std::move(projectionBody)}, statementResult{std::move(statementResult)} {}
     virtual ~BoundReturnClause() = default;
 
-    inline const BoundProjectionBody* getProjectionBody() const { return projectionBody.get(); }
+    inline std::shared_ptr<BoundProjectionBody> getProjectionBody() const { return projectionBody; }
 
-    inline const BoundStatementResult* getStatementResult() const { return statementResult.get(); }
+    inline std::shared_ptr<BoundStatementResult> getStatementResult() const { return statementResult; }
 
 protected:
-    std::unique_ptr<BoundProjectionBody> projectionBody;
-    std::unique_ptr<BoundStatementResult> statementResult;
+    std::shared_ptr<BoundProjectionBody> projectionBody;
+    std::shared_ptr<BoundStatementResult> statementResult;
 };
 
 }

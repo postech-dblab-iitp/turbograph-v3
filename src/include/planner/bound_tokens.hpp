@@ -37,6 +37,8 @@ class BoundUnwindClause;
 class BoundProjectionBody;
 class BoundReturnClause;
 class BoundWithClause;
+class BoundUpdatingClause;
+class BoundGraphPattern;
 
 //===--------------------------------------------------------------------===//
 // Expressions

@@ -3,11 +3,13 @@
 #include "parser/query/regular_query.hpp"
 #include "planner/query/bound_regular_query.hpp"
 #include "planner/query/normalized_single_query.hpp"
+#include "planner/query/return_with_clause/bound_return_clause.hpp"
+#include "planner/query/return_with_clause/bound_with_clause.hpp"
 
 namespace duckdb {
 
 void validateUnionColumnsOfTheSameType(
-    const std::vector<std::unique_ptr<NormalizedSingleQuery>>& normalizedSingleQueries) {
+    const std::vector<std::shared_ptr<NormalizedSingleQuery>>& normalizedSingleQueries) {
     if (normalizedSingleQueries.size() <= 1) {
         return;
     }
@@ -39,9 +41,8 @@ void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery) {
     }
 }
 
-std::unique_ptr<BoundStatement> Binder::bindQuery(const CypherStatement& statement) {
-    auto& regularQuery = dynamic_cast<const RegularQuery&>(statement);
-    std::vector<std::unique_ptr<NormalizedSingleQuery>> normalizedSingleQueries;
+std::unique_ptr<BoundStatement> Binder::bindQuery(const RegularQuery& regularQuery) {
+    std::vector<std::shared_ptr<NormalizedSingleQuery>> normalizedSingleQueries;
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
         // Don't clear scope within bindSingleQuery() yet because it is also used for subquery
         // binding.
@@ -58,9 +59,45 @@ std::unique_ptr<BoundStatement> Binder::bindQuery(const CypherStatement& stateme
     return boundRegularQuery;
 }
 
+std::shared_ptr<NormalizedSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQuery) {
+    auto normalizedSingleQuery = std::make_shared<NormalizedSingleQuery>();
+    for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
+        normalizedSingleQuery->appendQueryPart(bindQueryPart(*singleQuery.getQueryPart(i)));
+    }
+    auto lastQueryPart = std::make_shared<NormalizedQueryPart>();
+    for (auto i = 0u; i < singleQuery.getNumReadingClauses(); i++) {
+        lastQueryPart->addReadingClause(bindReadingClause(*singleQuery.getReadingClause(i)));
+    }
+    for (auto i = 0u; i < singleQuery.getNumUpdatingClauses(); ++i) {
+        lastQueryPart->addUpdatingClause(bindUpdatingClause(*singleQuery.getUpdatingClause(i)));
+    }
+    auto statementResult = std::make_shared<BoundStatementResult>();
+    if (singleQuery.hasReturnClause()) {
+        auto boundReturnClause = bindReturnClause(*singleQuery.getReturnClause());
+        lastQueryPart->setProjectionBody(boundReturnClause->getProjectionBody());
+        statementResult = boundReturnClause->getStatementResult();
+    } else {
+        statementResult = BoundStatementResult::createEmptyResult();
+    }
+    normalizedSingleQuery->appendQueryPart(std::move(lastQueryPart));
+    normalizedSingleQuery->setStatementResult(std::move(statementResult));
+    return normalizedSingleQuery;
+}
 
-std::unique_ptr<NormalizedSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQuery) {
-    return nullptr;
+std::shared_ptr<NormalizedQueryPart> Binder::bindQueryPart(const QueryPart& queryPart) {
+    auto normalizedQueryPart = std::make_shared<NormalizedQueryPart>();
+    for (auto i = 0u; i < queryPart.getNumReadingClauses(); i++) {
+        normalizedQueryPart->addReadingClause(bindReadingClause(*queryPart.getReadingClause(i)));
+    }
+    for (auto i = 0u; i < queryPart.getNumUpdatingClauses(); ++i) {
+        normalizedQueryPart->addUpdatingClause(bindUpdatingClause(*queryPart.getUpdatingClause(i)));
+    }
+    auto boundWithClause = bindWithClause(*queryPart.getWithClause());
+    normalizedQueryPart->setProjectionBody(boundWithClause->getProjectionBody());
+    if (boundWithClause->hasWhereExpression()) {
+        normalizedQueryPart->setProjectionBodyPredicate(boundWithClause->getWhereExpression());
+    }
+    return normalizedQueryPart;
 }
 
 }

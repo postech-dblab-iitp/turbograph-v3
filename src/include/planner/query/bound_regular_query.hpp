@@ -12,19 +12,18 @@ public:
         : BoundStatement{StatementType::SELECT_STATEMENT, std::move(statementResult)},
           isUnionAll{std::move(isUnionAll)} {}
 
-    void addSingleQuery(std::unique_ptr<NormalizedSingleQuery> singleQuery) {
+    void addSingleQuery(std::shared_ptr<NormalizedSingleQuery> singleQuery) {
         singleQueries.push_back(std::move(singleQuery));
     }
     uint64_t getNumSingleQueries() const { return singleQueries.size(); }
-    NormalizedSingleQuery* getSingleQueryUnsafe(duckdb::idx_t idx) { return singleQueries[idx].get(); }
-    const NormalizedSingleQuery* getSingleQuery(duckdb::idx_t idx) const {
-        return singleQueries[idx].get();
+    std::shared_ptr<NormalizedSingleQuery> getSingleQuery(duckdb::idx_t idx) const {
+        return singleQueries[idx];
     }
 
     bool getIsUnionAll(duckdb::idx_t idx) const { return isUnionAll[idx]; }
 
 private:
-    std::vector<std::unique_ptr<NormalizedSingleQuery>> singleQueries;
+    std::vector<std::shared_ptr<NormalizedSingleQuery>> singleQueries;
     std::vector<bool> isUnionAll;
 };
 
