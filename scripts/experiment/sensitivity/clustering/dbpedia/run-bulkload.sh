@@ -5,7 +5,7 @@
 # cost_models=("OURS" "OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE")
 # layering_orders=("ASCENDING" "DESCENDING" "NO_SORT")
 cluster_algorithms=("AGGLOMERATIVE")
-cost_models=("OURS")
+cost_models=("JACCARD")
 layering_orders=("DESCENDING")
 
 # File path to the configuration header
