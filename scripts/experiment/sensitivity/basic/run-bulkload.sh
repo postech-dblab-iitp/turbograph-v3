@@ -60,7 +60,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
             #     --relationships_backward KNOWS ${source_dir}/Person_knows_Person.csv.backward &> ${log_file}
 
             /turbograph-v3/build-release/tools/bulkload \
-                --log-level trace \
+                --log-level info \
                 --skip-histogram \
                 --output_dir ${target_dir} \
                 --nodes NODE ${source_dir}/nodes.json &> ${log_file}
