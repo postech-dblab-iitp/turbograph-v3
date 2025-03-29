@@ -372,11 +372,11 @@ int main(int argc, char** argv) {
                         auto val = pickRandom(ns.sample_values);
                         long long valInt = (long long)val;
                         // build query
-                        std::string q = "MATCH (n) WHERE n." + wrapPropertyName(prop) + " = " + std::to_string(valInt) + " RETURN n";
+                        std::string q = "MATCH (n) WHERE n." + wrapPropertyName(prop) + " = " + std::to_string(valInt) + " RETURN n." + wrapPropertyName(prop);
                         queries.push_back(q);
                     } else {
                         // fallback
-                        std::string q = "MATCH (n) WHERE n." + wrapPropertyName(prop) + " = 0 RETURN n";
+                        std::string q = "MATCH (n) WHERE n." + wrapPropertyName(prop) + " = 0 RETURN n." + wrapPropertyName(prop);
                         queries.push_back(q);
                     }
                 } else {
@@ -393,10 +393,10 @@ int main(int argc, char** argv) {
                             if(c == '\'') safeVal += "\\'";
                             else safeVal += c;
                         }
-                        std::string q = "MATCH (n) WHERE n." + wrapPropertyName(prop) + " = '" + safeVal + "' RETURN n";
+                        std::string q = "MATCH (n) WHERE n." + wrapPropertyName(prop) + " = '" + safeVal + "' RETURN n." + wrapPropertyName(prop);
                         queries.push_back(q);
                     } else {
-                        std::string q = "MATCH (n) WHERE n." + wrapPropertyName(prop) + " = '' RETURN n";
+                        std::string q = "MATCH (n) WHERE n." + wrapPropertyName(prop) + " = '' RETURN n." + wrapPropertyName(prop);
                         queries.push_back(q);
                     }
                 }
@@ -426,12 +426,12 @@ int main(int argc, char** argv) {
                     long long i2 = (long long)v2;
                     std::string q = "MATCH (n) WHERE n." + wrapPropertyName(prop) + " > " + std::to_string(i1) +
                                     " AND n." + wrapPropertyName(prop) + " < " + std::to_string(i2) +
-                                    " RETURN n";
+                                    " RETURN n." + wrapPropertyName(prop);
                     queries.push_back(q);
                     numericRangeCount++;
                 } else {
                     // fallback
-                    std::string q = "MATCH (n) WHERE n." + wrapPropertyName(prop) + " > 10 AND n." + wrapPropertyName(prop) + " < 100 RETURN n";
+                    std::string q = "MATCH (n) WHERE n." + wrapPropertyName(prop) + " > 10 AND n." + wrapPropertyName(prop) + " < 100 RETURN n." + wrapPropertyName(prop);
                     queries.push_back(q);
                     numericRangeCount++;
                 }
@@ -464,11 +464,11 @@ int main(int argc, char** argv) {
                         if(c == '\'') safeVal += "\\'";
                         else safeVal += c;
                     }
-                    std::string q = "MATCH (n) WHERE n." + wrapPropertyName(prop) + " CONTAINS '" + safeVal + "' RETURN n";
+                    std::string q = "MATCH (n) WHERE n." + wrapPropertyName(prop) + " CONTAINS '" + safeVal + "' RETURN n." + wrapPropertyName(prop);
                     queries.push_back(q);
                 } else {
                     // fallback
-                    std::string q = "MATCH (n) WHERE n." + wrapPropertyName(prop) + " CONTAINS '' RETURN n";
+                    std::string q = "MATCH (n) WHERE n." + wrapPropertyName(prop) + " CONTAINS '' RETURN n." + wrapPropertyName(prop);
                     queries.push_back(q);
                 }
             }

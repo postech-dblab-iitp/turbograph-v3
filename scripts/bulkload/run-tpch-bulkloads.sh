@@ -41,7 +41,4 @@ for scale_factor in "${scale_factors[@]}"; do
         --relationships_backward SUPP_BELONG_TO ${data_dir}/supplier_belongTo_nation.tbl.backward \
         --relationships PARTSUPP ${data_dir}/partsupp.tbl \
         --relationships_backward PARTSUPP ${data_dir}/partsupp.tbl.backward
-
-    pkill -f store
-    pkill -f catalog_server
 done
