@@ -288,8 +288,9 @@ ReturnStatus ChunkCacheManager::DestroySegment(ChunkID cid) {
   // Delete the segment from the buffer using Lightning Delete()
   D_ASSERT(file_handlers.find(cid) != file_handlers.end());
   client->Delete(cid);
-  file_handlers[cid]->Close();
-  file_handlers[cid] = nullptr;
+  // jhha: disable file_handler close, due to flushMetaInfo
+  // file_handlers[cid]->Close();
+  // file_handlers[cid] = nullptr;
   //AdjustMemoryUsage(-GetSegmentSize(cid)); // need type casting
   return NOERROR;
 }
