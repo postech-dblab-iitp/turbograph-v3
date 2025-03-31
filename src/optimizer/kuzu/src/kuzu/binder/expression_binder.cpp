@@ -297,7 +297,7 @@ shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
 
 unique_ptr<Expression> ExpressionBinder::createPropertyExpression(
     Expression &nodeOrRel, Property &anchorProperty,
-    unordered_map<table_id_t, property_id_t> &propertyIDPerTable,
+    unordered_map<table_id_t, property_id_t> &&propertyIDPerTable,
     uint64_t prop_key_id)
 {
     // assert(!properties.empty());

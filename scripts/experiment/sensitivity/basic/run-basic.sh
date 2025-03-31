@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Define the possible values for each configuration
-cluster_algorithms=("GMM")
-cost_models=("OURS")
+cluster_algorithms=("AGGLOMERATIVE")
+cost_models=("JACCARD")
 layering_orders=("DESCENDING")
 
 # Define target and log directories
@@ -16,7 +16,7 @@ mkdir -p ${log_dir}
 
 # Input parameters
 queries_path="/turbograph-v3/queries/basic/"
-query_numbers="2-100"
+query_numbers="31"
 
 # Function to parse query numbers
 parse_query_numbers() {
@@ -78,6 +78,8 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
 
 
                 echo "Q$query_num, $compile_time, $exec_time, $end_to_end_time" >> "$output_file"
+
+                sleep 1
             done
         done
     done

@@ -352,6 +352,62 @@ public:
         }
     }
 
+    void GetPropertyKeyToPropertySchemaMap(
+        ClientContext &context, vector<idx_t> &oids,
+        unordered_map<idx_t, unordered_map<uint64_t, uint32_t>>
+            &property_schema_index,
+        vector<idx_t> &universal_schema_ids,
+        vector<LogicalTypeId> &universal_types_id, vector<idx_t> &part_oids) {
+
+        auto &catalog = db.GetCatalog();
+        const void_allocator void_alloc = catalog.catalog_segment->get_segment_manager();
+        constexpr uint32_t COLUMN_IDX_SHIFT = 1;
+
+        for (auto &part_oid : part_oids) {
+            PartitionCatalogEntry *part_cat =
+                (PartitionCatalogEntry *)catalog.GetEntry(context, DEFAULT_SCHEMA, part_oid);
+
+            auto part_universal_schema_ids = part_cat->GetUniversalPropertyKeyIds();
+            auto part_universal_types_id = part_cat->GetUniversalPropertyTypeIds();
+            auto part_property_schema_index = part_cat->GetPropertySchemaIndex();
+
+            if (universal_schema_ids.empty()) {
+                universal_schema_ids.reserve(part_universal_schema_ids->size());
+                universal_types_id.reserve(part_universal_types_id->size());
+                property_schema_index.reserve(part_property_schema_index->size());
+            }
+
+            for (idx_t i = 0; i < part_universal_schema_ids->size(); i++) {
+                idx_t property_key_id = part_universal_schema_ids->at(i);
+
+                auto it = property_schema_index.find(property_key_id);
+                if (it == property_schema_index.end()) {
+                    // First time seeing this property_key_id
+                    universal_schema_ids.push_back(property_key_id);
+                    universal_types_id.push_back(part_universal_types_id->at(i));
+
+                    auto part_it = part_property_schema_index->find(property_key_id);
+                    const auto &src_map = part_it->second;
+
+                    unordered_map<uint64_t, uint32_t> new_map;
+                    new_map.reserve(src_map.size());
+                    for (const auto &[table_id, prop_id] : src_map) {
+                        new_map.emplace(table_id, prop_id + COLUMN_IDX_SHIFT);
+                    }
+                    property_schema_index.emplace(property_key_id, std::move(new_map));
+                } else {
+                    // Already exists, merge maps
+                    auto &dst_map = it->second;
+                    const auto &src_map = part_property_schema_index->find(property_key_id)->second;
+
+                    for (const auto &[table_id, prop_id] : src_map) {
+                        dst_map.emplace(table_id, prop_id + COLUMN_IDX_SHIFT); // No check for conflict, assumes unique
+                    }
+                }
+            }
+        }
+    }
+
     string GetTypeName(idx_t type_id) {
         return LogicalTypeIdToString((LogicalTypeId) ((type_id - LOGICAL_TYPE_BASE_ID) % NUM_MAX_LOGICAL_TYPES));
     }
