@@ -76,7 +76,6 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                 exec_time=$(echo "$output_str" | grep -oP 'Average Query Execution Time: \K[0-9.]+' | awk '{printf "%.2f", $1}')
                 end_to_end_time=$(echo "$output_str" | grep -oP 'Average End to End Time: \K[0-9.]+' | awk '{printf "%.2f", $1}')
 
-
                 echo "Q$query_num, $compile_time, $exec_time, $end_to_end_time" >> "$output_file"
 
                 sleep 1

@@ -373,6 +373,9 @@ public:
 	// returns a set containing xforms to use for exhaustive2 join order
 	static CBitSet *PbsJoinOrderOnExhaustive2Xforms(CMemoryPool *mp);
 
+	// returns a set containing xforms to use for GEM join orer
+	static CBitSet *PbsJoinOrderOnGEMXforms(CMemoryPool *mp);
+
 	// return true if xform should be applied only once.
 	// for expression of type CPatternTree, in deep trees, the number
 	// of expressions generated for group expression can be significantly

@@ -123,6 +123,7 @@ void ParseConfig(int argc, char** argv, ClientOptions& options) {
             else if (optimizer == "greedy") options.planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_GREEDY_SEARCH;
             else if (optimizer == "exhaustive") options.planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_EXHAUSTIVE_SEARCH;
             else if (optimizer == "exhaustive2") options.planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_EXHAUSTIVE2_SEARCH;
+            else if (optimizer == "gem") options.planner_config.JOIN_ORDER_TYPE = s62::PlannerConfig::JoinOrderType::JOIN_ORDER_GEM;
             else throw std::invalid_argument("Invalid --join-order-optimizer parameter");
 		}},
         {"debug-orca", [&]() { 

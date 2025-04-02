@@ -20,7 +20,7 @@
 #include "planner/expression.hpp"
 #include "planner/expression/bound_conjunction_expression.hpp"
 
-static bool unionall_forced = false;
+static bool unionall_forced = true;
 
 namespace duckdb {
 
@@ -1547,15 +1547,40 @@ OperatorResultType PhysicalIdSeek::moveToNextOutputChunk(
     return OperatorResultType::OUTPUT_EMPTY;
 }
 
+// void PhysicalIdSeek::getOutputColIdxsForInner(
+//     idx_t extentIdx, vector<idx_t> &mapping_idxs,
+//     vector<idx_t> &output_col_idx) const
+// {
+//     for (idx_t i = 0; i < inner_col_maps[mapping_idxs[extentIdx]].size(); i++) {
+//         if (inner_col_maps[mapping_idxs[extentIdx]][i] !=
+//             std::numeric_limits<uint32_t>::max()) {
+//             output_col_idx.push_back(
+//                 inner_col_maps[mapping_idxs[extentIdx]][i]);
+//         }
+//     }
+// }
+
 void PhysicalIdSeek::getOutputColIdxsForInner(
-    idx_t extentIdx, vector<idx_t> &mapping_idxs,
-    vector<idx_t> &output_col_idx) const
+    idx_t extentIdx, std::vector<idx_t> &mapping_idxs,
+    std::vector<idx_t> &output_col_idx) const
 {
-    for (idx_t i = 0; i < inner_col_maps[mapping_idxs[extentIdx]].size(); i++) {
-        if (inner_col_maps[mapping_idxs[extentIdx]][i] !=
-            std::numeric_limits<uint32_t>::max()) {
-            output_col_idx.push_back(
-                inner_col_maps[mapping_idxs[extentIdx]][i]);
+    if (extentIdx >= mapping_idxs.size()) {
+        std::cout << "extentIdx: " << extentIdx << std::endl;
+        std::cout << "mapping_idxs.size(): " << mapping_idxs.size() << std::endl;
+        throw std::out_of_range("extentIdx is out of bounds of mapping_idxs");
+    }
+
+    idx_t map_idx = mapping_idxs[extentIdx];
+    if (map_idx >= inner_col_maps.size()) {
+        std::cout << "map_idx: " << map_idx << std::endl;
+        std::cout << "inner_col_maps.size(): " << inner_col_maps.size() << std::endl;
+        throw std::out_of_range("mapping_idxs[extentIdx] is out of bounds of inner_col_maps");
+    }
+
+    const auto &col_map = inner_col_maps[map_idx];
+    for (idx_t i = 0; i < col_map.size(); ++i) {
+        if (col_map[i] != std::numeric_limits<uint32_t>::max()) {
+            output_col_idx.push_back(col_map[i]);
         }
     }
 }

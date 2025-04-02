@@ -18,10 +18,13 @@ using namespace simdjson;
 // -----------------------------------------------------------------------
 // Hard-coded values controlling query generation
 // -----------------------------------------------------------------------
-static const int NUM_PROJ  = 29;  // Number of projection queries
-static const int NUM_EQUI  = 20;  // Number of equality filter queries
-static const int NUM_RANGE = 20;  // Number of range filter queries
-static const int NUM_AGG   = 30;  // Number of aggregation queries
+static const bool FULL_SCAN = false; // Generate full scan query
+static const int NUM_PROJ  = 0;  // Number of projection queries
+static const int NUM_EQUI  = 0;  // Number of equality filter queries
+static const int NUM_RANGE = 0;  // Number of range filter queries
+static const int NUM_AGG   = 0;  // Number of aggregation queries
+static const int NUM_JOINS = 3;  // Number of join queries
+static const int NUM_COLUMNS_PER_JOIN = 10; // Number of columns to select in a join query
 
 // -----------------------------------------------------------------------
 // Data structures to collect per-property statistics
@@ -325,8 +328,10 @@ int main(int argc, char** argv) {
 
     // 1) Full scan query
     {
-        std::string q = "MATCH (n) RETURN n";
-        queries.push_back(q);
+        if (FULL_SCAN) {
+            std::string q = "MATCH (n) RETURN n";
+            queries.push_back(q);
+        }
     }
 
     // 2) Projection queries
@@ -494,6 +499,57 @@ int main(int argc, char** argv) {
                 auto agg = pickRandom(aggregators);
                 std::string q = "MATCH (n) RETURN " + agg + "(n.id)";
                 queries.push_back(q);
+            }
+        }
+    }
+
+    // 6) Join queries
+    //    - Use edge: http://dbpedia.org/ontology/wikiPageRedirects
+    //    - Generate paths with 1 to NUM_JOINS hops
+    //    - Each node returns NUM_COLUMNS_PER_JOIN properties (if available)
+    {
+        std::string redirectEdge = "http://dbpedia.org/ontology/wikiPageRedirects";
+
+        // Combine all properties for selection
+        std::vector<std::string> allProps = numericProps;
+        allProps.insert(allProps.end(), stringProps.begin(), stringProps.end());
+
+        if (!allProps.empty()) {
+            for (int hop = 1; hop <= NUM_JOINS; hop++) {
+                std::string match = "MATCH ";
+                std::string returnClause = "RETURN ";
+                std::vector<std::string> nodeAliases;
+
+                // Build the MATCH chain
+                for (int i = 0; i <= hop; ++i) {
+                    nodeAliases.push_back("n" + std::to_string(i));
+                }
+
+                // e.g. MATCH (n0)-[:label]->(n1)-[:label]->(n2) ...
+                for (int i = 0; i < hop; ++i) {
+                    match += "(" + nodeAliases[i] + ")-[:`" + redirectEdge + "`]->";
+                }
+                match += "(" + nodeAliases[hop] + ")";
+
+                // Build RETURN clause
+                bool first = true;
+                for (const auto& alias : nodeAliases) {
+                    std::vector<std::string> selectedProps;
+                    // Randomly pick NUM_COLUMNS_PER_JOIN properties
+                    std::sample(
+                        allProps.begin(), allProps.end(),
+                        std::back_inserter(selectedProps),
+                        std::min((int)allProps.size(), NUM_COLUMNS_PER_JOIN),
+                        rng
+                    );
+                    for (const auto& prop : selectedProps) {
+                        if (!first) returnClause += ", ";
+                        returnClause += alias + "." + wrapPropertyName(prop);
+                        first = false;
+                    }
+                }
+
+                queries.push_back(match + " " + returnClause);
             }
         }
     }

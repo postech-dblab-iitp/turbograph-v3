@@ -322,6 +322,8 @@ CXform::PbsJoinOrderInQueryXforms(CMemoryPool *mp)
 		GPOPT_DISABLE_XFORM_TF(CXform::ExfJoinCommutativity));
 	(void) pbs->ExchangeSet(
 		GPOPT_DISABLE_XFORM_TF(CXform::ExfExpandNAryJoinGreedy));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfExpandNAryJoinGEM));
 
 	return pbs;
 }
@@ -341,6 +343,8 @@ CXform::PbsJoinOrderOnGreedyXforms(CMemoryPool *mp)
 		GPOPT_DISABLE_XFORM_TF(CXform::ExfJoinCommutativity));
 	(void) pbs->ExchangeSet(
 		GPOPT_DISABLE_XFORM_TF(CXform::ExfExpandNAryJoinGreedy));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfExpandNAryJoinGEM));
 
 	return pbs;
 }
@@ -352,6 +356,8 @@ CXform::PbsJoinOrderOnExhaustiveXforms(CMemoryPool *mp)
 
 	(void) pbs->ExchangeSet(
 		GPOPT_DISABLE_XFORM_TF(CXform::ExfExpandNAryJoinDPv2));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfExpandNAryJoinGEM));
 
 	return pbs;
 }
@@ -370,7 +376,29 @@ CXform::PbsJoinOrderOnExhaustive2Xforms(CMemoryPool *mp)
 		GPOPT_DISABLE_XFORM_TF(CXform::ExfExpandNAryJoinGreedy));
 	(void) pbs->ExchangeSet(
 		GPOPT_DISABLE_XFORM_TF(CXform::ExfPushDownLeftOuterJoin));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfExpandNAryJoinGEM));
 	(void) pbs->ExchangeSet(EopttraceEnableLOJInNAryJoin);
+
+	return pbs;
+}
+
+
+CBitSet *
+CXform::PbsJoinOrderOnGEMXforms(CMemoryPool *mp)
+{
+	CBitSet *pbs = GPOS_NEW(mp) CBitSet(mp, EopttraceSentinel);
+
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfExpandNAryJoin));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfExpandNAryJoinMinCard));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfExpandNAryJoinDP));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfExpandNAryJoinGreedy));
+	(void) pbs->ExchangeSet(
+		GPOPT_DISABLE_XFORM_TF(CXform::ExfExpandNAryJoinDPv2));
 
 	return pbs;
 }

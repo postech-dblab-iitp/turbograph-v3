@@ -32,7 +32,7 @@ parse_query_numbers() {
 queries=$(parse_query_numbers $query_numbers)
 
 # Prepare the output file
-echo "Query number,Compile time,Query execution time" > $output_file
+echo "QueryNumber,CompileTime,QueryExecutionTime,EndtoEndTime" > $output_file
 
 # Execute queries
 for query_num in $queries; do

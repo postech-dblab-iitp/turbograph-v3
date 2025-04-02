@@ -264,6 +264,9 @@ void Planner::_orcaSetTraceFlags()
         case PlannerConfig::JoinOrderType::JOIN_ORDER_EXHAUSTIVE2_SEARCH:
             join_heuristic_bitset = CXform::PbsJoinOrderOnExhaustive2Xforms(mp);
             break;
+        case PlannerConfig::JoinOrderType::JOIN_ORDER_GEM:
+            join_heuristic_bitset = CXform::PbsJoinOrderOnGEMXforms(mp);
+            break;
         default:
             D_ASSERT(false);  // must be one of one options
             break;
