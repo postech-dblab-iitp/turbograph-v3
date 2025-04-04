@@ -1,0 +1,6 @@
+MATCH (v1)-[:`http://www.w3.org/1999/02/22-rdf-syntax-ns#type`]->(v2), 
+(v1)-[:`http://dbpedia.org/ontology/foundationPlace`]->(v3), 
+(v4)-[:`http://dbpedia.org/ontology/developer`]->(v1), 
+(v4)-[:`http://www.w3.org/1999/02/22-rdf-syntax-ns#type`]->(v5)
+WHERE v2.uri = "http://dbpedia.org/ontology/Organisation"
+RETURN v4.uri AS r1, v5.uri AS r2, v3.`http://dbpedia.org/property/yearStart`, v3.`http://dbpedia.org/ontology/municipalityCode`, v3.`http://dbpedia.org/property/languages`, v3.`http://dbpedia.org/property/motto`, v3.`http://dbpedia.org/ontology/longName`, v4.`http://dbpedia.org/ontology/latestPreviewDate`, v4.`http://dbpedia.org/property/publisher`, v4.`http://dbpedia.org/property/presenter`, v4.`http://dbpedia.org/property/foundation`, v4.`http://dbpedia.org/ontology/frequentlyUpdated`, v1.`http://dbpedia.org/property/products`, v1.`http://dbpedia.org/property/enddate`, v1.`http://dbpedia.org/property/language`, v1.`http://dbpedia.org/property/launchDate`, v1.`http://www.w3.org/2003/01/geo/wgs84_pos#lat`

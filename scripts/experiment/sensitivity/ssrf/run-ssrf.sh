@@ -1,6 +1,7 @@
 #!/bin/bash
 
 formats=("UNION" "SSRF")
+cols=("1" "2" "3" "4" "5")
 
 # File path to the configuration header
 config_file_path="/turbograph-v3/src/execution/execution/physical_operator/physical_id_seek.cpp"
@@ -11,7 +12,7 @@ target_dir_base="/data/dbpedia/"
 log_dir_base="/turbograph-v3/logs"
 
 # Input parameters
-queries_path="/turbograph-v3/queries/kg/dbpedia-col-10"
+queries_base_path="/turbograph-v3/queries/kg/dbpedia-cols/"
 query_numbers="1-20"
 
 # Function to update the configuration file with new values
@@ -52,51 +53,50 @@ parse_query_numbers() {
 queries=$(parse_query_numbers $query_numbers)
 
 for format in "${formats[@]}"; do
-    update_config_file ${format}
-    cd /turbograph-v3/build-release && ninja
-    cd -
+    for col in "${cols[@]}"; do
+        update_config_file ${format}
+        cd /turbograph-v3/build-release && ninja
+        cd -
 
-    output_file="format_${format}.csv"
-    echo "QueryNumber,CompileTime,QueryExecutionTime,EndtoEndTime" > $output_file
+        output_file="format_${col}cols_${format}.csv"
+        echo "QueryNumber,CompileTime,QueryExecutionTime,EndtoEndTime" > $output_file
 
-    /turbograph-v3/build-release/tools/store 365GB &
-    sleep 15
+        queries_path="${queries_base_path}/${col}"
 
-    for query_num in $queries; do
-        query_file="${queries_path}/q${query_num}.cql"
-        if [ ! -f "$query_file" ]; then
-            echo "Query file $query_file not found!"
-            continue
-        fi
-        query_str=$(cat "$query_file")
+        for query_num in $queries; do
+            query_file="${queries_path}/q${query_num}.cql"
+            if [ ! -f "$query_file" ]; then
+                echo "Query file $query_file not found!"
+                continue
+            fi
+            query_str=$(cat "$query_file")
 
-        # Setup
-        target_dir="${target_dir_base}/dbpedia_AGGLOMERATIVE_OURS_DESCENDING"
-        log_file="${log_dir}/format_${format}_Q${query_num}.txt"
+            # Setup
+            target_dir="${target_dir_base}/dbpedia_AGGLOMERATIVE_OURS_DESCENDING"
+            log_file="${log_dir}/format_${col}cols_${format}_Q${query_num}.txt"
 
-        # Run query
-        output_str=$(timeout 3600s \
-            /turbograph-v3/build-release/tools/client \
-            --slient \
-            --workspace ${target_dir} \
-            --query "${query_str}" \
-            --disable-merge-join \
-            --iterations 3 \
-            --join-order-optimizer exhaustive \
-            --warmup)
+            # Run query
+            output_str=$(timeout 3600s \
+                /turbograph-v3/build-release/tools/client \
+                --standalone \
+                --slient \
+                --workspace ${target_dir} \
+                --query "${query_str}" \
+                --disable-merge-join \
+                --iterations 3 \
+                --join-order-optimizer exhaustive \
+                --warmup)
 
-        # Output to log file
-        echo "$output_str" >> "$log_file"
+            # Output to log file
+            echo "$output_str" >> "$log_file"
 
-        # Extract times
-        compile_time=$(echo "$output_str" | grep -oP 'Average Compile Time: \K[0-9.]+' | awk '{printf "%.2f", $1}')
-        exec_time=$(echo "$output_str" | grep -oP 'Average Query Execution Time: \K[0-9.]+' | awk '{printf "%.2f", $1}')
-        end_to_end_time=$(echo "$output_str" | grep -oP 'Average End to End Time: \K[0-9.]+' | awk '{printf "%.2f", $1}')
+            # Extract times
+            compile_time=$(echo "$output_str" | grep -oP 'Average Compile Time: \K[0-9.]+' | awk '{printf "%.2f", $1}')
+            exec_time=$(echo "$output_str" | grep -oP 'Average Query Execution Time: \K[0-9.]+' | awk '{printf "%.2f", $1}')
+            end_to_end_time=$(echo "$output_str" | grep -oP 'Average End to End Time: \K[0-9.]+' | awk '{printf "%.2f", $1}')
 
 
-        echo "Q$query_num, $compile_time, $exec_time, $end_to_end_time" >> "$output_file"
+            echo "Q$query_num, $compile_time, $exec_time, $end_to_end_time" >> "$output_file"
+        done
     done
-
-    pkill -f store
-    sleep 5
 done

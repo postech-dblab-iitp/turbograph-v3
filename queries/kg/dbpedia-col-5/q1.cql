@@ -1,2 +1,0 @@
-MATCH (v1)-[:`http://dbpedia.org/ontology/wikiPageRedirects`]->(v2)
-RETURN v1.uri AS r1, v2.`http://dbpedia.org/ontology/populationDensity`, v2.`http://dbpedia.org/ontology/bicycleInformation`, v2.`http://dbpedia.org/ontology/inseeCode`, v2.`http://dbpedia.org/ontology/characterInPlay`, v2.`http://dbpedia.org/ontology/wikiPageID`, v1.`http://dbpedia.org/property/campusType`, v1.`http://dbpedia.org/property/lowestM`, v1.`http://dbpedia.org/ontology/maximumElevation`, v1.`http://dbpedia.org/ontology/shareOfAudience`, v1.`http://dbpedia.org/ontology/settingOfPlay`

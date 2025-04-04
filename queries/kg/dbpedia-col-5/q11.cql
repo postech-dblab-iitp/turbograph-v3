@@ -1,3 +1,0 @@
-MATCH (v1)-[:`http://purl.org/dc/terms/subject`]->(v2)
-WHERE v1.`http://xmlns.com/foaf/0.1/name` IS NOT NULL 
-RETURN v1.uri, v2.`http://dbpedia.org/ontology/abstract`, v2.`http://www.w3.org/2000/01/rdf-schema#label`, v2.`http://www.w3.org/2004/02/skos/core#prefLabel`, v2.`http://www.w3.org/2000/01/rdf-schema#comment`, v2.`http://dbpedia.org/ontology/wikiPageRevisionID`, v1.`http://dbpedia.org/ontology/address`, v1.`http://dbpedia.org/ontology/Rocket/lowerEarthOrbitPayload`, v1.`http://dbpedia.org/property/dischargeAverage`, v1.`http://dbpedia.org/property/premiere`, v1.`http://dbpedia.org/property/boards`

@@ -8,19 +8,17 @@ output_file=$4
 
 # Function to parse query numbers
 parse_query_numbers() {
-    if [[ $1 == *-* ]]; then
-        IFS='-' read -ra RANGE <<< "$1"
-        for i in $(seq ${RANGE[0]} ${RANGE[1]}); do
-            echo $i
-        done
-    elif [[ $1 == *';'* ]]; then
-        IFS=';' read -ra NUMS <<< "$1"
-        for i in "${NUMS[@]}"; do
-            echo $i
-        done
-    else
-        echo $1
-    fi
+    IFS=';' read -ra PARTS <<< "$1"
+    for part in "${PARTS[@]}"; do
+        if [[ $part == *-* ]]; then
+            IFS='-' read -ra RANGE <<< "$part"
+            for i in $(seq "${RANGE[0]}" "${RANGE[1]}"); do
+                echo "$i"
+            done
+        else
+            echo "$part"
+        fi
+    done
 }
 
 # Parse query numbers

@@ -1,1 +1,0 @@
-MATCH (n)-[:`http://dbpedia.org/ontology/wikiPageRedirects`]->(m) RETURN n, m;

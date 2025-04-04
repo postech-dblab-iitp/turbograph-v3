@@ -117,6 +117,14 @@ CypherPipelineExecutor::CypherPipelineExecutor(
 #endif
 }
 
+CypherPipelineExecutor::~CypherPipelineExecutor() {
+	local_source_state.reset();
+	local_sink_state.reset();
+	for (auto &op_state : local_operator_states) {
+		op_state.reset();
+	}
+}
+
 void CypherPipelineExecutor::ReinitializePipeline()
 {
 	if(!pipeline->IsSinkSingleton()) {

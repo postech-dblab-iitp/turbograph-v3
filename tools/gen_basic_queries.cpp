@@ -23,8 +23,9 @@ static const int NUM_PROJ  = 0;  // Number of projection queries
 static const int NUM_EQUI  = 0;  // Number of equality filter queries
 static const int NUM_RANGE = 0;  // Number of range filter queries
 static const int NUM_AGG   = 0;  // Number of aggregation queries
-static const int NUM_JOINS = 3;  // Number of join queries
-static const int NUM_COLUMNS_PER_JOIN = 10; // Number of columns to select in a join query
+static const int NUM_JOINS = 5;  // Number of join queries
+static const int NUM_COLUMNS_PER_JOIN = 3; // Number of columns to select in a join query
+static const bool AGG_AFTER_JOIN = true;
 
 // -----------------------------------------------------------------------
 // Data structures to collect per-property statistics
@@ -504,11 +505,11 @@ int main(int argc, char** argv) {
     }
 
     // 6) Join queries
-    //    - Use edge: http://dbpedia.org/ontology/wikiPageRedirects
+    //    - Use edge: http://dbpedia.org/property/homepage
     //    - Generate paths with 1 to NUM_JOINS hops
     //    - Each node returns NUM_COLUMNS_PER_JOIN properties (if available)
     {
-        std::string redirectEdge = "http://dbpedia.org/ontology/wikiPageRedirects";
+        std::string redirectEdge = "http://dbpedia.org/property/homepage";
 
         // Combine all properties for selection
         std::vector<std::string> allProps = numericProps;
@@ -525,27 +526,47 @@ int main(int argc, char** argv) {
                     nodeAliases.push_back("n" + std::to_string(i));
                 }
 
-                // e.g. MATCH (n0)-[:label]->(n1)-[:label]->(n2) ...
+                // Alternate directions: forward -> backward -> forward ...
                 for (int i = 0; i < hop; ++i) {
-                    match += "(" + nodeAliases[i] + ")-[:`" + redirectEdge + "`]->";
+                    bool forward = (i % 2 == 0);
+                    match += "(" + nodeAliases[i] + ")";
+                    match += forward ? "-[:`" + redirectEdge + "`]->" : "<-[:`" + redirectEdge + "`]-";
                 }
                 match += "(" + nodeAliases[hop] + ")";
 
                 // Build RETURN clause
-                bool first = true;
+                std::vector<std::string> projectedProps;
+
                 for (const auto& alias : nodeAliases) {
                     std::vector<std::string> selectedProps;
-                    // Randomly pick NUM_COLUMNS_PER_JOIN properties
                     std::sample(
                         allProps.begin(), allProps.end(),
                         std::back_inserter(selectedProps),
                         std::min((int)allProps.size(), NUM_COLUMNS_PER_JOIN),
                         rng
                     );
+
                     for (const auto& prop : selectedProps) {
-                        if (!first) returnClause += ", ";
-                        returnClause += alias + "." + wrapPropertyName(prop);
-                        first = false;
+                        std::string expr = alias + "." + wrapPropertyName(prop);
+                        projectedProps.push_back(expr);
+                    }
+                }
+
+                if (AGG_AFTER_JOIN) {
+                    // Randomly shuffle and aggregate 50% of all projected columns
+                    std::shuffle(projectedProps.begin(), projectedProps.end(), rng);
+                    int numAgg = (projectedProps.size() + 1) / 2;  // ceil(50%)
+                    for (size_t i = 0; i < projectedProps.size(); ++i) {
+                        if (i > 0) returnClause += ", ";
+                        if ((int)i < numAgg)
+                            returnClause += "COUNT(" + projectedProps[i] + ")";
+                        else
+                            returnClause += projectedProps[i];
+                    }
+                } else {
+                    for (size_t i = 0; i < projectedProps.size(); ++i) {
+                        if (i > 0) returnClause += ", ";
+                        returnClause += projectedProps[i];
                     }
                 }
 

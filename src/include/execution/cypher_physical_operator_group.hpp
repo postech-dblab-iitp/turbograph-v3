@@ -10,8 +10,7 @@ namespace duckdb {
 class CypherPhysicalOperatorGroup {
 public:
     CypherPhysicalOperatorGroup() = default;
-    ~CypherPhysicalOperatorGroup() = default;
-
+    
     CypherPhysicalOperatorGroup(CypherPhysicalOperator *op) {
         this->op = op;
     }

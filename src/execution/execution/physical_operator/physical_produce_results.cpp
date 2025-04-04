@@ -24,6 +24,13 @@ class ProduceResultsState : public LocalSinkState {
         emptyChunk->InitializeEmpty(any_types);
     }
 
+    ~ProduceResultsState() override
+    {
+        for (auto &chunk : resultChunks) {
+            chunk.reset();
+        }
+    }
+
    public:
     vector<shared_ptr<DataChunk>> resultChunks;
     shared_ptr<DataChunk> emptyChunk;

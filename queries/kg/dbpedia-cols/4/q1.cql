@@ -1,0 +1,2 @@
+MATCH (v1)-[:`http://dbpedia.org/ontology/wikiPageRedirects`]->(v2)
+RETURN v1.uri AS r1, v2.`http://dbpedia.org/property/iucnCategory`, v2.`http://dbpedia.org/ontology/routeNumber`, v2.`http://dbpedia.org/ontology/specialist`, v2.`http://www.w3.org/2004/02/skos/core#prefLabel`, v1.`http://dbpedia.org/ontology/municipalityCode`, v1.`http://dbpedia.org/property/artist`, v1.`http://dbpedia.org/property/voices`, v1.`http://dbpedia.org/property/predecessor`

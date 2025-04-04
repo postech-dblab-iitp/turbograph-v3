@@ -51,13 +51,6 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
             sleep 15
 
             log_file="${log_dir}/basic_${cluster_algo}_${cost_model}_${layering_order}_zipf${zipf_value}.txt"
-            # /turbograph-v3/build-release/tools/bulkload \
-            #     --log-level trace \
-            #     --skip-histogram true \
-            #     --output_dir ${target_dir} \
-            #     --nodes Person ${source_dir}/Person-zipf-${zipf_value}.json  \
-            #     --relationships KNOWS ${source_dir}/Person_knows_Person.csv \
-            #     --relationships_backward KNOWS ${source_dir}/Person_knows_Person.csv.backward &> ${log_file}
 
             /turbograph-v3/build-release/tools/bulkload \
                 --log-level info \
