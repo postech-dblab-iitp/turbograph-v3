@@ -10,4 +10,4 @@ v7.uri = "http://dbpedia.org/ontology/Airport" AND
   v6.`http://dbpedia.org/ontology/iataLocationIdentifier` IS NOT NULL
 )
 OPTIONAL MATCH (v6)-[:`http://xmlns.com/foaf/0.1/homepage`]->(v6_home)
-RETURN v1.`http://www.w3.org/2000/01/rdf-schema#label` AS r1, v6.`http://dbpedia.org/property/r6LengthF`, v6.`http://www.w3.org/2000/01/rdf-schema#label`, v6.`http://dbpedia.org/property/owner`, v1.`http://dbpedia.org/property/motto`, v1.`http://dbpedia.org/property/edinburghDistance`, v1.`http://dbpedia.org/property/scotsName`, v6_home.`http://dbpedia.org/ontology/abstract`, v6_home.`http://dbpedia.org/ontology/wikiPageID`, v6_home.`http://dbpedia.org/ontology/wikiPageRevisionID`
+RETURN v1.`http://www.w3.org/2000/01/rdf-schema#label` AS r1, v6.`http://dbpedia.org/property/r6LengthF`, v6.`http://www.w3.org/2000/01/rdf-schema#label`, v6.`http://dbpedia.org/property/owner`, v1.`http://dbpedia.org/property/motto`, v1.`http://dbpedia.org/property/edinburghDistance`, v1.`http://dbpedia.org/property/scotsName`

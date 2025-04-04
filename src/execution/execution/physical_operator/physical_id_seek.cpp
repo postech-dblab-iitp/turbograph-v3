@@ -20,7 +20,7 @@
 #include "planner/expression.hpp"
 #include "planner/expression/bound_conjunction_expression.hpp"
 
-static bool unionall_forced = true;
+static bool unionall_forced = false;
 
 namespace duckdb {
 

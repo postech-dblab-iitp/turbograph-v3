@@ -1,19 +1,20 @@
 #!/bin/bash
 
-formats=("UNION" "SSRF")
-cols=("1" "2" "3" "4" "5")
+# formats=("UNION" "SSRF")
+formats=("SSRF")
+# cols=("2" "3" "4" "5")
+cols=("2")
 
 # File path to the configuration header
 config_file_path="/turbograph-v3/src/execution/execution/physical_operator/physical_id_seek.cpp"
 
 # Define source, target, and log directories
-scale_factor=10
 target_dir_base="/data/dbpedia/"
 log_dir_base="/turbograph-v3/logs"
 
 # Input parameters
 queries_base_path="/turbograph-v3/queries/kg/dbpedia-cols/"
-query_numbers="1-20"
+query_numbers="8"
 
 # Function to update the configuration file with new values
 update_config_file() {

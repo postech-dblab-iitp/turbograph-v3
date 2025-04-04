@@ -940,7 +940,7 @@ static void TemplatedFlattenRowStore(const Vector &source, const SelectionVector
 		if (schema_ptr->hasIthCol(rowcol_idx)) {
 			auto offset = schema_ptr->getIthColOffset(rowcol_idx);
 			memcpy(tdata + idx,
-				row_data + offset,
+				row_data + base_offset + offset,
 				sizeof(T));
 		} else {
 			target_validity.SetInvalid(idx);
@@ -1025,7 +1025,7 @@ void Vector::Normalify(const SelectionVector &sel, idx_t count) {
 				PartialSchema *schema_ptr = (PartialSchema *)ldata[idx].schema_ptr;
 				if (schema_ptr->hasIthCol(rowcol_idx)) {
 					auto offset = schema_ptr->getIthColOffset(rowcol_idx);
-					string_t str = *((string_t *)(row_data + offset));
+					string_t str = *((string_t *)(row_data + base_offset + offset));
 					tdata[idx] = StringVector::AddStringOrBlob(other, str);
 				} else {
 					target_validity.SetInvalid(idx);
