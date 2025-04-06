@@ -57,8 +57,81 @@ idx_t SelectComparison<LessThanEquals>(Vector &left, Vector &right, const Select
 }
 
 template <class T, class OP, bool NO_MATCH_SEL>
+static void TemplatedMatchTypeRow(VectorData &col, Vector &rows, SelectionVector &sel, idx_t &count, idx_t col_offset,
+                               idx_t col_no, SelectionVector *no_match, idx_t &no_match_count) {
+	// Precompute row_mask indexes
+	idx_t entry_idx;
+	idx_t idx_in_entry;
+	ValidityBytes::GetEntryIndex(col_no, entry_idx, idx_in_entry);
+
+	auto ptrs = FlatVector::GetData<data_ptr_t>(rows);
+	idx_t match_count = 0;
+	if (!col.is_valid) {
+		for (idx_t i = 0; i < count; i++) {
+			auto idx = sel.get_index(i);
+
+			auto row = ptrs[idx];
+			ValidityBytes row_mask(row);
+			auto isnull = !row_mask.RowIsValid(row_mask.GetValidityEntry(entry_idx), idx_in_entry);
+
+			if (isnull) {
+				// match: move to next value to compare
+				sel.set_index(match_count++, idx);
+			} else {
+				if (NO_MATCH_SEL) {
+					no_match->set_index(no_match_count++, idx);
+				}
+			}
+		}
+	} else {
+		RowVectorData &row_data = col.row_data;
+		auto data = row_data.data;
+		auto rowcol_idx = row_data.rowcol_idx;
+		auto row_store = row_data.row_store;
+
+		for (idx_t i = 0; i < count; i++) {
+			auto idx = sel.get_index(i);
+
+			auto row = ptrs[idx];
+			ValidityBytes row_mask(row);
+			auto isnull = !row_mask.RowIsValid(row_mask.GetValidityEntry(entry_idx), idx_in_entry);
+
+			auto col_idx = col.sel->get_index(idx);
+			idx_t value_offset;
+
+			if (!data[col_idx].GetColOffset(rowcol_idx, value_offset)) {
+				if (isnull) {
+					// match: move to next value to compare
+					sel.set_index(match_count++, idx);
+				} else {
+					if (NO_MATCH_SEL) {
+						no_match->set_index(no_match_count++, idx);
+					}
+				}
+			} else {
+				auto value = Load<T>(row + col_offset);
+				if (!isnull && OP::template Operation<T>(*reinterpret_cast<T *>(row_store + value_offset),value)) {
+					sel.set_index(match_count++, idx);
+				} else {
+					if (NO_MATCH_SEL) {
+						no_match->set_index(no_match_count++, idx);
+					}
+				}
+			}
+		}
+	}
+	count = match_count;
+}
+
+template <class T, class OP, bool NO_MATCH_SEL>
 static void TemplatedMatchType(VectorData &col, Vector &rows, SelectionVector &sel, idx_t &count, idx_t col_offset,
                                idx_t col_no, SelectionVector *no_match, idx_t &no_match_count) {
+
+	if (col.is_row) {
+		TemplatedMatchTypeRow<T, OP, NO_MATCH_SEL>(col, rows, sel, count, col_offset, col_no, no_match, no_match_count);
+		return;
+	}
+	
 	// Precompute row_mask indexes
 	idx_t entry_idx;
 	idx_t idx_in_entry;
@@ -133,6 +206,7 @@ static void TemplatedMatchType(VectorData &col, Vector &rows, SelectionVector &s
 	}
 	count = match_count;
 }
+
 
 template <class OP, bool NO_MATCH_SEL>
 static void TemplatedMatchNested(Vector &col, Vector &rows, SelectionVector &sel, idx_t &count, const idx_t col_offset,

@@ -471,10 +471,10 @@ void DataChunk::Slice(DataChunk &other, const SelectionVector &sel, idx_t count_
 	}
 }
 
-unique_ptr<VectorData[]> DataChunk::Orrify() {
+unique_ptr<VectorData[]> DataChunk::Orrify(bool normalify_row) {
 	auto orrified_data = unique_ptr<VectorData[]>(new VectorData[ColumnCount()]);
 	for (idx_t col_idx = 0; col_idx < ColumnCount(); col_idx++) {
-		data[col_idx].Orrify(size(), orrified_data[col_idx]);
+		data[col_idx].Orrify(size(), orrified_data[col_idx], normalify_row);
 	}
 	return orrified_data;
 }

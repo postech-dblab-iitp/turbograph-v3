@@ -96,6 +96,9 @@ static void ComputeListEntrySizes(Vector &v, VectorData &vdata, idx_t entry_size
 
 void RowOperations::ComputeEntrySizes(Vector &v, VectorData &vdata, idx_t entry_sizes[], idx_t vcount, idx_t ser_count,
                                       const SelectionVector &sel, idx_t offset) {
+	if (vdata.is_row) {
+		throw InternalException("RowOperations::ComputeEntrySizes: Row vector passed in");
+	}
 	const auto physical_type = v.GetType().InternalType();
 	if (TypeIsConstantSize(physical_type)) {
 		const auto type_size = GetTypeIdSize(physical_type);

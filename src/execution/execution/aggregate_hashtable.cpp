@@ -426,7 +426,7 @@ idx_t GroupedAggregateHashTable::FindOrCreateGroupsInternal(DataChunk &groups, V
 	group_chunk.SetCardinality(groups);
 
 	// orrify all the groups
-	auto group_data = group_chunk.Orrify();
+	auto group_data = group_chunk.Orrify(false);
 
 	idx_t new_group_count = 0;
 	while (remaining_entries > 0) {

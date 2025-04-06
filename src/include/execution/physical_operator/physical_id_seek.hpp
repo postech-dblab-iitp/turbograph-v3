@@ -15,7 +15,7 @@ class PartialSchema;
 class IdSeekState;
 class PhysicalIdSeek : public CypherPhysicalOperator {
    private:
-    enum class OutputFormat { GROUPING = 0, UNIONALL = 1, ROW = 2 };
+    enum class OutputFormat { UNIONALL = 0, ROW = 1 };
 
    public:
     // Constructor without filter pushdown
@@ -67,14 +67,6 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                                vector<unique_ptr<DataChunk>> &chunks,
                                OperatorState &state,
                                idx_t &output_chunk_idx) const override;
-    OperatorResultType ExecuteInner(ExecutionContext &context, DataChunk &input,
-                                    vector<unique_ptr<DataChunk>> &chunks,
-                                    OperatorState &state,
-                                    idx_t &output_chunk_idx) const;
-    OperatorResultType ExecuteLeft(ExecutionContext &context, DataChunk &input,
-                                   vector<unique_ptr<DataChunk>> &chunks,
-                                   OperatorState &state,
-                                   idx_t &output_chunk_idx) const;
 
     std::string ParamsToString() const override;
     std::string ToString() const override;
@@ -102,13 +94,6 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
                           vector<ExtentID> &target_eids,
                           vector<vector<uint32_t>> &target_seqnos_per_extent,
                           vector<idx_t> &mapping_idxs, idx_t &output_idx) const;
-    void doSeekGrouping(ExecutionContext &context, DataChunk &input,
-                        vector<unique_ptr<DataChunk>> &chunks,
-                        IdSeekState &state, idx_t nodeColIdx,
-                        vector<ExtentID> &target_eids,
-                        vector<vector<uint32_t>> &target_seqnos_per_extent,
-                        vector<idx_t> &mapping_idxs,
-                        vector<idx_t> &num_tuples_per_chunk) const;
     OperatorResultType referInputChunk(DataChunk &input, DataChunk &chunk,
                                        OperatorState &lstate,
                                        idx_t output_size) const;

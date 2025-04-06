@@ -16,15 +16,27 @@
 #include "common/types/value.hpp"
 #include "common/types/vector_buffer.hpp"
 #include "common/vector_size.hpp"
+#include "common/types/rowcol_type.hpp"
 
 namespace duckdb {
 
+struct RowVectorData {
+	rowcol_t *data;
+	int rowcol_idx;
+	char *row_store;
+};
+
 struct VectorData {
+	// Common data for all vectors
 	const SelectionVector *sel;
 	data_ptr_t data;
 	ValidityMask validity;
 	SelectionVector owned_sel;
 	bool is_valid;
+
+	// Special data for row vectors
+	bool is_row;
+	RowVectorData row_data;
 };
 
 class VectorCache;
@@ -127,7 +139,7 @@ public:
 	DUCKDB_API void Normalify(idx_t count);
 	DUCKDB_API void Normalify(const SelectionVector &sel, idx_t count);
 	//! Obtains a selection vector and data pointer through which the data of this vector can be accessed
-	DUCKDB_API void Orrify(idx_t count, VectorData &data);
+	DUCKDB_API void Orrify(idx_t count, VectorData &data, bool normalify_row = true);
 
 	//! Turn the vector into a sequence vector
 	DUCKDB_API void Sequence(int64_t start, int64_t increment);

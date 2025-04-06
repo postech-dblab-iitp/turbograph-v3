@@ -147,7 +147,7 @@ public:
 	//! Turn all the vectors from the chunk into flat vectors
 	DUCKDB_API void Normalify();
 
-	DUCKDB_API unique_ptr<VectorData[]> Orrify();
+	DUCKDB_API unique_ptr<VectorData[]> Orrify(bool normalify_row = true);
 
 	DUCKDB_API void Slice(const SelectionVector &sel_vector, idx_t count);
 	DUCKDB_API void Slice(DataChunk &other, const SelectionVector &sel, idx_t count, idx_t col_offset = 0);

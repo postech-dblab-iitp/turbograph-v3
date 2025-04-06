@@ -3,7 +3,7 @@
 # formats=("UNION" "SSRF")
 formats=("SSRF")
 # cols=("2" "3" "4" "5")
-cols=("2")
+cols=("4")
 
 # File path to the configuration header
 config_file_path="/turbograph-v3/src/execution/execution/physical_operator/physical_id_seek.cpp"
@@ -14,7 +14,7 @@ log_dir_base="/turbograph-v3/logs"
 
 # Input parameters
 queries_base_path="/turbograph-v3/queries/kg/dbpedia-cols/"
-query_numbers="8"
+query_numbers="9"
 
 # Function to update the configuration file with new values
 update_config_file() {

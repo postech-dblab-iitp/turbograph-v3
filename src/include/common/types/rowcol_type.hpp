@@ -11,8 +11,10 @@ struct rowcol_t {
         schema_ptr = (char *)schema_info;
     }
 
+    bool GetColOffset(int col_idx, idx_t &final_offset);
+
 public:
-    idx_t offset = 0;
+    idx_t offset = 0; // base offset
     char *schema_ptr = nullptr;
 };
 

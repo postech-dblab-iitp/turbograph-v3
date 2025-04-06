@@ -49,6 +49,31 @@ static inline void TightLoopHash(T *__restrict ldata, hash_t *__restrict result_
 	}
 }
 
+
+template <bool HAS_RSEL, class T>
+static inline void TightLoopHashRow(RowVectorData& row_data, hash_t *__restrict result_data, const SelectionVector *rsel,
+                                 idx_t count, const SelectionVector *__restrict sel_vector, ValidityMask &mask, bool is_valid) {
+	if (!is_valid) {
+		for (idx_t i = 0; i < count; i++) {
+			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
+			result_data[ridx] = HashOp::Operation(NULL, true);
+		}
+	} else {
+		auto ldata = row_data.data;
+		auto rowcol_idx = row_data.rowcol_idx;
+		auto row_store = row_data.row_store;
+
+		for (idx_t i = 0; i < count; i++) {
+			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
+			auto idx = sel_vector->get_index(ridx);
+			idx_t offset;
+			bool is_non_null = ldata[idx].GetColOffset(rowcol_idx, offset);
+			result_data[ridx]
+				= HashOp::Operation(*reinterpret_cast<T *>(row_store + offset), !is_non_null);
+		}
+	}
+}
+
 template <bool HAS_RSEL, class T>
 static inline void TemplatedLoopHash(Vector &input, Vector &result, const SelectionVector *rsel, idx_t count) {
 	if (input.GetVectorType() == VectorType::CONSTANT_VECTOR) {
@@ -61,10 +86,16 @@ static inline void TemplatedLoopHash(Vector &input, Vector &result, const Select
 		result.SetVectorType(VectorType::FLAT_VECTOR);
 
 		VectorData idata;
-		input.Orrify(count, idata);
+		input.Orrify(count, idata, false);
 
-		TightLoopHash<HAS_RSEL, T>((T *)idata.data, FlatVector::GetData<hash_t>(result), rsel, count, idata.sel,
-		                           idata.validity, idata.is_valid);
+		if (idata.is_row) {
+			TightLoopHashRow<HAS_RSEL, T>(idata.row_data, FlatVector::GetData<hash_t>(result), rsel, count, idata.sel,
+									idata.validity, idata.is_valid);
+		}
+		else {
+			TightLoopHash<HAS_RSEL, T>((T *)idata.data, FlatVector::GetData<hash_t>(result), rsel, count, idata.sel,
+									idata.validity, idata.is_valid);
+		}
 	}
 }
 
@@ -274,6 +305,58 @@ static inline void TightLoopCombineHashConstant(T *__restrict ldata, hash_t cons
 	}
 }
 
+
+template <bool HAS_RSEL, class T>
+static inline void TightLoopCombineHashConstantRow(RowVectorData& row_data, hash_t constant_hash, hash_t *__restrict hash_data,
+                                                const SelectionVector *rsel, idx_t count,
+                                                const SelectionVector *__restrict sel_vector, ValidityMask &mask, bool is_valid) {
+	if (!is_valid) {
+		for (idx_t i = 0; i < count; i++) {
+			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
+			auto other_hash = HashOp::Operation(NULL, true);
+			hash_data[ridx] = CombineHashScalar(constant_hash, other_hash);
+		}
+	} else {
+		auto ldata = row_data.data;
+		auto rowcol_idx = row_data.rowcol_idx;
+		auto row_store = row_data.row_store;
+
+		for (idx_t i = 0; i < count; i++) {
+			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
+			auto idx = sel_vector->get_index(ridx);
+			idx_t offset;
+			bool is_non_null = ldata[idx].GetColOffset(rowcol_idx, offset);
+			auto other_hash = HashOp::Operation(*reinterpret_cast<T *>(row_store + offset), !is_non_null);
+			hash_data[ridx] = CombineHashScalar(constant_hash, other_hash);
+		}
+	}
+}
+
+template <bool HAS_RSEL, class T>
+static inline void TightLoopCombineHashRow(RowVectorData& row_data, hash_t *__restrict hash_data, const SelectionVector *rsel,
+                                        idx_t count, const SelectionVector *__restrict sel_vector, ValidityMask &mask, bool is_valid) {
+	if (!is_valid) {
+		for (idx_t i = 0; i < count; i++) {
+			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
+			auto other_hash = HashOp::Operation(NULL, true);
+			hash_data[ridx] = CombineHashScalar(hash_data[ridx], other_hash);
+		}
+	} else {
+		auto ldata = row_data.data;
+		auto rowcol_idx = row_data.rowcol_idx;
+		auto row_store = row_data.row_store;
+
+		for (idx_t i = 0; i < count; i++) {
+			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
+			auto idx = sel_vector->get_index(ridx);
+			idx_t offset;
+			bool is_non_null = ldata[idx].GetColOffset(rowcol_idx, offset);
+			auto other_hash = HashOp::Operation(*reinterpret_cast<T *>(row_store + offset), !is_non_null);
+			hash_data[ridx] = CombineHashScalar(hash_data[ridx], other_hash);
+		}
+	}
+}
+
 template <bool HAS_RSEL, class T>
 static inline void TightLoopCombineHash(T *__restrict ldata, hash_t *__restrict hash_data, const SelectionVector *rsel,
                                         idx_t count, const SelectionVector *__restrict sel_vector, ValidityMask &mask, bool is_valid) {
@@ -310,21 +393,38 @@ void TemplatedLoopCombineHash(Vector &input, Vector &hashes, const SelectionVect
 
 		auto other_hash = HashOp::Operation(*ldata, ConstantVector::IsNull(input));
 		*hash_data = CombineHashScalar(*hash_data, other_hash);
-	} else {
+	}
+	else {
 		VectorData idata;
-		input.Orrify(count, idata);
+		input.Orrify(count, idata, false);
+
 		if (hashes.GetVectorType() == VectorType::CONSTANT_VECTOR) {
 			// mix constant with non-constant, first get the constant value
 			auto constant_hash = *ConstantVector::GetData<hash_t>(hashes);
 			// now re-initialize the hashes vector to an empty flat vector
 			hashes.SetVectorType(VectorType::FLAT_VECTOR);
-			TightLoopCombineHashConstant<HAS_RSEL, T>((T *)idata.data, constant_hash,
-			                                          FlatVector::GetData<hash_t>(hashes), rsel, count, idata.sel,
-			                                          idata.validity, idata.is_valid);
-		} else {
+
+			if (idata.is_row) {
+				TightLoopCombineHashConstantRow<HAS_RSEL, T>(idata.row_data, constant_hash,
+														FlatVector::GetData<hash_t>(hashes), rsel, count, idata.sel,
+														idata.validity, idata.is_valid);
+			}
+			else {
+				TightLoopCombineHashConstant<HAS_RSEL, T>((T *)idata.data, constant_hash,
+														FlatVector::GetData<hash_t>(hashes), rsel, count, idata.sel,
+														idata.validity, idata.is_valid);
+			}
+		}
+		else {
 			D_ASSERT(hashes.GetVectorType() == VectorType::FLAT_VECTOR);
-			TightLoopCombineHash<HAS_RSEL, T>((T *)idata.data, FlatVector::GetData<hash_t>(hashes), rsel, count,
-			                                  idata.sel, idata.validity, idata.is_valid);
+			if (idata.is_row) {
+				TightLoopCombineHashRow<HAS_RSEL, T>(idata.row_data, FlatVector::GetData<hash_t>(hashes), rsel, count,
+												idata.sel, idata.validity, idata.is_valid);
+			}
+			else {
+				TightLoopCombineHash<HAS_RSEL, T>((T *)idata.data, FlatVector::GetData<hash_t>(hashes), rsel, count,
+												idata.sel, idata.validity, idata.is_valid);
+			}
 		}
 	}
 }

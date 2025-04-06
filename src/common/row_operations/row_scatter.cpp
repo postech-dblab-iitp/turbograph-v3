@@ -19,9 +19,54 @@ namespace duckdb {
 
 using ValidityBytes = RowLayout::ValidityBytes;
 
+
+template <class T>
+static void TemplatedScatterRow(VectorData &col, Vector &rows, const SelectionVector &sel, const idx_t count,
+                             const idx_t col_offset, const idx_t col_no) {
+					
+	auto ptrs = FlatVector::GetData<data_ptr_t>(rows);
+
+	if (!col.is_valid) {
+		for (idx_t i = 0; i < count; i++) {
+			auto idx = sel.get_index(i);
+			auto row = ptrs[idx];
+
+			T store_value = NullValue<T>();
+			Store<T>(store_value, row + col_offset);
+			ValidityBytes col_mask(ptrs[idx]);
+			col_mask.SetInvalidUnsafe(col_no);
+		}
+	} else {
+		RowVectorData &row_data = col.row_data;
+		auto data = row_data.data;
+		auto rowcol_idx = row_data.rowcol_idx;
+		auto row_store = row_data.row_store;
+
+		for (idx_t i = 0; i < count; i++) {
+			auto idx = sel.get_index(i);
+			auto col_idx = col.sel->get_index(idx);
+			auto row = ptrs[idx];
+			idx_t value_offset;
+			bool is_non_null = data[col_idx].GetColOffset(rowcol_idx, value_offset);
+			T store_value = !is_non_null ?
+				NullValue<T>() : *reinterpret_cast<T *>(row_store + value_offset);
+			Store<T>(store_value, row + col_offset);
+			if (!is_non_null) {
+				ValidityBytes col_mask(ptrs[idx]);
+				col_mask.SetInvalidUnsafe(col_no);
+			}
+		}
+	}
+}
+
 template <class T>
 static void TemplatedScatter(VectorData &col, Vector &rows, const SelectionVector &sel, const idx_t count,
                              const idx_t col_offset, const idx_t col_no) {
+	if (col.is_row) {
+		TemplatedScatterRow<T>(col, rows, sel, count, col_offset, col_no);
+		return;
+	}
+					
 	auto data = (T *)col.data;
 	auto ptrs = FlatVector::GetData<data_ptr_t>(rows);
 
@@ -68,12 +113,78 @@ static void ComputeStringEntrySizes(const VectorData &col, idx_t entry_sizes[], 
 	if (!col.is_valid) {
 		return;
 	} else {
+		if (col.is_row) {
+			const RowVectorData &row_data = col.row_data;
+			auto data = row_data.data;
+			auto rowcol_idx = row_data.rowcol_idx;
+			auto row_store = row_data.row_store;
+
+			for (idx_t i = 0; i < count; i++) {
+				auto idx = sel.get_index(i);
+				auto col_idx = col.sel->get_index(idx) + offset;
+				idx_t value_offset;
+				bool is_non_null = data[col_idx].GetColOffset(rowcol_idx, value_offset);
+				if (is_non_null) {
+					const auto &str = *(string_t *)(row_store + value_offset);
+					if (!str.IsInlined()) {
+						entry_sizes[i] += str.GetSize();
+					}
+				}
+			}
+		}
+		else {
+			auto data = (const string_t *)col.data;
+			for (idx_t i = 0; i < count; i++) {
+				auto idx = sel.get_index(i);
+				auto col_idx = col.sel->get_index(idx) + offset;
+				const auto &str = data[col_idx];
+				if (col.validity.RowIsValid(col_idx) && col.is_valid && !str.IsInlined()) {
+					entry_sizes[i] += str.GetSize();
+				}
+			}
+		}
+	}
+}
+
+static void ScatterStringVectorRow(VectorData &col, Vector &rows, data_ptr_t str_locations[], const SelectionVector &sel,
+                                const idx_t count, const idx_t col_offset, const idx_t col_no) {
+	auto ptrs = FlatVector::GetData<data_ptr_t>(rows);
+
+	if (!col.is_valid) {
 		for (idx_t i = 0; i < count; i++) {
 			auto idx = sel.get_index(i);
-			auto col_idx = col.sel->get_index(idx) + offset;
-			const auto &str = data[col_idx];
-			if (col.validity.RowIsValid(col_idx) && col.is_valid && !str.IsInlined()) {
-				entry_sizes[i] += str.GetSize();
+			auto row = ptrs[idx];
+			ValidityBytes col_mask(row);
+			col_mask.SetInvalidUnsafe(col_no);
+			Store<string_t>(NullValue<string_t>(), row + col_offset);
+		}
+	} else {
+		RowVectorData &row_data = col.row_data;
+		auto data = row_data.data;
+		auto rowcol_idx = row_data.rowcol_idx;
+		auto row_store = row_data.row_store;
+
+		for (idx_t i = 0; i < count; i++) {
+			auto idx = sel.get_index(i);
+			auto col_idx = col.sel->get_index(idx);
+			auto row = ptrs[idx];
+
+			idx_t value_offset;
+			bool is_non_null = data[col_idx].GetColOffset(rowcol_idx, value_offset);
+			auto &str = *(string_t *)(row_store + value_offset);
+
+			if (!is_non_null || !col.is_valid) {
+				ValidityBytes col_mask(row);
+				col_mask.SetInvalidUnsafe(col_no);
+				Store<string_t>(NullValue<string_t>(), row + col_offset);
+			} else if (str.IsInlined()) {
+				Store<string_t>(str, row + col_offset);
+			} else {
+				string_t inserted((const char *)str_locations[i], str.GetSize());
+				memcpy(inserted.GetDataWriteable(), str.GetDataUnsafe(), str.GetSize());
+				str_locations[i] += str.GetSize();
+				inserted.Finalize();
+				Store<string_t>(inserted, row + col_offset);
 			}
 		}
 	}
@@ -81,6 +192,11 @@ static void ComputeStringEntrySizes(const VectorData &col, idx_t entry_sizes[], 
 
 static void ScatterStringVector(VectorData &col, Vector &rows, data_ptr_t str_locations[], const SelectionVector &sel,
                                 const idx_t count, const idx_t col_offset, const idx_t col_no) {
+	if(col.is_row) {
+		ScatterStringVectorRow(col, rows, str_locations, sel, count, col_offset, col_no);
+		return;
+	}
+
 	auto string_data = (string_t *)col.data;
 	auto ptrs = FlatVector::GetData<data_ptr_t>(rows);
 

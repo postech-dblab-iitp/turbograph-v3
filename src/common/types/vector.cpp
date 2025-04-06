@@ -1045,7 +1045,7 @@ void Vector::Normalify(const SelectionVector &sel, idx_t count) {
 	}
 }
 
-void Vector::Orrify(idx_t count, VectorData &data) {
+void Vector::Orrify(idx_t count, VectorData &data, bool normalify_row) {
 	switch (GetVectorType()) {
 	case VectorType::DICTIONARY_VECTOR: {
 		auto &sel = DictionaryVector::SelVector(*this);
@@ -1055,7 +1055,19 @@ void Vector::Orrify(idx_t count, VectorData &data) {
 			data.data = FlatVector::GetData(child);
 			data.validity = FlatVector::Validity(child);
 			data.is_valid = child.is_valid;
-		} else {
+			data.is_row = false;
+		} 
+		else if (!normalify_row && child.GetVectorType() == VectorType::ROW_VECTOR) {
+			data.sel = &sel;
+			data.data = FlatVector::GetData(child);
+			data.validity = FlatVector::Validity(child);
+			data.is_valid = child.is_valid;
+			data.is_row = true;
+			data.row_data.data = FlatVector::GetData<rowcol_t>(child);
+			data.row_data.rowcol_idx = child.GetRowColIdx();
+			data.row_data.row_store = ((VectorRowStoreBuffer *)child.GetAuxiliary().get())->GetRowData();
+		}
+		else {
 			// dictionary with non-flat child: create a new reference to the child and normalify it
 			Vector child_vector(child);
 			child_vector.Normalify(sel, count);
@@ -1065,6 +1077,7 @@ void Vector::Orrify(idx_t count, VectorData &data) {
 			data.data = FlatVector::GetData(new_aux->data);
 			data.validity = FlatVector::Validity(new_aux->data);
 			data.is_valid = new_aux->data.is_valid;
+			data.is_row = false;
 			this->auxiliary = move(new_aux);
 		}
 		break;
@@ -1074,13 +1087,28 @@ void Vector::Orrify(idx_t count, VectorData &data) {
 		data.data = ConstantVector::GetData(*this);
 		data.validity = ConstantVector::Validity(*this);
 		data.is_valid = this->is_valid;
+		data.is_row = false;
 		break;
+	case VectorType::ROW_VECTOR: {
+		if (!normalify_row) {
+			data.sel = FlatVector::IncrementalSelectionVector(count, data.owned_sel);
+			data.data = FlatVector::GetData(*this);
+			data.validity = FlatVector::Validity(*this);
+			data.is_valid = this->is_valid;
+			data.is_row = true;
+			data.row_data.data = FlatVector::GetData<rowcol_t>(*this);
+			data.row_data.rowcol_idx = this->GetRowColIdx();
+			data.row_data.row_store = ((VectorRowStoreBuffer *)this->GetAuxiliary().get())->GetRowData();
+			break;
+		}
+	}
 	default:
 		Normalify(count);
 		data.sel = FlatVector::IncrementalSelectionVector(count, data.owned_sel);
 		data.data = FlatVector::GetData(*this);
 		data.validity = FlatVector::Validity(*this);
 		data.is_valid = this->is_valid;
+		data.is_row = false;
 		break;
 	}
 }

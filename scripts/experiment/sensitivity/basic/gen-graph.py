@@ -118,10 +118,11 @@ for label, filename in method_files.items():
     group_dividers.append(pos_counter - 1)  # solid divider after each method
 
 # Plot
-fig, ax = plt.subplots(figsize=(8, 5))
+fig, ax = plt.subplots(figsize=(6, 4))
 ax.set_yscale('log')
-ax.set_ylabel('Relative Performance Slowdown (log scale)', fontsize=12)
-ax.set_ylim(bottom=1e-1, top=1e4)
+ax.set_ylabel('Relative Slowdown', fontsize=18)
+ax.set_ylim(bottom=1e-1, top=10**4.5)
+ax.tick_params(axis='y', labelsize=14)
 
 # Layout setup
 total_groups = len(method_files)
@@ -182,7 +183,7 @@ ax.axhline(y=1, color='black', linestyle=':', linewidth=1.8)
 xtick_labels = list(method_files.keys())
 xtick_positions = [start + spacing for start in group_starts]  # middle of each method block
 ax.set_xticks(xtick_positions)
-ax.set_xticklabels(xtick_labels, fontsize=11)
+ax.set_xticklabels(xtick_labels, fontsize=16)
 
 # In-plot labels for Proj/Sel/Agg
 label_ypos = 0.07  # in axes coordinates
@@ -192,21 +193,21 @@ for group_idx, method in enumerate(method_files):
         ax.text(xpos, label_ypos, cat,
                 transform=ax.get_xaxis_transform(),
                 ha='center', va='top',
-                fontsize=10, style='italic')
+                fontsize=14, style='italic')
 
 # Legend
 legend_elements = [
     Patch(facecolor='white', edgecolor='black', label='Compile Time'),
     Patch(facecolor='gray', edgecolor='black', label='Execution Time')
 ]
-ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, 1.15),
-          ncol=2, frameon=False, fontsize=13)
+ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, 0.995),
+          ncol=2, frameon=True, fontsize=14.5, borderaxespad=0.1)
 
 ax.grid(axis='y', linestyle='--', linewidth=0.5)
 plt.tight_layout()
 
 # Save figure
-output_path = os.path.join(folder_path, 'slowdown_finegrained_boxplot.png')
+output_path = os.path.join(folder_path, 'cgc-microbenchmark.pdf')
 plt.savefig(output_path, dpi=800, bbox_inches='tight')
 plt.close(fig)
 
