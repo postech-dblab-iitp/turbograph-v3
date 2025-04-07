@@ -19,7 +19,7 @@ void IsNullLoop(Vector &input, Vector &result, idx_t count) {
 		*result_data = INVERSE ? !ConstantVector::IsNull(input) : ConstantVector::IsNull(input);
 	} else {
 		VectorData data;
-		input.Orrify(count, data);
+		input.Orrify(count, data, false);
 
 		result.SetVectorType(VectorType::FLAT_VECTOR);
 		auto result_data = FlatVector::GetData<bool>(result);
@@ -36,9 +36,21 @@ void IsNullLoop(Vector &input, Vector &result, idx_t count) {
 			}
 		}
 		else {
-			for (idx_t i = 0; i < count; i++) {
-				auto idx = data.sel->get_index(i);
-				result_data[i] = INVERSE ? data.validity.RowIsValid(idx) : !data.validity.RowIsValid(idx);
+			if (data.is_row) {
+				RowVectorData &row_data = data.row_data;
+				auto row_data_ptr = row_data.data;
+				auto rowcol_idx = row_data.rowcol_idx;
+				for (idx_t i = 0; i < count; i++) {
+					auto idx = data.sel->get_index(i);
+					result_data[i] = INVERSE ? row_data_ptr[idx].HasCol(rowcol_idx) && data.validity.RowIsValid(idx)
+					                          : !row_data_ptr[idx].HasCol(rowcol_idx) || !data.validity.RowIsValid(idx);
+				}
+			}
+			else {
+				for (idx_t i = 0; i < count; i++) {
+					auto idx = data.sel->get_index(i);
+					result_data[i] = INVERSE ? data.validity.RowIsValid(idx) : !data.validity.RowIsValid(idx);
+				}
 			}
 		}
 	}

@@ -107,6 +107,40 @@ private:
 		}
 	}
 
+	// TODO: very temporal implementation. Not work at all except COUNT
+	template <class STATE_TYPE, class INPUT_TYPE, class OP>
+	static inline void UnaryScatterLoopRow(INPUT_TYPE *__restrict idata, FunctionData *bind_data,
+	                                    STATE_TYPE **__restrict states, const SelectionVector &isel,
+	                                    const SelectionVector &ssel, ValidityMask &mask, idx_t count,
+										RowVectorData &row_data, bool is_input_valid) {
+		if (!is_input_valid) {
+			D_ASSERT(OP::IgnoreNull()); // TODO
+			return;
+		} else {
+			auto rowcol_ptr = row_data.data;
+			auto rowcol_idx = row_data.rowcol_idx;
+			if (OP::IgnoreNull() && !mask.AllValid()) {
+				// potential NULL values and NULL values are ignored
+				for (idx_t i = 0; i < count; i++) {
+					auto idx = isel.get_index(i);
+					auto sidx = ssel.get_index(i);
+					if (rowcol_ptr[idx].HasCol(rowcol_idx) && mask.RowIsValid(idx)) {
+						OP::template Operation<INPUT_TYPE, STATE_TYPE, OP>(states[sidx], bind_data, idata, mask, idx);
+					}
+				}
+			} else {
+				// quick path: no NULL values or NULL values are not ignored
+				for (idx_t i = 0; i < count; i++) {
+					auto idx = isel.get_index(i);
+					auto sidx = ssel.get_index(i);
+					if (rowcol_ptr[idx].HasCol(rowcol_idx) && mask.RowIsValid(idx)) {
+						OP::template Operation<INPUT_TYPE, STATE_TYPE, OP>(states[sidx], bind_data, idata, mask, idx);
+					}
+				}
+			}
+		}
+	}
+
 	template <class STATE_TYPE, class INPUT_TYPE, class OP>
 	static inline void UnaryFlatUpdateLoop(INPUT_TYPE *__restrict idata, FunctionData *bind_data,
 	                                       STATE_TYPE *__restrict state, idx_t count, ValidityMask &mask) {
@@ -254,10 +288,16 @@ public:
 			UnaryFlatLoop<STATE_TYPE, INPUT_TYPE, OP>(idata, bind_data, sdata, FlatVector::Validity(input), count, input.GetIsValid());
 		} else {
 			VectorData idata, sdata;
-			input.Orrify(count, idata);
+			input.Orrify(count, idata, false);
 			states.Orrify(count, sdata);
-			UnaryScatterLoop<STATE_TYPE, INPUT_TYPE, OP>((INPUT_TYPE *)idata.data, bind_data, (STATE_TYPE **)sdata.data,
-			                                             *idata.sel, *sdata.sel, idata.validity, count, input.GetIsValid());
+			if (idata.is_row) {
+				UnaryScatterLoopRow<STATE_TYPE, INPUT_TYPE, OP>((INPUT_TYPE *)idata.data, bind_data, (STATE_TYPE **)sdata.data,
+															*idata.sel, *sdata.sel, idata.validity, count, idata.row_data, input.GetIsValid());
+			}
+			else {
+				UnaryScatterLoop<STATE_TYPE, INPUT_TYPE, OP>((INPUT_TYPE *)idata.data, bind_data, (STATE_TYPE **)sdata.data,
+															*idata.sel, *sdata.sel, idata.validity, count, input.GetIsValid());
+			}
 		}
 	}
 

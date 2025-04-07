@@ -1,2 +1,2 @@
 MATCH (v1)-[:`http://www.w3.org/1999/02/22-rdf-syntax-ns#type`]->(v2)
-RETURN DISTINCT v1.uri AS r1, v1.`http://dbpedia.org/property/gross`, v1.`http://dbpedia.org/property/formercoach`, v1.`http://dbpedia.org/ontology/settingOfPlay`, v1.`http://dbpedia.org/property/occupation`, v1.`http://dbpedia.org/ontology/Work/runtime`
+RETURN v2.`http://www.georss.org/georss/point`, v2.`http://www.w3.org/2003/01/geo/wgs84_pos#lat`, v2.`http://www.w3.org/2003/01/geo/wgs84_pos#long`, v1.`http://dbpedia.org/property/populationDate`, v1.`http://dbpedia.org/property/skiableArea`, v1.`http://dbpedia.org/property/notableIdeas`, v1.`http://dbpedia.org/property/significantAwards`, v1.`http://dbpedia.org/ontology/MeanOfTransportation/height`

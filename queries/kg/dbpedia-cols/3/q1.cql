@@ -1,2 +1,2 @@
 MATCH (v1)-[:`http://dbpedia.org/ontology/wikiPageRedirects`]->(v2)
-RETURN v1.uri AS r1, v2.`http://dbpedia.org/property/visitors`, v2.`http://dbpedia.org/property/modelYears`, v2.`http://dbpedia.org/property/effectiveRadiatedPower`, v1.`http://dbpedia.org/property/shipPower`, v1.`http://dbpedia.org/ontology/meaning`, v1.`http://dbpedia.org/property/background`
+RETURN v2.`http://dbpedia.org/ontology/lcc`, v2.`http://dbpedia.org/property/heightM`, v2.`http://dbpedia.org/property/athletics`, v1.`http://dbpedia.org/property/establishedDate`, v1.`http://dbpedia.org/property/meshid`, v1.`http://dbpedia.org/property/altunosp`

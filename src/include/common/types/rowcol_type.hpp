@@ -11,6 +11,7 @@ struct rowcol_t {
         schema_ptr = (char *)schema_info;
     }
 
+    bool HasCol(int col_idx);
     bool GetColOffset(int col_idx, idx_t &final_offset);
 
 public:

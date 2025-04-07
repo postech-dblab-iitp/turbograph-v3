@@ -24,7 +24,7 @@ static const int NUM_EQUI  = 0;  // Number of equality filter queries
 static const int NUM_RANGE = 0;  // Number of range filter queries
 static const int NUM_AGG   = 0;  // Number of aggregation queries
 static const int NUM_JOINS = 5;  // Number of join queries
-static const int NUM_COLUMNS_PER_JOIN = 3; // Number of columns to select in a join query
+static const int NUM_COLUMNS_PER_JOIN = 5; // Number of columns to select in a join query
 static const bool AGG_AFTER_JOIN = true;
 
 // -----------------------------------------------------------------------
@@ -505,11 +505,11 @@ int main(int argc, char** argv) {
     }
 
     // 6) Join queries
-    //    - Use edge: http://dbpedia.org/property/homepage
+    //    - Use edge: http://www.w3.org/2002/07/owl#sameAs
     //    - Generate paths with 1 to NUM_JOINS hops
     //    - Each node returns NUM_COLUMNS_PER_JOIN properties (if available)
     {
-        std::string redirectEdge = "http://dbpedia.org/property/homepage";
+        std::string redirectEdge = "http://www.w3.org/2002/07/owl#sameAs";
 
         // Combine all properties for selection
         std::vector<std::string> allProps = numericProps;
@@ -526,11 +526,9 @@ int main(int argc, char** argv) {
                     nodeAliases.push_back("n" + std::to_string(i));
                 }
 
-                // Alternate directions: forward -> backward -> forward ...
                 for (int i = 0; i < hop; ++i) {
-                    bool forward = (i % 2 == 0);
                     match += "(" + nodeAliases[i] + ")";
-                    match += forward ? "-[:`" + redirectEdge + "`]->" : "<-[:`" + redirectEdge + "`]-";
+                    match += "-[:`" + redirectEdge + "`]->";
                 }
                 match += "(" + nodeAliases[hop] + ")";
 
@@ -553,9 +551,7 @@ int main(int argc, char** argv) {
                 }
 
                 if (AGG_AFTER_JOIN) {
-                    // Randomly shuffle and aggregate 50% of all projected columns
-                    std::shuffle(projectedProps.begin(), projectedProps.end(), rng);
-                    int numAgg = (projectedProps.size() + 1) / 2;  // ceil(50%)
+                    int numAgg = projectedProps.size();
                     for (size_t i = 0; i < projectedProps.size(); ++i) {
                         if (i > 0) returnClause += ", ";
                         if ((int)i < numAgg)

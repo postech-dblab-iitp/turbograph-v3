@@ -1094,7 +1094,7 @@ PhysicalIdSeek::OutputFormat PhysicalIdSeek::determineFormatByCostModel(
     bool sort_order_enforced, size_t total_nulls) const
 {
     const double COLUMNAR_PROCESSING_UNIT_COST = 0.8;
-    const double ROW_PROCESSING_UNIT_COST = 2.4;
+    const double ROW_PROCESSING_UNIT_COST = 1.5;
     const double NULL_PROCESSING_UNIT_COST = 0.009;
     if (sort_order_enforced) {
         throw NotImplementedException(

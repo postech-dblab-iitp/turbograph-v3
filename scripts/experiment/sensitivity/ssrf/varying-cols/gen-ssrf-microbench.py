@@ -41,10 +41,11 @@ for col in range(1, 6):
 
 # Prepare for plotting
 fig, ax = plt.subplots(figsize=(5, 4))
-ax.set_yscale('log')
-ax.set_ylabel('Relative Execution Time\n Slowdown (log scale)', fontsize=12)
-ax.set_xlabel('Num Columns', fontsize=12, labelpad=10)  # ← label below x-axis
-ax.set_ylim(bottom=10**(-0.1), top=1e1)
+ax.set_ylabel('Relative Execution Time Slowdown', fontsize=13)
+ax.set_xlabel('Num Columns', fontsize=13, labelpad=10)  # ← label below x-axis
+ax.set_ylim(bottom=10**(-0.1), top=3)
+ax.set_yticks(np.arange(1, 3.5, 0.5))
+ax.tick_params(axis='y', labelsize=13)
 
 # X-axis layout
 box_width = 0.4
@@ -90,7 +91,7 @@ for i in range(1, 5):  # 4 separators between 5 groups
 
 # X-ticks: numbers 1~5
 ax.set_xticks(xtick_positions)
-ax.set_xticklabels(top_xtick_labels, fontsize=11)
+ax.set_xticklabels(top_xtick_labels, fontsize=13)
 
 # Legend at top
 legend_elements = [
