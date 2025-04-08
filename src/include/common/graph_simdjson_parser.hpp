@@ -27,7 +27,7 @@ using namespace simdjson;
 #define FREQUENCY_THRESHOLD 0.95
 #define SET_SIM_THRESHOLD 0.99
 #define SET_EDIT_THRESHOLD 2
-#define JACCARD_THRESHOLD 1
+#define JACCARD_THRESHOLD 0.70
 #define WEIGHTEDJACCARD_THRESHOLD 0.3
 #define COSINE_THRESHOLD 0.5
 #define DICE_THRESHOLD 0.4
@@ -84,7 +84,7 @@ public:
     };
 
     const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
-    const CostModel cost_model = CostModel::OURS;
+    const CostModel cost_model = CostModel::JACCARD;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
     const MergeInAdvance merge_in_advance = MergeInAdvance::IN_QUERY_TIME;
 /*******************/
