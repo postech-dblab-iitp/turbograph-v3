@@ -52,11 +52,18 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
 
             log_file="${log_dir}/hops_${cluster_algo}_${cost_model}_${layering_order}"
 
+            ## POINT files are single direction
+            ## Other files are bidirectional
+            ## POINT files for shirnking
+            ## Others for expansion
+
             /turbograph-v3/build-release/tools/bulkload \
                 --log-level info \
                 --skip-histogram \
                 --output_dir ${target_dir} \
                 --nodes NODE ${source_dir}/nodes.json \
+                --relationships POINT_ONE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_01_prcnt.csv \
+                --relationships POINT_FIVE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_05_prcnt.csv \
                 --relationships ONE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_1_prcnt.csv \
                 --relationships THREE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_3_prcnt.csv \
                 --relationships FIVE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_5_prcnt.csv \

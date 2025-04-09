@@ -189,6 +189,7 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
                                                 DataChunk &chunk,
                                                 OperatorState &lstate) const
 {
+    this->time_to_exclude = 0;
     if (input.size() == 0) {
         chunk.SetCardinality(0);
         return OperatorResultType::NEED_MORE_INPUT;
@@ -204,8 +205,11 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
     idx_t output_size = 0;
 
     if (state.need_initialize_extit) {
+        auto start_time = std::chrono::high_resolution_clock::now();
         initializeSeek(context, input, chunk, state, nodeColIdx, target_eids,
                        target_seqnos_per_extent, mapping_idxs);
+        auto end_time = std::chrono::high_resolution_clock::now();
+        this->time_to_exclude = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time).count();
 
         if (target_eids.size() == 0) {
             chunk.SetCardinality(0);
@@ -216,10 +220,13 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
     }
 
     // Calculate Format
+    auto start_time1 = std::chrono::high_resolution_clock::now();
     auto total_nulls = calculateTotalNulls(
         chunk, target_eids, target_seqnos_per_extent, mapping_idxs);
     fillOutSizePerSchema(target_eids, target_seqnos_per_extent, mapping_idxs);
     auto format = determineFormatByCostModel(false, total_nulls);
+    auto end_time1 = std::chrono::high_resolution_clock::now();
+    this->time_to_exclude += std::chrono::duration_cast<std::chrono::duration<double>>(end_time1 - start_time1).count();
 
     if (format == OutputFormat::ROW) {
         doSeekSchemaless(context, input, chunk, state, target_eids,
@@ -232,9 +239,13 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
                                       target_seqnos_per_extent, mapping_idxs);
     }
 
+    auto start_time = std::chrono::high_resolution_clock::now();
     nullifyValuesForPrunedExtents(chunk, state, target_eids.size(),
                                   target_seqnos_per_extent);
-    return referInputChunk(input, chunk, state, output_size);
+    auto ret = referInputChunk(input, chunk, state, output_size);
+    auto end_time = std::chrono::high_resolution_clock::now();
+    this->time_to_exclude += std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time).count();
+    return ret;
 }
 
 OperatorResultType PhysicalIdSeek::ExecuteLeft(ExecutionContext &context,

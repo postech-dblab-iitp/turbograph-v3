@@ -131,6 +131,7 @@ class CypherPhysicalOperator {
     int64_t processed_tuples;
     idx_t operator_id;
     static idx_t operator_version;
+    mutable double time_to_exclude = 0;
 };
 
 inline uint64_t &getIdRefFromVector(Vector &vector, idx_t index)

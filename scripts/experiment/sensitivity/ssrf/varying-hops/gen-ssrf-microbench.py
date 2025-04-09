@@ -36,9 +36,11 @@ for method_key, filename in methods.items():
 
 # Plotting
 fig, ax = plt.subplots(figsize=(5, 3.5))
-ax.set_xlabel("Number of Hops", fontsize=12)
-ax.set_ylabel("Time (ms)", fontsize=12)
+ax.set_xlabel("Number of Hops", fontsize=14)
+ax.set_ylabel("Time (ms)", fontsize=14)
 ax.set_xticks(hop_counts)
+ax.tick_params(axis='x', labelsize=13)
+ax.tick_params(axis='y', labelsize=13)
 
 # Color-blind friendly palette
 method_colors = {
@@ -85,17 +87,17 @@ for method in ['SS', 'US', 'SSRF']:
 
 ax.legend(handles=legend_elements,
           loc='upper left',
-          fontsize=10,
+          fontsize=12,
           ncol=2,
           title='Join = solid, Agg = dashed',
-          title_fontsize=10,
-          columnspacing=1.2,
-          handlelength=3)
+          title_fontsize=12,
+          columnspacing=1,
+          handlelength=2)
 
 plt.tight_layout()
 
 # Save output
-output_path = os.path.join(folder_path, 'hop-time-lineplot.pdf')
+output_path = os.path.join(folder_path, 'hop-time-lineplot.png')
 plt.savefig(output_path, dpi=800, bbox_inches='tight')
 plt.close(fig)
 

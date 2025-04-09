@@ -21,21 +21,22 @@ def main():
     # Read the CSV
     df = pd.read_csv(input_path, sep='|')
     sample_size = int(len(df) * (percentage / 100.0))
-    sampled_df = df.sample(n=sample_size, random_state=42)
+    sampled_df = df.sample(n=sample_size, random_state=42).sort_values(by=[df.columns[0], df.columns[1]])
 
-    # Create backward edges by swapping source and destination
-    reversed_df = sampled_df[[df.columns[1], df.columns[0]]]
-    reversed_df.columns = df.columns  # Keep the same column names
-
-    # Combine original and reversed edges
-    bidirectional_df = pd.concat([sampled_df, reversed_df]).sort_values(by=[df.columns[0], df.columns[1]])
-
-    # Save bidirectional edges
+    # Save sampled edges
     filename_wo_ext = os.path.splitext(input_path)[0]
-    bidir_filename = f"{filename_wo_ext}_sampled_{int(percentage)}_prcnt.csv"
-    bidirectional_df.to_csv(bidir_filename, sep='|', index=False)
+    sampled_filename = f"{filename_wo_ext}_sampled_{int(percentage)}_prcnt.csv"
+    sampled_df.to_csv(sampled_filename, sep='|', index=False)
 
-    print(f"Bidirectional sampled file saved to: {bidir_filename}")
+    # Create backward edges by swapping columns
+    reversed_df = sampled_df[[df.columns[1], df.columns[0]]]
+    reversed_df.columns = df.columns  # Rename back to original header style
+    reversed_df = reversed_df.sort_values(by=[reversed_df.columns[0], reversed_df.columns[1]])
+    reversed_filename = f"{filename_wo_ext}_sampled_{int(percentage)}_prcnt.csv.backward"
+    reversed_df.to_csv(reversed_filename, sep='|', index=False)
+
+    print(f"Sampled file saved to: {sampled_filename}")
+    print(f"Backward file saved to: {reversed_filename}")
 
 if __name__ == "__main__":
     main()

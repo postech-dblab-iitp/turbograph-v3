@@ -23,7 +23,7 @@
 #include "gpos/types.h"
 #include "gpos/utils.h"
 
-#ifndef ENABLE_SANITIZER_FLAG
+#if defined(ENABLE_TCMALLOC_FLAG) && !defined(ENABLE_SANITIZER_FLAG)
 	#include <gperftools/tcmalloc.h>
 #endif
 
@@ -83,10 +83,10 @@ CMemoryPoolTracker::NewImpl(const ULONG bytes, const CHAR *file,
 
 	ULONG alloc_size = GPOS_MEM_BYTES_TOTAL(bytes);
 
-#ifdef ENABLE_SANITIZER_FLAG
-	void *ptr = clib::Malloc(alloc_size);
-#else
+#if defined(ENABLE_TCMALLOC_FLAG) && !defined(ENABLE_SANITIZER_FLAG)
 	void *ptr = tc_malloc(alloc_size);
+#else
+	void *ptr = clib::Malloc(alloc_size);
 #endif
 
 	// check if allocation failed

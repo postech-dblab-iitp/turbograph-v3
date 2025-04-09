@@ -208,7 +208,9 @@ void OperatorProfiler::EndOperator(DataChunk *chunk) {
 	// finish timing for the current element
 	op.End();
 
-	AddTiming(active_operator, op.Elapsed(), chunk ? chunk->size() : 0);
+	auto time = op.Elapsed() - active_operator->time_to_exclude;
+
+	AddTiming(active_operator, time, chunk ? chunk->size() : 0);
 	active_operator = nullptr;
 }
 

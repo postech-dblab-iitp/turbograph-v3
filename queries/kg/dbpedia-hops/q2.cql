@@ -1,11 +1,12 @@
-MATCH (n0)-[:`ONE_PRCNT`]->(n1)<-[:`ONE_PRCNT`]-(n2) 
+MATCH (n0)-[:`THREE_TEN_PRCNT`]->(n1)-[:`POINT_FIVE_PRCNT`]->(n2) 
 RETURN 
-COUNT(n0.`http://dbpedia.org/property/lowusage`), 
-COUNT(n0.`http://dbpedia.org/property/stations`),
-COUNT(n0.`http://dbpedia.org/ontology/impactFactorAsOf`), 
-COUNT(n1.`http://dbpedia.org/property/athletesParticipating`), 
-COUNT(n1.`http://dbpedia.org/property/popularVote`), 
-COUNT(n1.`http://dbpedia.org/ontology/compressionRatio`), 
-COUNT(n2.`http://dbpedia.org/property/weight_lb__`), 
-COUNT(n2.`http://dbpedia.org/property/shireCounty`), 
-COUNT(n2.`http://dbpedia.org/property/ranking`);
+COUNT(n1.`http://dbpedia.org/property/ceeb`), 
+COUNT(n1.`http://dbpedia.org/property/twin7Country`), 
+COUNT(n1.`http://dbpedia.org/property/venue`), 
+COUNT(n1.`http://dbpedia.org/property/mainSettlement`), 
+COUNT(n1.`http://dbpedia.org/property/minister1Name`), 
+COUNT(n2.`http://dbpedia.org/property/goldenbauhiniaawards`), 
+COUNT(n2.`http://dbpedia.org/property/inaugurationDate`), 
+COUNT(n2.`http://dbpedia.org/property/voicedBy`), 
+COUNT(n2.`http://dbpedia.org/property/imageBathymetry`), 
+COUNT(n2.`http://dbpedia.org/property/aka`);
