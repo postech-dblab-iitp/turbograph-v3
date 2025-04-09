@@ -84,7 +84,7 @@ public:
     };
 
     const ClusterAlgorithmType cluster_algo_type = ClusterAlgorithmType::AGGLOMERATIVE;
-    const CostModel cost_model = CostModel::JACCARD;
+    const CostModel cost_model = CostModel::OURS;
     const LayeringOrder layering_order = LayeringOrder::DESCENDING;
     const MergeInAdvance merge_in_advance = MergeInAdvance::IN_QUERY_TIME;
 /*******************/

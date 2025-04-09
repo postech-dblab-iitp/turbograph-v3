@@ -867,6 +867,7 @@ void ReadFwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files
 
 		string &edge_type = std::get<0>(edge_file);
 		string &edge_file_path = std::get<1>(edge_file);
+		OptionalFileSize &file_size = std::get<2>(edge_file);
 
 		spdlog::info("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] Start to load {} with edge type {}", edge_file_path, edge_type);
 
@@ -886,7 +887,10 @@ void ReadFwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files
 
 		spdlog::debug("[ReadFwdEdgeCSVFilesAndCreateEdgeExtents] InitCSVFile");
 		SUBTIMER_START(ReadSingleEdgeCSVFile, "InitCSVFile");
-		size_t approximated_num_rows = reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|');
+		size_t approximated_num_rows = 
+			file_size.has_value() ? 
+			reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|', file_size.value()) : 
+			reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|');
 		if (!reader.GetSchemaFromHeader(key_names, types)) { throw InvalidInputException("Invalid Schema Information"); }
 		reader.GetSrcColumnInfo(src_column_idx, src_vertex_label);
 		reader.GetDstColumnInfo(dst_column_idx, dst_vertex_label);
@@ -1103,6 +1107,7 @@ void ReadBwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files
 
 		string &edge_type = std::get<0>(edge_file);
 		string &edge_file_path = std::get<1>(edge_file);
+		OptionalFileSize &file_size = std::get<2>(edge_file);
 
 		spdlog::info("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] Start to load {} with edge type {}", edge_file_path, edge_type);
 
@@ -1121,7 +1126,9 @@ void ReadBwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files
 
 		spdlog::debug("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] InitCSVFile");
 		SUBTIMER_START(ReadSingleEdgeCSVFile, "InitCSVFile");
-		reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|');
+		file_size.has_value() ?
+			reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|', file_size.value()) :
+			reader.InitCSVFile(edge_file_path.c_str(), GraphComponentType::EDGE, '|');
 		if (!reader.GetSchemaFromHeader(key_names, types)) { throw InvalidInputException("Invalid Schema Information"); }
 		reader.GetDstColumnInfo(src_column_idx, src_vertex_label); // Reverse
 		reader.GetSrcColumnInfo(dst_column_idx, dst_vertex_label); // Reverse
@@ -1349,28 +1356,49 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
 
 			options.vertex_files.emplace_back(label, file, file_size);
 		}
-
-		// print 
-		for (const auto& file : options.vertex_files) {
-			spdlog::info("[ParseConfig] Load Vertex File: {} : {}, size: {}", std::get<0>(file), std::get<1>(file), std::get<2>(file).has_value() ? std::to_string(std::get<2>(file).value()) : "N/A");
-		}
 	}
 
-    if (vm.count("relationships")) {
-        auto relationships = vm["relationships"].as<std::vector<std::string>>();
-        for (size_t i = 0; i + 1 < relationships.size(); i += 2) {
-            options.edge_files.emplace_back(relationships[i], relationships[i + 1], std::nullopt); 
-        }
-        options.load_edge = true;
-    }
+	if (vm.count("relationships")) {
+		auto relationships = vm["relationships"].as<std::vector<std::string>>();
+		size_t i = 0;
+		while (i < relationships.size()) {
+			std::string label = relationships[i];
+			std::string file = relationships[i + 1];
+			std::optional<FileSize> file_size;
 
-    if (vm.count("relationships_backward")) {
-        auto relationships_backward = vm["relationships_backward"].as<std::vector<std::string>>();
-        for (size_t i = 0; i + 1 < relationships_backward.size(); i += 2) {
-            options.edge_files_backward.emplace_back(relationships_backward[i], relationships_backward[i + 1], std::nullopt);
-        }
-        options.load_backward_edge = true;
-    }
+			// Check if the next token looks like a number
+			if (i + 2 < relationships.size() && std::all_of(relationships[i + 2].begin(), relationships[i + 2].end(), ::isdigit)) {
+				file_size = std::stoull(relationships[i + 2]);
+				i += 3;
+			} else {
+				i += 2;
+			}
+
+			options.edge_files.emplace_back(label, file, file_size);
+		}
+		options.load_edge = true;
+	}
+
+	if (vm.count("relationships_backward")) {
+		auto relationships_backward = vm["relationships_backward"].as<std::vector<std::string>>();
+		size_t i = 0;
+		while (i < relationships_backward.size()) {
+			std::string label = relationships_backward[i];
+			std::string file = relationships_backward[i + 1];
+			std::optional<FileSize> file_size;
+
+			if (i + 2 < relationships_backward.size() &&
+				std::all_of(relationships_backward[i + 2].begin(), relationships_backward[i + 2].end(), ::isdigit)) {
+				file_size = std::stoull(relationships_backward[i + 2]);
+				i += 3;
+			} else {
+				i += 2;
+			}
+
+			options.edge_files_backward.emplace_back(label, file, file_size);
+		}
+		options.load_backward_edge = true;
+	}
 
     if (vm.count("output_dir")) {
         options.output_dir = vm["output_dir"].as<std::string>();

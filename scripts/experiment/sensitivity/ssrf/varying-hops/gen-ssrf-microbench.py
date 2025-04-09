@@ -11,30 +11,28 @@ mpl.rcParams['lines.markersize'] = 7
 # Get input folder from command-line
 folder_path = sys.argv[1]
 
-# Method folders and filename tags
+# File names per method
 methods = {
-    'SS': 'SS',
-    'US': 'UNION',
-    'SSRF': 'SSRF'
+    'SS': 'ss.csv',
+    'US': 'us.csv',
+    'SSRF': 'ssrf.csv'
 }
 
-# Number of hops to process
-num_hops = 5
-
 # Collected data per method
-hop_counts = list(range(1, num_hops + 1))
-join_data = {method: [] for method in methods}
-agg_data = {method: [] for method in methods}
+join_data = {}
+agg_data = {}
+hop_counts = None  # We'll get this from the CSVs
 
 # Load data
-for method_key, file_tag in methods.items():
-    for hop in hop_counts:
-        file_path = os.path.join(folder_path, method_key, f'format_{hop}hops_{file_tag}.csv')
-        df = pd.read_csv(file_path)
-        join_time = pd.to_numeric(df['JoinTime'].iloc[0], errors='coerce')
-        agg_time = pd.to_numeric(df['AggTime'].iloc[0], errors='coerce')
-        join_data[method_key].append(join_time)
-        agg_data[method_key].append(agg_time)
+for method_key, filename in methods.items():
+    file_path = os.path.join(folder_path, filename)
+    df = pd.read_csv(file_path)
+
+    if hop_counts is None:
+        hop_counts = df['Hops'].tolist()
+
+    join_data[method_key] = pd.to_numeric(df['JoinTime'], errors='coerce').tolist()
+    agg_data[method_key] = pd.to_numeric(df['AggTime'], errors='coerce').tolist()
 
 # Plotting
 fig, ax = plt.subplots(figsize=(5, 3.5))
@@ -65,7 +63,7 @@ for method in methods:
             color=method_colors[method],
             marker=markers[method],
             linestyle=join_style)
-    
+
     ax.plot(hop_counts, agg_data[method],
             label=f'{method} Agg',
             color=method_colors[method],

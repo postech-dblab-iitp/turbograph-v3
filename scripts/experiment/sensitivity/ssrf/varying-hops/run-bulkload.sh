@@ -45,7 +45,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
             cd /turbograph-v3/build-release && ninja
 
             source_dir="${source_dir_base}"
-            target_dir="${target_dir_base}/bhops_asic_${cluster_algo}_${cost_model}_${layering_order}"
+            target_dir="${target_dir_base}/hops_${cluster_algo}_${cost_model}_${layering_order}"
 
             /turbograph-v3/build-release/tools/store 500GB &
             sleep 15
@@ -58,13 +58,12 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                 --output_dir ${target_dir} \
                 --nodes NODE ${source_dir}/nodes.json \
                 --relationships ONE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_1_prcnt.csv \
-                --relationships_backward ONE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_1_prcnt.csv.backward \
                 --relationships THREE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_3_prcnt.csv \
-                --relationships_backward THREE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_3_prcnt.csv.backward \
                 --relationships FIVE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_5_prcnt.csv \
-                --relationships_backward FIVE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_5_prcnt.csv.backward \
                 --relationships TEN_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_10_prcnt.csv \
-                --relationships_backward TEN_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_10_prcnt.csv.backward &> ${log_file}
+                --relationships TWO_TEN_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_20_prcnt.csv \
+                --relationships THREE_TEN_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_30_prcnt.csv \
+                --relationships FIVE_TEN_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_50_prcnt.csv &> ${log_file}
 
             pkill -f store
             sleep 5

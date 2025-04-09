@@ -24,7 +24,7 @@ static const int NUM_EQUI  = 0;  // Number of equality filter queries
 static const int NUM_RANGE = 0;  // Number of range filter queries
 static const int NUM_AGG   = 0;  // Number of aggregation queries
 static const int NUM_JOINS = 5;  // Number of join queries
-static const int NUM_COLUMNS_PER_JOIN = 3; // Number of columns to select in a join query
+static const int NUM_COLUMNS_PER_JOIN = 5; // Number of columns to select in a join query
 static const bool AGG_AFTER_JOIN = true;
 
 // -----------------------------------------------------------------------
@@ -518,7 +518,7 @@ int main(int argc, char** argv) {
         if (!allProps.empty()) {
             for (int hop = 1; hop <= NUM_JOINS; hop++) {
                 std::string match = "MATCH ";
-                std::string returnClause = "RETURN ";
+                std::string returnClause = "RETURN \n";
                 std::vector<std::string> nodeAliases;
 
                 // Build the MATCH chain
@@ -553,7 +553,7 @@ int main(int argc, char** argv) {
                 if (AGG_AFTER_JOIN) {
                     int numAgg = projectedProps.size();
                     for (size_t i = 0; i < projectedProps.size(); ++i) {
-                        if (i > 0) returnClause += ", ";
+                        if (i > 0) returnClause += ", \n";
                         if ((int)i < numAgg)
                             returnClause += "COUNT(" + projectedProps[i] + ")";
                         else
@@ -561,12 +561,12 @@ int main(int argc, char** argv) {
                     }
                 } else {
                     for (size_t i = 0; i < projectedProps.size(); ++i) {
-                        if (i > 0) returnClause += ", ";
+                        if (i > 0) returnClause += ", \n";
                         returnClause += projectedProps[i];
                     }
                 }
 
-                queries.push_back(match + " " + returnClause);
+                queries.push_back(match + "\n" + returnClause);
             }
         }
     }

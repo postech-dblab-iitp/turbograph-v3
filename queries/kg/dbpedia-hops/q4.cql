@@ -1,1 +1,17 @@
-MATCH (n0)-[:`ONE_PRCNT`]->(n1)-[:`TEN_PRCNT`]->(n2)<-[:`ONE_PRCNT`]-(n3)-[:`ONE_PRCNT`]->(n4) RETURN COUNT(n0.`http://dbpedia.org/ontology/numberOfSilverMedalsWon`), COUNT(n0.`http://dbpedia.org/property/nativeNameLang`), COUNT(n0.`http://dbpedia.org/property/nationalAnthem`), COUNT(n1.`http://dbpedia.org/property/popEstAsOf`), COUNT(n1.`http://dbpedia.org/ontology/status`), COUNT(n1.`http://dbpedia.org/property/ambassadorFrom`), COUNT(n2.`http://dbpedia.org/property/temperatureHighC`), COUNT(n2.`http://dbpedia.org/property/shireCounty`), COUNT(n2.`http://dbpedia.org/property/mmUniprot`), COUNT(n3.`http://dbpedia.org/ontology/geneLocationStart`), COUNT(n3.`http://dbpedia.org/property/ratio`), COUNT(n3.`http://dbpedia.org/property/shortDescription`), COUNT(n4.`http://dbpedia.org/ontology/distanceToEdinburgh`), COUNT(n4.`http://dbpedia.org/property/mouthRegion`), COUNT(n4.`http://dbpedia.org/property/fees`);
+MATCH (n0)-[:`THREE_PRCNT`]->(n1)-[:`THREE_PRCNT`]->(n2)<-[:`ONE_PRCNT`]-(n3)-[:`TEN_PRCNT`]->(n4) 
+RETURN 
+COUNT(n0.`http://dbpedia.org/ontology/numberOfSilverMedalsWon`), 
+COUNT(n0.`http://dbpedia.org/property/nativeNameLang`), 
+COUNT(n0.`http://dbpedia.org/property/nationalAnthem`), 
+COUNT(n1.`http://dbpedia.org/property/popEstAsOf`), 
+COUNT(n1.`http://dbpedia.org/ontology/status`), 
+COUNT(n1.`http://dbpedia.org/property/ambassadorFrom`), 
+COUNT(n2.`http://dbpedia.org/property/temperatureHighC`), 
+COUNT(n2.`http://dbpedia.org/property/shireCounty`), 
+COUNT(n2.`http://dbpedia.org/property/mmUniprot`), 
+COUNT(n3.`http://dbpedia.org/ontology/geneLocationStart`), 
+COUNT(n3.`http://dbpedia.org/property/ratio`), 
+COUNT(n3.`http://dbpedia.org/property/shortDescription`), 
+COUNT(n4.`http://dbpedia.org/ontology/distanceToEdinburgh`), 
+COUNT(n4.`http://dbpedia.org/property/mouthRegion`), 
+COUNT(n4.`http://dbpedia.org/property/fees`);

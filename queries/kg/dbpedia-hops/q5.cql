@@ -1,1 +1,41 @@
-MATCH (n0)-[:`TEN_PRCNT`]->(n1)-[:`TEN_PRCNT`]->(n2)<-[:`ONE_PRCNT`]-(n3)-[:`TEN_PRCNT`]->(n4)-[:`TEN_PRCNT`]->(n5) RETURN COUNT(n0.`http://dbpedia.org/property/yearEnd`), COUNT(n0.`http://dbpedia.org/ontology/modelStartYear`), COUNT(n0.`http://dbpedia.org/property/damages`), COUNT(n1.`http://dbpedia.org/property/nationalyears`), COUNT(n1.`http://dbpedia.org/ontology/militaryCommand`), COUNT(n1.`http://dbpedia.org/property/march`), COUNT(n2.`http://dbpedia.org/property/coachyear1start`), COUNT(n2.`http://dbpedia.org/property/sisterCollege`), COUNT(n2.`http://dbpedia.org/property/pseudonym`), COUNT(n3.`http://dbpedia.org/property/locations`), COUNT(n3.`http://dbpedia.org/property/chrtitle`), COUNT(n3.`http://dbpedia.org/property/position`), COUNT(n4.`http://dbpedia.org/property/passYear`), COUNT(n4.`http://dbpedia.org/ontology/widthQuote`), COUNT(n4.`http://dbpedia.org/ontology/configuration`), COUNT(n5.`http://dbpedia.org/ontology/distanceToCardiff`), COUNT(n5.`http://dbpedia.org/property/citizenship`), COUNT(n5.`http://dbpedia.org/ontology/spike`);
+MATCH (n0)-[:`TEN_PRCNT`]->(n1)-[:`TEN_PRCNT`]->(n2)-[:`ONE_PRCNT`]->(n3)<-[:`ONE_PRCNT`]-(n4)-[:`ONE_PRCNT`]->(n5) 
+RETURN 
+COUNT(n0.`http://dbpedia.org/property/yearEnd`), 
+COUNT(n0.`http://dbpedia.org/ontology/modelStartYear`), 
+COUNT(n0.`http://dbpedia.org/property/damages`), 
+COUNT(n1.`http://dbpedia.org/property/nationalyears`), 
+COUNT(n1.`http://dbpedia.org/ontology/militaryCommand`), 
+COUNT(n1.`http://dbpedia.org/property/march`), 
+COUNT(n2.`http://dbpedia.org/property/coachyear1start`), 
+COUNT(n2.`http://dbpedia.org/property/sisterCollege`), 
+COUNT(n2.`http://dbpedia.org/property/pseudonym`), 
+COUNT(n3.`http://dbpedia.org/property/locations`), 
+COUNT(n3.`http://dbpedia.org/property/chrtitle`),
+COUNT(n3.`http://dbpedia.org/property/position`), 
+COUNT(n4.`http://dbpedia.org/property/passYear`), 
+COUNT(n4.`http://dbpedia.org/ontology/widthQuote`), 
+COUNT(n4.`http://dbpedia.org/ontology/configuration`), 
+COUNT(n5.`http://dbpedia.org/ontology/distanceToCardiff`), 
+COUNT(n5.`http://dbpedia.org/property/citizenship`), 
+COUNT(n5.`http://dbpedia.org/ontology/spike`);
+
+MATCH (n0)-[:`TEN_PRCNT`]->(n1)-[:`TEN_PRCNT`]->(n2)<-[:`ONE_PRCNT`]-(n3)-[:`THREE_PRCNT`]->(n4)-[:`ONE_PRCNT`]->(n5) 
+RETURN 
+COUNT(n0.`http://dbpedia.org/property/yearEnd`), 
+COUNT(n0.`http://dbpedia.org/ontology/modelStartYear`), 
+COUNT(n0.`http://dbpedia.org/property/damages`), 
+COUNT(n1.`http://dbpedia.org/property/nationalyears`), 
+COUNT(n1.`http://dbpedia.org/ontology/militaryCommand`), 
+COUNT(n1.`http://dbpedia.org/property/march`), 
+COUNT(n2.`http://dbpedia.org/property/coachyear1start`), 
+COUNT(n2.`http://dbpedia.org/property/sisterCollege`), 
+COUNT(n2.`http://dbpedia.org/property/pseudonym`), 
+COUNT(n3.`http://dbpedia.org/property/locations`), 
+COUNT(n3.`http://dbpedia.org/property/chrtitle`),
+COUNT(n3.`http://dbpedia.org/property/position`),
+COUNT(n4.`http://dbpedia.org/property/passYear`), 
+COUNT(n4.`http://dbpedia.org/ontology/widthQuote`), 
+COUNT(n4.`http://dbpedia.org/ontology/configuration`),
+COUNT(n5.`http://dbpedia.org/ontology/distanceToCardiff`), 
+COUNT(n5.`http://dbpedia.org/property/citizenship`), 
+COUNT(n5.`http://dbpedia.org/ontology/spike`);
