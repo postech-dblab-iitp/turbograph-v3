@@ -39,11 +39,11 @@ void IsNullLoop(Vector &input, Vector &result, idx_t count) {
 			if (data.is_row) {
 				RowVectorData &row_data = data.row_data;
 				auto row_data_ptr = row_data.data;
-				auto rowcol_idx = row_data.rowcol_idx;
+				auto row_col_idx = row_data.row_col_idx;
 				for (idx_t i = 0; i < count; i++) {
 					auto idx = data.sel->get_index(i);
-					result_data[i] = INVERSE ? row_data_ptr[idx].HasCol(rowcol_idx) && data.validity.RowIsValid(idx)
-					                          : !row_data_ptr[idx].HasCol(rowcol_idx) || !data.validity.RowIsValid(idx);
+					result_data[i] = INVERSE ? row_data_ptr[idx].HasCol(row_col_idx) && data.validity.RowIsValid(idx)
+					                          : !row_data_ptr[idx].HasCol(row_col_idx) || !data.validity.RowIsValid(idx);
 				}
 			}
 			else {

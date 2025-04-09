@@ -22,8 +22,9 @@ namespace duckdb {
 
 struct RowVectorData {
 	rowcol_t *data;
-	int rowcol_idx;
+	idx_t row_col_idx;
 	char *row_store;
+	ValidityMask *schema_val_mask;
 };
 
 struct VectorData {
@@ -205,12 +206,20 @@ public:
 		return is_valid;
 	}
 
-	void SetRowColIdx(int rowcol_idx) {
-		this->rowcol_idx = rowcol_idx;
+	void SetSchemaValMaskPtr(schema_mask_ptr_t schema_mask_ptr) {
+		this->schema_mask_ptr = schema_mask_ptr;
+	}
+
+	inline ValidityMask* GetSchemaValMaskPtr(idx_t idx) const {
+		return &(*((vector<ValidityMask>*)schema_mask_ptr))[idx];
+	}
+
+	void SetRowColIdx(idx_t row_col_idx) {
+		this->row_col_idx = row_col_idx;
 	}
 
 	inline int GetRowColIdx() const {
-		return rowcol_idx;
+		return row_col_idx;
 	}
 
 	// Setters
@@ -232,8 +241,12 @@ protected:
 	//! e.g. a string vector uses this to store strings
 	buffer_ptr<VectorBuffer> auxiliary;
 	idx_t capacity;
+	//! High level validity check
 	bool is_valid = true;
-	int rowcol_idx = -1;
+	//! Schema val pointer for row vector
+	schema_mask_ptr_t schema_mask_ptr;
+	//! Corresponding row column index
+	idx_t row_col_idx = -1;
 };
 
 class VectorWithValidBitmap : public Vector {

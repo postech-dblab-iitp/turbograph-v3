@@ -175,7 +175,7 @@ void PhysicalAdjIdxJoin::IterateSourceVidsAndFillRHSOutput(
             case VectorType::ROW_VECTOR: {
                 rowcol_t *rowcol_arr =
                     FlatVector::GetData<rowcol_t>(src_vid_column_vector);
-                auto rowcol_idx = src_vid_column_vector.GetRowColIdx();
+                auto row_col_idx = src_vid_column_vector.GetRowColIdx();
                 char *row_ptr = src_vid_column_vector.GetRowMajorStore();
                 while (state.output_idx < STANDARD_VECTOR_SIZE &&
                        state.lhs_idx < input.size()) {
@@ -183,7 +183,7 @@ void PhysicalAdjIdxJoin::IterateSourceVidsAndFillRHSOutput(
                     auto base_offset = rowcol_arr[state.lhs_idx].offset;
                     PartialSchema *schema_ptr =
                         (PartialSchema *)rowcol_arr[state.lhs_idx].schema_ptr;
-                    auto offset = schema_ptr->getIthColOffset(rowcol_idx);
+                    auto offset = schema_ptr->getIthColOffset(row_col_idx);
 
                     // get vid
                     uint64_t src_vid;

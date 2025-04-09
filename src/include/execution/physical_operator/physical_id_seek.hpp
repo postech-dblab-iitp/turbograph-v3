@@ -166,6 +166,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     void buildExpressionExecutors(vector<vector<unique_ptr<Expression>>> &predicates);
     void markInvalidForColumnsToUnseek(DataChunk &chunk, vector<ExtentID> &target_eids, 
                                     vector<idx_t> &mapping_idxs) const;
+    void setupSchemaValidityMasks();
 
     inline bool isInnerColIdx(idx_t col_idx) const
     {
@@ -193,6 +194,7 @@ class PhysicalIdSeek : public CypherPhysicalOperator {
     vector<idx_t> outer_output_col_idxs;
     vector<vector<uint32_t>> inner_output_col_idxs;
     vector<PartialSchema> partial_schemas;
+    vector<ValidityMask> schema_validity_masks;
     mutable vector<ExtentID> target_eids;
     bool force_output_union = true;
     idx_t num_outer_schemas = 1;

@@ -32,6 +32,8 @@ struct CountStarFun {
 	static void RegisterFunction(BuiltinFunctions &set);
 };
 
+struct CountFunction;
+
 struct CountFun {
 	static AggregateFunction GetFunction();
 

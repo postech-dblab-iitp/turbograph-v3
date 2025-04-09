@@ -510,7 +510,7 @@ public:
     aligned_free((void*)p.data());
   }
 
-  size_t InitCSVFile(const char *csv_file_path, GraphComponentType type_, char delim) {
+  size_t InitCSVFile(const char *csv_file_path, GraphComponentType type_, char delim, size_t num_lines = 0) {
 #ifdef __AVX2__
     // fprintf(stdout, "AVX2 defined\n");
 #endif
@@ -536,7 +536,10 @@ public:
     // pcsv.indexes = new (std::nothrow) uint64_t[num_file_rows * (num_columns+1)]; // can't have more indexes than we have data
 
     // jhha: temporally disable num_file_rows
-    pcsv.indexes = new (std::nothrow) uint64_t[p.size()]; // can't have more indexes than we have data
+    if (num_lines == 0) 
+      pcsv.indexes = new (std::nothrow) uint64_t[p.size()]; // can't have more indexes than we have data
+    else
+      pcsv.indexes = new (std::nothrow) uint64_t[num_lines * (num_columns+1)]; // can't have more indexes than we have data
     
     if (pcsv.indexes == nullptr) {
       throw InvalidInputException("You are running out of memory.");

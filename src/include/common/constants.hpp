@@ -72,6 +72,9 @@ typedef uint8_t data_t;
 typedef data_t *data_ptr_t;
 typedef const data_t *const_data_ptr_t;
 
+//! Schema pointers
+typedef char *schema_mask_ptr_t;
+
 //! Type used for the selection vector
 typedef uint32_t sel_t;
 //! Type used for storage (column) identifiers

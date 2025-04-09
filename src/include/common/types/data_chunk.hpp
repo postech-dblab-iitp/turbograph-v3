@@ -114,7 +114,7 @@ public:
 	//! Initializes row columns
 	DUCKDB_API void InitializeRowColumn(const vector<uint32_t> &columns_to_be_grouped, idx_t capacity_ = STANDARD_VECTOR_SIZE);
 	//! Initializes row major store
-	DUCKDB_API void CreateRowMajorStore(const vector<uint32_t> &columns_to_be_grouped, uint64_t row_store_size);
+	DUCKDB_API void CreateRowMajorStore(const vector<uint32_t> &columns_to_be_grouped, uint64_t row_store_size, schema_mask_ptr_t schema_mask_ptr);
 	//! Assign row major store
 	DUCKDB_API void AssignRowMajorStore(const vector<uint32_t> &columns_to_be_grouped, buffer_ptr<VectorBuffer> buffer);
 	//! Get row major store

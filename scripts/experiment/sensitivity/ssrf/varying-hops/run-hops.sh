@@ -11,7 +11,7 @@ log_dir_base="/turbograph-v3/logs"
 
 # Input parameters
 queries_base_path="/turbograph-v3/queries/kg/dbpedia-hops/"
-query_numbers="1;2"
+query_numbers="1-4"
 
 # Function to update the configuration file with new values
 update_config_file() {
@@ -69,7 +69,7 @@ for format in "${formats[@]}"; do
         query_str=$(cat "$query_file")
 
         # Setup
-        target_dir="${target_dir_base}/dbpedia_AGGLOMERATIVE_OURS_DESCENDING"
+        target_dir="${target_dir_base}/hops_AGGLOMERATIVE_OURS_DESCENDING"
         log_file="${log_dir}/format_Q${query_num}_${format}.txt"
 
         # Run query
@@ -80,7 +80,7 @@ for format in "${formats[@]}"; do
             --workspace ${target_dir} \
             --query "${query_str}" \
             --disable-merge-join \
-            --iterations 3 \
+            --iterations 1 \
             --join-order-optimizer exhaustive \
             --profile \
             --warmup)

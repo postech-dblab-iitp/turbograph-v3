@@ -20,7 +20,7 @@
 #include "planner/expression.hpp"
 #include "planner/expression/bound_conjunction_expression.hpp"
 
-static bool unionall_forced = true;
+static bool unionall_forced = false;
 
 namespace duckdb {
 
@@ -104,6 +104,7 @@ PhysicalIdSeek::PhysicalIdSeek(Schema &sch, uint64_t id_col_idx,
     getUnionScanTypes();
     generateOutputColIdxsForOuter();
     generateOutputColIdxsForInner();
+    setupSchemaValidityMasks();
 
     target_eids.reserve(INITIAL_EXTENT_ID_SPACE);
     num_tuples_per_schema.resize(num_total_schemas, 0);
@@ -153,6 +154,7 @@ PhysicalIdSeek::PhysicalIdSeek(
     getUnionScanTypes();
     generateOutputColIdxsForOuter();
     generateOutputColIdxsForInner();
+    setupSchemaValidityMasks();
 
     target_eids.reserve(INITIAL_EXTENT_ID_SPACE);
     num_tuples_per_schema.resize(num_total_schemas, 0);
@@ -474,18 +476,22 @@ void PhysicalIdSeek::doSeekSchemaless(
 
             chunk.InitializeRowColumn(union_inner_col_map_wo_id, input.size());
             Vector &rowcol = chunk.data[union_inner_col_map_wo_id[0]];
-            rowcol_t *rowcol_arr = (rowcol_t *)rowcol.GetData();
 
+            rowcol_t *rowcol_arr = (rowcol_t *)rowcol.GetData();
             for (u_int64_t extentIdx = 0; extentIdx < target_eids.size();
                  extentIdx++) {
                 for (idx_t i = 0;
                      i < target_seqnos_per_extent[extentIdx].size(); i++) {
+                    idx_t schema_idx = mapping_idxs[extentIdx];
+                    idx_t row_data_seqno = target_seqnos_per_extent[extentIdx][i];
                     PartialSchema *schema_ptr =
                         (PartialSchema
-                             *)(&partial_schemas[mapping_idxs[extentIdx]]);
-                    rowcol_arr[target_seqnos_per_extent[extentIdx][i]]
+                             *)(&partial_schemas[schema_idx]);
+                    rowcol_arr[row_data_seqno]
                         .schema_ptr = (char *)schema_ptr;
-                    rowcol_arr[target_seqnos_per_extent[extentIdx][i]].offset =
+                    rowcol_arr[row_data_seqno].schema_idx
+                        = schema_idx;
+                    rowcol_arr[row_data_seqno].offset =
                         schema_ptr->getStoredTypesSize();
                 }
             }
@@ -496,7 +502,9 @@ void PhysicalIdSeek::doSeekSchemaless(
                 for (idx_t i = 0;
                      i < target_seqnos_per_extent[extentIdx].size(); i++) {
                     rowcol_arr[target_seqnos_per_extent[extentIdx][i]]
-                        .schema_ptr = (char *)&EMPTY_PARTIAL_SCHEMA;
+                        .schema_ptr = (char *)&partial_schemas[partial_schemas.size() - 1];
+                    rowcol_arr[target_seqnos_per_extent[extentIdx][i]].schema_idx 
+                        = partial_schemas.size() - 1;
                     rowcol_arr[target_seqnos_per_extent[extentIdx][i]].offset = 0;
                 }
             }
@@ -508,7 +516,7 @@ void PhysicalIdSeek::doSeekSchemaless(
                 accm_offset += total_types_size;
             }
             try {
-                chunk.CreateRowMajorStore(union_inner_col_map_wo_id, accm_offset);
+                chunk.CreateRowMajorStore(union_inner_col_map_wo_id, accm_offset, (schema_mask_ptr_t)&schema_validity_masks);
             }
             catch (const std::exception &e) {
                 std::cerr << e.what() << '\n';
@@ -856,6 +864,16 @@ OperatorResultType PhysicalIdSeek::referInputChunksLeft(
     }
 }
 
+void PhysicalIdSeek::setupSchemaValidityMasks() {
+    for (size_t i = 0; i < union_inner_col_map_wo_id.size(); i++) {
+        schema_validity_masks.push_back(ValidityMask(partial_schemas.size()));
+        auto &mask = schema_validity_masks.back();
+        for (size_t j = 0; j < partial_schemas.size(); j++) {
+            mask.Set(j, partial_schemas[j].hasIthCol(i));
+        }
+    }
+}
+
 void PhysicalIdSeek::generatePartialSchemaInfos()
 {
     auto &union_types = this->schema.getStoredTypesRef();
@@ -909,6 +927,7 @@ void PhysicalIdSeek::generatePartialSchemaInfos()
         }
         partial_schemas[i].stored_types_size = accumulated_offset;
     }
+    partial_schemas.push_back(PartialSchema()); // empty schema for pruned
 }
 
 void PhysicalIdSeek::getOutputTypesForFilteredSeek(
@@ -1154,7 +1173,6 @@ void PhysicalIdSeek::markInvalidForUnseekedValues(
     vector<vector<uint32_t>> &target_seqnos_per_extent,
     vector<idx_t> &mapping_idxs) const
 {
-    static size_t num_nulls_added = 0;
     for (u_int64_t extentIdx = 0; extentIdx < target_eids.size(); extentIdx++) {
         vector<idx_t> inner_output_col_idx;
         getOutputColIdxsForInner(extentIdx, mapping_idxs, inner_output_col_idx);

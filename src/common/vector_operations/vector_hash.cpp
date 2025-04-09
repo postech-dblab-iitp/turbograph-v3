@@ -60,14 +60,14 @@ static inline void TightLoopHashRow(RowVectorData& row_data, hash_t *__restrict 
 		}
 	} else {
 		auto ldata = row_data.data;
-		auto rowcol_idx = row_data.rowcol_idx;
+		auto row_col_idx = row_data.row_col_idx;
 		auto row_store = row_data.row_store;
 
 		for (idx_t i = 0; i < count; i++) {
 			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
 			auto idx = sel_vector->get_index(ridx);
 			idx_t offset;
-			bool is_non_null = ldata[idx].GetColOffset(rowcol_idx, offset);
+			bool is_non_null = ldata[idx].GetColOffset(row_col_idx, offset);
 			result_data[ridx]
 				= HashOp::Operation(*reinterpret_cast<T *>(row_store + offset), !is_non_null);
 		}
@@ -318,14 +318,14 @@ static inline void TightLoopCombineHashConstantRow(RowVectorData& row_data, hash
 		}
 	} else {
 		auto ldata = row_data.data;
-		auto rowcol_idx = row_data.rowcol_idx;
+		auto row_col_idx = row_data.row_col_idx;
 		auto row_store = row_data.row_store;
 
 		for (idx_t i = 0; i < count; i++) {
 			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
 			auto idx = sel_vector->get_index(ridx);
 			idx_t offset;
-			bool is_non_null = ldata[idx].GetColOffset(rowcol_idx, offset);
+			bool is_non_null = ldata[idx].GetColOffset(row_col_idx, offset);
 			auto other_hash = HashOp::Operation(*reinterpret_cast<T *>(row_store + offset), !is_non_null);
 			hash_data[ridx] = CombineHashScalar(constant_hash, other_hash);
 		}
@@ -343,14 +343,14 @@ static inline void TightLoopCombineHashRow(RowVectorData& row_data, hash_t *__re
 		}
 	} else {
 		auto ldata = row_data.data;
-		auto rowcol_idx = row_data.rowcol_idx;
+		auto row_col_idx = row_data.row_col_idx;
 		auto row_store = row_data.row_store;
 
 		for (idx_t i = 0; i < count; i++) {
 			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
 			auto idx = sel_vector->get_index(ridx);
 			idx_t offset;
-			bool is_non_null = ldata[idx].GetColOffset(rowcol_idx, offset);
+			bool is_non_null = ldata[idx].GetColOffset(row_col_idx, offset);
 			auto other_hash = HashOp::Operation(*reinterpret_cast<T *>(row_store + offset), !is_non_null);
 			hash_data[ridx] = CombineHashScalar(hash_data[ridx], other_hash);
 		}

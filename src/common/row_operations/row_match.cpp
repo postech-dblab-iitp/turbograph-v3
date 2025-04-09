@@ -86,7 +86,7 @@ static void TemplatedMatchTypeRow(VectorData &col, Vector &rows, SelectionVector
 	} else {
 		RowVectorData &row_data = col.row_data;
 		auto data = row_data.data;
-		auto rowcol_idx = row_data.rowcol_idx;
+		auto row_col_idx = row_data.row_col_idx;
 		auto row_store = row_data.row_store;
 
 		for (idx_t i = 0; i < count; i++) {
@@ -99,7 +99,7 @@ static void TemplatedMatchTypeRow(VectorData &col, Vector &rows, SelectionVector
 			auto col_idx = col.sel->get_index(idx);
 			idx_t value_offset;
 
-			if (!data[col_idx].GetColOffset(rowcol_idx, value_offset)) {
+			if (!data[col_idx].GetColOffset(row_col_idx, value_offset)) {
 				if (isnull) {
 					// match: move to next value to compare
 					sel.set_index(match_count++, idx);

@@ -24,7 +24,7 @@ static const int NUM_EQUI  = 0;  // Number of equality filter queries
 static const int NUM_RANGE = 0;  // Number of range filter queries
 static const int NUM_AGG   = 0;  // Number of aggregation queries
 static const int NUM_JOINS = 5;  // Number of join queries
-static const int NUM_COLUMNS_PER_JOIN = 5; // Number of columns to select in a join query
+static const int NUM_COLUMNS_PER_JOIN = 3; // Number of columns to select in a join query
 static const bool AGG_AFTER_JOIN = true;
 
 // -----------------------------------------------------------------------
@@ -509,7 +509,7 @@ int main(int argc, char** argv) {
     //    - Generate paths with 1 to NUM_JOINS hops
     //    - Each node returns NUM_COLUMNS_PER_JOIN properties (if available)
     {
-        std::string redirectEdge = "http://www.w3.org/2002/07/owl#sameAs";
+        std::string redirectEdge = "TEN_PRCNT";
 
         // Combine all properties for selection
         std::vector<std::string> allProps = numericProps;

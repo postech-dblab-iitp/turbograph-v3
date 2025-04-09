@@ -161,7 +161,7 @@ void DataChunk::InitializeRowColumn(const vector<uint32_t> &columns_to_be_groupe
 	row_vector_caches.push_back(move(cache));
 }
 
-void DataChunk::CreateRowMajorStore(const vector<uint32_t> &columns_to_be_grouped, uint64_t row_store_size) {
+void DataChunk::CreateRowMajorStore(const vector<uint32_t> &columns_to_be_grouped, uint64_t row_store_size, schema_mask_ptr_t schema_mask_ptr) {
 	// TODO optimize this code by avoiding dynamic memory allocation?
 	auto row_store = make_buffer<VectorRowStoreBuffer>();
 	row_store->Reserve(row_store_size);
@@ -169,6 +169,7 @@ void DataChunk::CreateRowMajorStore(const vector<uint32_t> &columns_to_be_groupe
 		D_ASSERT(columns_to_be_grouped[i] < data.size());
 		data[columns_to_be_grouped[i]].AssignRowMajorStore(row_store);
 		data[columns_to_be_grouped[i]].SetRowColIdx(i);
+		data[columns_to_be_grouped[i]].SetSchemaValMaskPtr(schema_mask_ptr);
 	}
 }
 

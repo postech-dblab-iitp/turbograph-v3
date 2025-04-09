@@ -39,7 +39,7 @@ static void TemplatedScatterRow(VectorData &col, Vector &rows, const SelectionVe
 	} else {
 		RowVectorData &row_data = col.row_data;
 		auto data = row_data.data;
-		auto rowcol_idx = row_data.rowcol_idx;
+		auto row_col_idx = row_data.row_col_idx;
 		auto row_store = row_data.row_store;
 
 		for (idx_t i = 0; i < count; i++) {
@@ -47,7 +47,7 @@ static void TemplatedScatterRow(VectorData &col, Vector &rows, const SelectionVe
 			auto col_idx = col.sel->get_index(idx);
 			auto row = ptrs[idx];
 			idx_t value_offset;
-			bool is_non_null = data[col_idx].GetColOffset(rowcol_idx, value_offset);
+			bool is_non_null = data[col_idx].GetColOffset(row_col_idx, value_offset);
 			T store_value = !is_non_null ?
 				NullValue<T>() : *reinterpret_cast<T *>(row_store + value_offset);
 			Store<T>(store_value, row + col_offset);
@@ -116,14 +116,14 @@ static void ComputeStringEntrySizes(const VectorData &col, idx_t entry_sizes[], 
 		if (col.is_row) {
 			const RowVectorData &row_data = col.row_data;
 			auto data = row_data.data;
-			auto rowcol_idx = row_data.rowcol_idx;
+			auto row_col_idx = row_data.row_col_idx;
 			auto row_store = row_data.row_store;
 
 			for (idx_t i = 0; i < count; i++) {
 				auto idx = sel.get_index(i);
 				auto col_idx = col.sel->get_index(idx) + offset;
 				idx_t value_offset;
-				bool is_non_null = data[col_idx].GetColOffset(rowcol_idx, value_offset);
+				bool is_non_null = data[col_idx].GetColOffset(row_col_idx, value_offset);
 				if (is_non_null) {
 					const auto &str = *(string_t *)(row_store + value_offset);
 					if (!str.IsInlined()) {
@@ -161,7 +161,7 @@ static void ScatterStringVectorRow(VectorData &col, Vector &rows, data_ptr_t str
 	} else {
 		RowVectorData &row_data = col.row_data;
 		auto data = row_data.data;
-		auto rowcol_idx = row_data.rowcol_idx;
+		auto row_col_idx = row_data.row_col_idx;
 		auto row_store = row_data.row_store;
 
 		for (idx_t i = 0; i < count; i++) {
@@ -170,7 +170,7 @@ static void ScatterStringVectorRow(VectorData &col, Vector &rows, data_ptr_t str
 			auto row = ptrs[idx];
 
 			idx_t value_offset;
-			bool is_non_null = data[col_idx].GetColOffset(rowcol_idx, value_offset);
+			bool is_non_null = data[col_idx].GetColOffset(row_col_idx, value_offset);
 			auto &str = *(string_t *)(row_store + value_offset);
 
 			if (!is_non_null || !col.is_valid) {

@@ -4,6 +4,7 @@
 #include <boost/date_time.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
+#include <optional>
 #include "nlohmann/json.hpp"
 #include "main/database.hpp"
 #include "main/client_context.hpp"
@@ -37,7 +38,9 @@ namespace po = boost::program_options;
 namespace fs = std::filesystem;
 
 typedef string FilePath;
-typedef std::tuple<Labels, FilePath> LabeledFile;
+typedef size_t FileSize;
+typedef std::optional<FileSize> OptionalFileSize;
+typedef std::tuple<Labels, FilePath, OptionalFileSize> LabeledFile;
 typedef std::pair<idx_t, idx_t> LidPair;
 
 struct InputOptions {
@@ -628,6 +631,7 @@ void ReadVertexCSVFileAndCreateVertexExtents(vector<LabeledFile> &csv_vertex_fil
 
 		string &vertex_labelset = std::get<0>(vertex_file);
 		string &vertex_file_path = std::get<1>(vertex_file);
+		OptionalFileSize &file_size = std::get<2>(vertex_file);
 
 		spdlog::info("[ReadVertexCSVFileAndCreateVertexExtents] Start to load {} with label set {}", vertex_file_path, vertex_labelset);
 
@@ -640,7 +644,10 @@ void ReadVertexCSVFileAndCreateVertexExtents(vector<LabeledFile> &csv_vertex_fil
 		spdlog::debug("[ReadVertexCSVFileAndCreateVertexExtents] InitCSVFile");
 		SUBTIMER_START(ReadSingleVertexCSVFile, "InitCSVFile");
 		GraphSIMDCSVFileParser reader;
-		size_t approximated_num_rows = reader.InitCSVFile(vertex_file_path.c_str(), GraphComponentType::VERTEX, '|');
+		size_t approximated_num_rows = 
+			file_size.has_value() ? 
+			reader.InitCSVFile(vertex_file_path.c_str(), GraphComponentType::VERTEX, '|', file_size.value()) : 
+			reader.InitCSVFile(vertex_file_path.c_str(), GraphComponentType::VERTEX, '|');
 
 		if (!reader.GetSchemaFromHeader(key_names, types)) { throw InvalidInputException("Invalid Schema Information"); }
 		key_column_idxs = reader.GetKeyColumnIndexFromHeader();
@@ -1307,7 +1314,7 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
     po::options_description desc("Allowed Options");
     desc.add_options()
         ("help,h", "Show help message")
-        ("nodes", po::value<std::vector<std::string>>()->multitoken()->composing(), "Nodes input: <label> <file>")
+        ("nodes", po::value<std::vector<std::string>>()->multitoken()->composing(), "Nodes input: <label> <file> [optional size]")
         ("relationships", po::value<std::vector<std::string>>()->multitoken()->composing(), "Relationships input: <label> <file>")
         ("relationships_backward", po::value<std::vector<std::string>>()->multitoken()->composing(), "Backward relationships input: <label> <file>")
         ("output_dir", po::value<std::string>(), "Output directory")
@@ -1325,17 +1332,34 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
         exit(0);
     }
 
-    if (vm.count("nodes")) {
-        auto nodes = vm["nodes"].as<std::vector<std::string>>();
-        for (size_t i = 0; i + 1 < nodes.size(); i += 2) {
-            options.vertex_files.emplace_back(nodes[i], nodes[i + 1]);
-        }
-    }
+	if (vm.count("nodes")) {
+		auto nodes = vm["nodes"].as<std::vector<std::string>>();
+		size_t i = 0;
+		while (i < nodes.size()) {
+			std::string label = nodes[i];
+			std::string file = nodes[i + 1];
+			std::optional<size_t> file_size;
+
+			if (i + 2 < nodes.size() && std::all_of(nodes[i + 2].begin(), nodes[i + 2].end(), ::isdigit)) {
+				file_size = std::stoull(nodes[i + 2]);
+				i += 3;
+			} else {
+				i += 2;
+			}
+
+			options.vertex_files.emplace_back(label, file, file_size);
+		}
+
+		// print 
+		for (const auto& file : options.vertex_files) {
+			spdlog::info("[ParseConfig] Load Vertex File: {} : {}, size: {}", std::get<0>(file), std::get<1>(file), std::get<2>(file).has_value() ? std::to_string(std::get<2>(file).value()) : "N/A");
+		}
+	}
 
     if (vm.count("relationships")) {
         auto relationships = vm["relationships"].as<std::vector<std::string>>();
         for (size_t i = 0; i + 1 < relationships.size(); i += 2) {
-            options.edge_files.emplace_back(relationships[i], relationships[i + 1]);
+            options.edge_files.emplace_back(relationships[i], relationships[i + 1], std::nullopt); 
         }
         options.load_edge = true;
     }
@@ -1343,7 +1367,7 @@ void ParseConfig(int argc, char** argv, InputOptions& options) {
     if (vm.count("relationships_backward")) {
         auto relationships_backward = vm["relationships_backward"].as<std::vector<std::string>>();
         for (size_t i = 0; i + 1 < relationships_backward.size(); i += 2) {
-            options.edge_files_backward.emplace_back(relationships_backward[i], relationships_backward[i + 1]);
+            options.edge_files_backward.emplace_back(relationships_backward[i], relationships_backward[i + 1], std::nullopt);
         }
         options.load_backward_edge = true;
     }

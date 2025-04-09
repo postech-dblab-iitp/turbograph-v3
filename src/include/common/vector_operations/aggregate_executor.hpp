@@ -9,8 +9,10 @@
 #pragma once
 
 #include "common/exception.hpp"
+#include "common/typedef.hpp"
 #include "common/types/vector.hpp"
 #include "common/vector_operations/vector_operations.hpp"
+#include "function/aggregate/distributive_functions.hpp"
 #include "function/aggregate_function.hpp"
 
 namespace duckdb {
@@ -107,6 +109,7 @@ private:
 		}
 	}
 
+
 	// TODO: very temporal implementation. Not work at all except COUNT
 	template <class STATE_TYPE, class INPUT_TYPE, class OP>
 	static inline void UnaryScatterLoopRow(INPUT_TYPE *__restrict idata, FunctionData *bind_data,
@@ -117,14 +120,19 @@ private:
 			D_ASSERT(OP::IgnoreNull()); // TODO
 			return;
 		} else {
-			auto rowcol_ptr = row_data.data;
-			auto rowcol_idx = row_data.rowcol_idx;
+			auto row_col_ptr = row_data.data;
+			auto row_col_idx = row_data.row_col_idx;
+			auto &schema_mask = *row_data.schema_val_mask;
+
 			if (OP::IgnoreNull() && !mask.AllValid()) {
 				// potential NULL values and NULL values are ignored
 				for (idx_t i = 0; i < count; i++) {
 					auto idx = isel.get_index(i);
 					auto sidx = ssel.get_index(i);
-					if (rowcol_ptr[idx].HasCol(rowcol_idx) && mask.RowIsValid(idx)) {
+
+					// rowcol_ptr checks in schema-level
+					// mask checks in value level (value is null, while schema is not null)
+					if (mask.RowIsValid(idx) && schema_mask.RowIsValid(row_col_ptr[idx].schema_idx)) {
 						OP::template Operation<INPUT_TYPE, STATE_TYPE, OP>(states[sidx], bind_data, idata, mask, idx);
 					}
 				}
@@ -133,7 +141,8 @@ private:
 				for (idx_t i = 0; i < count; i++) {
 					auto idx = isel.get_index(i);
 					auto sidx = ssel.get_index(i);
-					if (rowcol_ptr[idx].HasCol(rowcol_idx) && mask.RowIsValid(idx)) {
+
+					if (schema_mask.RowIsValid(row_col_ptr[idx].schema_idx)) {
 						OP::template Operation<INPUT_TYPE, STATE_TYPE, OP>(states[sidx], bind_data, idata, mask, idx);
 					}
 				}
@@ -287,14 +296,24 @@ public:
 			auto sdata = FlatVector::GetData<STATE_TYPE *>(states);
 			UnaryFlatLoop<STATE_TYPE, INPUT_TYPE, OP>(idata, bind_data, sdata, FlatVector::Validity(input), count, input.GetIsValid());
 		} else {
-			VectorData idata, sdata;
-			input.Orrify(count, idata, false);
-			states.Orrify(count, sdata);
-			if (idata.is_row) {
-				UnaryScatterLoopRow<STATE_TYPE, INPUT_TYPE, OP>((INPUT_TYPE *)idata.data, bind_data, (STATE_TYPE **)sdata.data,
-															*idata.sel, *sdata.sel, idata.validity, count, idata.row_data, input.GetIsValid());
+			if constexpr (std::is_same_v<OP, CountFunction>) {
+				// Very niche optimzation for COUNT function
+				VectorData idata, sdata;
+				input.Orrify(count, idata, false);
+				states.Orrify(count, sdata);
+				if (idata.is_row) {
+					UnaryScatterLoopRow<STATE_TYPE, INPUT_TYPE, OP>((INPUT_TYPE *)idata.data, bind_data, (STATE_TYPE **)sdata.data,
+																*idata.sel, *sdata.sel, idata.validity, count, idata.row_data, input.GetIsValid());
+				}
+				else {
+					UnaryScatterLoop<STATE_TYPE, INPUT_TYPE, OP>((INPUT_TYPE *)idata.data, bind_data, (STATE_TYPE **)sdata.data,
+																*idata.sel, *sdata.sel, idata.validity, count, input.GetIsValid());
+				}
 			}
 			else {
+				VectorData idata, sdata;
+				input.Orrify(count, idata);
+				states.Orrify(count, sdata);
 				UnaryScatterLoop<STATE_TYPE, INPUT_TYPE, OP>((INPUT_TYPE *)idata.data, bind_data, (STATE_TYPE **)sdata.data,
 															*idata.sel, *sdata.sel, idata.validity, count, input.GetIsValid());
 			}

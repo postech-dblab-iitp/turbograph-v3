@@ -119,7 +119,8 @@ void Vector::Reinterpret(Vector &other) {
 	validity = other.validity;
 	capacity = other.capacity;
 	is_valid = other.is_valid;
-	rowcol_idx = other.rowcol_idx;
+	row_col_idx = other.row_col_idx;
+	schema_mask_ptr = other.schema_mask_ptr;
 }
 
 void Vector::ResetFromCache(const VectorCache &cache) {
@@ -178,12 +179,14 @@ void Vector::Slice(const SelectionVector &sel, idx_t count) {
 	auto child_ref = make_buffer<VectorChildBuffer>(move(child_vector));
 	auto dict_buffer = make_buffer<DictionaryBuffer>(sel);
 	child_ref->data.is_valid = this->is_valid;
-	child_ref->data.rowcol_idx = this->rowcol_idx; // TODO right?
+	child_ref->data.row_col_idx = this->row_col_idx; // TODO right?
+	child_ref->data.schema_mask_ptr = this->schema_mask_ptr;
 	vector_type = VectorType::DICTIONARY_VECTOR;
 	buffer = move(dict_buffer);
 	auxiliary = move(child_ref);
 	child_vector.is_valid = this->is_valid;
-	child_vector.rowcol_idx = this->rowcol_idx; // TODO right?
+	child_vector.row_col_idx = this->row_col_idx; // TODO right?
+	child_vector.schema_mask_ptr = this->schema_mask_ptr;
 }
 
 void Vector::Slice(const SelectionVector &sel, idx_t count, SelCache &cache) {
@@ -676,7 +679,7 @@ Value Vector::GetValue(idx_t index) const {
 
 Value Vector::GetRowColValue(idx_t index) const {
 	D_ASSERT(auxiliary->GetBufferType() == VectorBufferType::ROWSTORE_BUFFER);
-	D_ASSERT(rowcol_idx >= 0);
+	D_ASSERT(row_col_idx >= 0);
 	auto &row_buffer = (VectorRowStoreBuffer &)*auxiliary;
 	char *row_data = row_buffer.GetRowData();
 	rowcol_t *rowcol = (rowcol_t *)data;
@@ -684,8 +687,8 @@ Value Vector::GetRowColValue(idx_t index) const {
 	PartialSchema *schema_ptr = (PartialSchema *)rowcol[index].schema_ptr;
 	LogicalType type = GetType();
 
-	if (schema_ptr->hasIthCol(rowcol_idx)) {
-		auto offset = schema_ptr->getIthColOffset(rowcol_idx);
+	if (schema_ptr->hasIthCol(row_col_idx)) {
+		auto offset = schema_ptr->getIthColOffset(row_col_idx);
 		switch(type.id()) {
 			case LogicalTypeId::BOOLEAN:
 				return Value::BOOLEAN(*(bool *)(row_data + base_offset + offset));
@@ -923,7 +926,7 @@ template <class T>
 static void TemplatedFlattenRowStore(const Vector &source, const SelectionVector &sel, Vector &target, idx_t count) {
 	// source data
 	auto ldata = FlatVector::GetData<rowcol_t>(source);
-	auto rowcol_idx = source.GetRowColIdx();
+	auto row_col_idx = source.GetRowColIdx();
 	auto *row_buffer = (VectorRowStoreBuffer *)(source.GetAuxiliary().get());
 	char *row_data = row_buffer->GetRowData();
 
@@ -931,14 +934,14 @@ static void TemplatedFlattenRowStore(const Vector &source, const SelectionVector
 	auto tdata = FlatVector::GetData<T>(target);
 	auto &target_validity = FlatVector::Validity(target);
 
-	D_ASSERT(rowcol_idx >= 0);
+	D_ASSERT(row_col_idx >= 0);
 
 	for (idx_t i = 0; i < count; i++) {
 		auto idx = sel.get_index(i);
 		auto base_offset = ldata[idx].offset;
 		PartialSchema *schema_ptr = (PartialSchema *)ldata[idx].schema_ptr;
-		if (schema_ptr->hasIthCol(rowcol_idx)) {
-			auto offset = schema_ptr->getIthColOffset(rowcol_idx);
+		if (schema_ptr->hasIthCol(row_col_idx)) {
+			auto offset = schema_ptr->getIthColOffset(row_col_idx);
 			memcpy(tdata + idx,
 				row_data + base_offset + offset,
 				sizeof(T));
@@ -1013,7 +1016,7 @@ void Vector::Normalify(const SelectionVector &sel, idx_t count) {
 			break;
 		case PhysicalType::VARCHAR: {
 			auto ldata = FlatVector::GetData<rowcol_t>(*this);
-			auto rowcol_idx = this->GetRowColIdx();
+			auto row_col_idx = this->GetRowColIdx();
 			auto *row_buffer = (VectorRowStoreBuffer *)(this->GetAuxiliary().get());
 			char *row_data = row_buffer->GetRowData();
 			auto tdata = FlatVector::GetData<string_t>(other);
@@ -1023,8 +1026,8 @@ void Vector::Normalify(const SelectionVector &sel, idx_t count) {
 				auto idx = sel.get_index(i);
 				auto base_offset = ldata[idx].offset;
 				PartialSchema *schema_ptr = (PartialSchema *)ldata[idx].schema_ptr;
-				if (schema_ptr->hasIthCol(rowcol_idx)) {
-					auto offset = schema_ptr->getIthColOffset(rowcol_idx);
+				if (schema_ptr->hasIthCol(row_col_idx)) {
+					auto offset = schema_ptr->getIthColOffset(row_col_idx);
 					string_t str = *((string_t *)(row_data + base_offset + offset));
 					tdata[idx] = StringVector::AddStringOrBlob(other, str);
 				} else {
@@ -1064,8 +1067,9 @@ void Vector::Orrify(idx_t count, VectorData &data, bool normalify_row) {
 			data.is_valid = child.is_valid;
 			data.is_row = true;
 			data.row_data.data = FlatVector::GetData<rowcol_t>(child);
-			data.row_data.rowcol_idx = child.GetRowColIdx();
+			data.row_data.row_col_idx = child.GetRowColIdx();
 			data.row_data.row_store = ((VectorRowStoreBuffer *)child.GetAuxiliary().get())->GetRowData();
+			data.row_data.schema_val_mask = child.GetSchemaValMaskPtr(child.GetRowColIdx());
 		}
 		else {
 			// dictionary with non-flat child: create a new reference to the child and normalify it
@@ -1097,8 +1101,9 @@ void Vector::Orrify(idx_t count, VectorData &data, bool normalify_row) {
 			data.is_valid = this->is_valid;
 			data.is_row = true;
 			data.row_data.data = FlatVector::GetData<rowcol_t>(*this);
-			data.row_data.rowcol_idx = this->GetRowColIdx();
+			data.row_data.row_col_idx = this->GetRowColIdx();
 			data.row_data.row_store = ((VectorRowStoreBuffer *)this->GetAuxiliary().get())->GetRowData();
+			data.row_data.schema_val_mask = this->GetSchemaValMaskPtr(this->GetRowColIdx());
 			break;
 		}
 	}

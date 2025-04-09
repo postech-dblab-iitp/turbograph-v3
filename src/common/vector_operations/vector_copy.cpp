@@ -30,7 +30,7 @@ static void TemplatedCopyRowStore(const Vector &source, const SelectionVector &s
                           idx_t target_offset, idx_t copy_count) {
 	// source data
 	auto ldata = FlatVector::GetData<rowcol_t>(source);
-	auto rowcol_idx = source.GetRowColIdx();
+	auto row_col_idx = source.GetRowColIdx();
 	auto *row_buffer = (VectorRowStoreBuffer *)(source.GetAuxiliary().get());
 	char *row_data = row_buffer->GetRowData();
 
@@ -38,14 +38,14 @@ static void TemplatedCopyRowStore(const Vector &source, const SelectionVector &s
 	auto tdata = FlatVector::GetData<T>(target);
 	auto &target_validity = FlatVector::Validity(target);
 
-	D_ASSERT(rowcol_idx >= 0);
+	D_ASSERT(row_col_idx >= 0);
 
 	for (idx_t i = 0; i < copy_count; i++) {
 		auto source_idx = sel.get_index(source_offset + i);
 		auto base_offset = ldata[source_idx].offset;
 		PartialSchema *schema_ptr = (PartialSchema *)ldata[source_idx].schema_ptr;
-		if (schema_ptr->hasIthCol(rowcol_idx)) {
-			auto offset = schema_ptr->getIthColOffset(rowcol_idx);
+		if (schema_ptr->hasIthCol(row_col_idx)) {
+			auto offset = schema_ptr->getIthColOffset(row_col_idx);
 			memcpy(tdata + target_offset + i,
 				row_data + base_offset + offset,
 				sizeof(T));
@@ -350,7 +350,7 @@ void VectorOperations::CopyRowStore(const Vector &source, Vector &target, const 
 	case PhysicalType::VARCHAR: {
 		// source data
 		auto ldata = FlatVector::GetData<rowcol_t>(source);
-		auto rowcol_idx = source.GetRowColIdx();
+		auto row_col_idx = source.GetRowColIdx();
 		auto *row_buffer = (VectorRowStoreBuffer *)(source.GetAuxiliary().get());
 		char *row_data = row_buffer->GetRowData();
 
@@ -362,8 +362,8 @@ void VectorOperations::CopyRowStore(const Vector &source, Vector &target, const 
 			auto source_idx = sel->get_index(source_offset + i);
 			auto base_offset = ldata[source_idx].offset;
 			PartialSchema *schema_ptr = (PartialSchema *)ldata[source_idx].schema_ptr;
-			if (schema_ptr->hasIthCol(rowcol_idx)) {
-				auto offset = schema_ptr->getIthColOffset(rowcol_idx);
+			if (schema_ptr->hasIthCol(row_col_idx)) {
+				auto offset = schema_ptr->getIthColOffset(row_col_idx);
 				string_t str = *((string_t *)(row_data + base_offset + offset));
 				tdata[target_offset + i] = StringVector::AddStringOrBlob(target, str);
 			} else {

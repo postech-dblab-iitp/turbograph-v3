@@ -28,28 +28,28 @@ void SchemalessDataChunk::CreateRowCol(
 
 Vector &SchemalessDataChunk::GetRowCol(idx_t column_idx)
 {
-    int32_t rowcol_idx = indirection_idx[column_idx];
-    D_ASSERT(rowcol_idx < 0);
+    int32_t row_col_idx = indirection_idx[column_idx];
+    D_ASSERT(row_col_idx < 0);
 
-    auto &rowcol = schemaless_data[-1 - rowcol_idx];
+    auto &rowcol = schemaless_data[-1 - row_col_idx];
     return rowcol;
 }
 
 Vector &SchemalessDataChunk::GetIthCol(idx_t column_idx)
 {
-    int32_t rowcol_idx = indirection_idx[column_idx];
-    if (rowcol_idx >= 0) {
+    int32_t row_col_idx = indirection_idx[column_idx];
+    if (row_col_idx >= 0) {
         return this->data[column_idx];
     } else {
-        auto &rowcol = schemaless_data[-1 - rowcol_idx];
+        auto &rowcol = schemaless_data[-1 - row_col_idx];
         return rowcol;
     }
 }
 
 bool SchemalessDataChunk::isIthColStoredInRowStore(idx_t column_idx)
 {
-    int32_t rowcol_idx = indirection_idx[column_idx];
-    return rowcol_idx < 0;
+    int32_t row_col_idx = indirection_idx[column_idx];
+    return row_col_idx < 0;
 }
 
 void SchemalessDataChunk::CreateRowMajorStore(size_t size)
@@ -61,10 +61,10 @@ void SchemalessDataChunk::CreateRowMajorStore(size_t size)
 
 char *SchemalessDataChunk::GetRowMajorStore(idx_t column_idx)
 {
-    int32_t rowcol_idx = indirection_idx[column_idx];
-    D_ASSERT(rowcol_idx < 0);
+    int32_t row_col_idx = indirection_idx[column_idx];
+    D_ASSERT(row_col_idx < 0);
 
-    return row_major_datas[-1 - rowcol_idx].get();
+    return row_major_datas[-1 - row_col_idx].get();
 }
 
 }  // namespace duckdb
