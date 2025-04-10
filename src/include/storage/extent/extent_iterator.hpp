@@ -58,7 +58,13 @@ typedef struct IOCache {
 
 class ExtentIterator {
 public:
+    // General constructor
     ExtentIterator(IOCache *io_cache_ = nullptr) : io_cache(io_cache_) {
+        src_data_seqnos.reserve(STANDARD_VECTOR_SIZE);
+    }
+    // For seek
+    ExtentIterator(vector<vector<LogicalType>>& _ext_property_types, vector<vector<idx_t>>& _target_idxs, IOCache *io_cache_ = nullptr) : 
+        io_cache(io_cache_), ext_property_types(_ext_property_types), target_idxs(_target_idxs) {
         src_data_seqnos.reserve(STANDARD_VECTOR_SIZE);
     }
     ~ExtentIterator() {
@@ -72,10 +78,8 @@ public:
     void Initialize(ClientContext &context, PropertySchemaCatalogEntry *property_schema_cat_entry, vector<LogicalType> &target_types_,
                     vector<idx_t> &target_idxs_);
     void Initialize(ClientContext &context, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_, ExtentID target_eid);
-    void Initialize(ClientContext &context, vector<vector<LogicalType>> &target_types_, vector<vector<idx_t>> &target_idxs_,
-                    vector<idx_t> *target_idx_per_eid_, vector<ExtentID> target_eids);
-    int RequestNewIO(ClientContext &context, vector<LogicalType> &target_types_, vector<idx_t> &target_idxs_,
-                     ExtentID target_eid, ExtentID &evicted_eid);
+    void Initialize(ClientContext &context, vector<idx_t> *target_idx_per_eid_, vector<ExtentID> target_eids);
+    int RequestNewIO(ClientContext &context, ExtentID target_eid, ExtentID &evicted_eid);
     bool RequestNextIO(ClientContext &context, DataChunk &output, ExtentID &output_eid, bool is_output_chunk_initialized);
     void Rewind();
 
@@ -191,8 +195,8 @@ private:
     size_t num_tuples_in_current_extent[MAX_NUM_DATA_CHUNKS];
     vector<LogicalType> ext_property_type;
     vector<vector<LogicalType>> ext_property_types;
-    vector<idx_t> target_idx;
     vector<vector<idx_t>> target_idxs;
+    vector<idx_t> target_idx;
     vector<idx_t>* target_idx_per_eid;
     vector<uint32_t> src_data_seqnos;
     idx_t current_idx_in_this_extent;

@@ -1,27 +1,22 @@
-MATCH (n0)-[:`THREE_PRCNT`]->(n1)-[:`THREE_PRCNT`]->(n2)-[:`POINT_ONE_PRCNT`]->(n3)-[:`FIVE_PRCNT`]->(n4)-[:`POINT_ZERO_ONE_PRCNT`]->(n5)
+MATCH (n0)-[:`TEN_PRCNT`]->(n1)-[:`ONE_PRCNT`]->(n2)-[:`POINT_ONE_PRCNT`]->(n3)-[:`ONE_PRCNT`]->(n4)
 RETURN 
 COUNT(n1.`http://dbpedia.org/property/iupacname`), 
 COUNT(n1.`http://dbpedia.org/property/share`), 
 COUNT(n1.`http://dbpedia.org/ontology/projectBudgetFunding`), 
 COUNT(n1.`http://dbpedia.org/property/managementBody`), 
-COUNT(n1.`http://dbpedia.org/property/mascot`), 
+COUNT(n1.`http://dbpedia.org/property/mascot`),
 COUNT(n2.`http://dbpedia.org/property/weightImperial`), 
 COUNT(n2.`http://dbpedia.org/property/beds`), 
 COUNT(n2.`http://dbpedia.org/property/altNames`), 
 COUNT(n2.`http://dbpedia.org/property/starting`), 
-COUNT(n2.`http://dbpedia.org/ontology/railwayPlatforms`), 
+COUNT(n2.`http://dbpedia.org/ontology/railwayPlatforms`),
 COUNT(n3.`http://dbpedia.org/property/significantAwards`), 
 COUNT(n3.`http://dbpedia.org/property/ball`), 
 COUNT(n3.`http://dbpedia.org/ontology/nutsCode`), 
 COUNT(n3.`http://dbpedia.org/property/parliament`), 
-COUNT(n3.`http://dbpedia.org/property/headChef`), 
+COUNT(n3.`http://dbpedia.org/property/headChef`),
 COUNT(n4.`http://dbpedia.org/property/ecnumber`), 
 COUNT(n4.`http://dbpedia.org/property/block`), 
 COUNT(n4.`http://dbpedia.org/property/asstPrincipal`), 
 COUNT(n4.`http://dbpedia.org/property/doctoralStudents`), 
-COUNT(n4.`http://dbpedia.org/property/infraclassis`),
-COUNT(n5.`http://dbpedia.org/property/titles`), 
-COUNT(n5.`http://dbpedia.org/property/closing`), 
-COUNT(n5.`http://dbpedia.org/property/firstFlight`), 
-COUNT(n5.`http://dbpedia.org/property/playedFor`), 
-COUNT(n5.`http://dbpedia.org/property/holidayName`);
+COUNT(n4.`http://dbpedia.org/property/infraclassis`);

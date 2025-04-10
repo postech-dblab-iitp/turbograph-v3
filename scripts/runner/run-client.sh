@@ -9,6 +9,6 @@ ${BUILD_DIR}/client \
 	--slient \
 	--workspace ${db_dir} \
 	--disable-merge-join \
-	--join-order-optimizer query \
+	--join-order-optimizer exhaustive \
 	--profile \
 	--explain \

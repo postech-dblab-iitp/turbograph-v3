@@ -260,10 +260,7 @@ void ExtentIterator::Initialize(ClientContext &context,
     is_initialized = true;
 }
 
-int ExtentIterator::RequestNewIO(ClientContext &context,
-                                 vector<LogicalType> &target_types_,
-                                 vector<idx_t> &target_idxs_,
-                                 ExtentID target_eid, ExtentID &evicted_eid)
+int ExtentIterator::RequestNewIO(ClientContext &context, ExtentID target_eid, ExtentID &evicted_eid)
 {
     ext_ids_to_iterate.push_back(target_eid);
 
@@ -334,8 +331,6 @@ int ExtentIterator::RequestNewIO(ClientContext &context,
 
 // Initialize For Seek
 void ExtentIterator::Initialize(ClientContext &context,
-                                vector<vector<LogicalType>> &target_types_,
-                                vector<vector<idx_t>> &target_idxs_,
                                 vector<idx_t> *target_idx_per_eid_,
                                 vector<ExtentID> target_eids)
 {
@@ -353,8 +348,6 @@ void ExtentIterator::Initialize(ClientContext &context,
     current_idx_in_this_extent = 0;
     current_eid = (ExtentID)std::numeric_limits<uint32_t>::max();
     max_idx = target_eids.size();
-    ext_property_types = target_types_;
-    target_idxs = target_idxs_;  // TODO avoid copy?
     target_idx_per_eid = target_idx_per_eid_;
     ext_ids_to_iterate = move(target_eids);
 

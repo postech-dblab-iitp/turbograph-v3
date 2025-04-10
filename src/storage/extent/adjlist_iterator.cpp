@@ -87,7 +87,7 @@ void AdjacencyListIterator::getAdjListPtr(uint64_t vid, ExtentID target_eid, uin
 int AdjacencyListIterator::requestNewAdjList(ClientContext &context, int adjColIdx, ExtentID target_eid, bool is_fwd) {
     ExtentID evicted_eid;
     vector<idx_t> target_idxs { (idx_t)adjColIdx };
-    return ext_it->RequestNewIO(context, is_fwd ? fwd_types : bwd_types, target_idxs, target_eid, evicted_eid);
+    return ext_it->RequestNewIO(context, target_eid, evicted_eid);
 }
 
 void DFSIterator::initialize(ClientContext &context, uint64_t src_id, uint64_t adj_col_idx) {

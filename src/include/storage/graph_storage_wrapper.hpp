@@ -96,9 +96,8 @@ public:
                        int64_t current_schema_idx, ExpressionExecutor &expr);
 
  StoreAPIResult InitializeVertexIndexSeek(
-     ExtentIterator *&ext_it, vector<vector<uint64_t>> &projection_mapping, DataChunk &input,
-     idx_t nodeColIdx, vector<vector<LogicalType>> &scanSchemas,
-     vector<ExtentID> &target_eids,
+     ExtentIterator *&ext_it, DataChunk &input,
+     idx_t nodeColIdx, vector<ExtentID> &target_eids,
      vector<vector<uint32_t>> &target_seqnos_per_extent,
      vector<idx_t> &mapping_idxs, vector<idx_t> &null_tuples_idx,
      vector<idx_t> &eid_to_mapping_idx, IOCache *io_cache);

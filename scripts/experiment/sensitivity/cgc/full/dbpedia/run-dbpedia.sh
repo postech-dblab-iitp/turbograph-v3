@@ -16,7 +16,7 @@ mkdir -p ${log_dir}
 
 # Input parameters
 queries_path="/turbograph-v3/queries/kg/dbpedia/"
-query_numbers="20"
+query_numbers="1-20"
 
 # Function to parse query numbers
 parse_query_numbers() {
@@ -65,7 +65,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                     --query "${query_str}" \
                     --disable-merge-join \
                     --iterations 3 \
-                    --join-order-optimizer exhaustive \
+                    --join-order-optimizer query \
                     --warmup)
 
                 # Output to log file

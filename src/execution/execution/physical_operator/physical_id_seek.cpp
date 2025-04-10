@@ -26,7 +26,7 @@ namespace duckdb {
 
 class IdSeekState : public OperatorState {
    public:
-    explicit IdSeekState(ClientContext &client, vector<uint64_t> oids)
+    explicit IdSeekState(ClientContext &client, vector<uint64_t> oids, vector<vector<LogicalType>>& scan_types, vector<vector<uint64_t>>& scan_proj_mapping)
     {
         seqno_to_eid_idx.resize(STANDARD_VECTOR_SIZE, -1);
         io_cache.io_buf_ptrs_cache.resize(INITIAL_EXTENT_ID_SPACE);
@@ -34,7 +34,7 @@ class IdSeekState : public OperatorState {
         io_cache.io_cdf_ids_cache.resize(INITIAL_EXTENT_ID_SPACE);
         io_cache.num_tuples_cache.resize(INITIAL_EXTENT_ID_SPACE);
         eid_to_schema_idx.resize(INITIAL_EXTENT_ID_SPACE, -1);
-        ext_it = new ExtentIterator(&io_cache);
+        ext_it = new ExtentIterator(scan_types, scan_proj_mapping, &io_cache);
     }
 
     void InitializeSels(size_t num_schemas)
@@ -163,7 +163,7 @@ PhysicalIdSeek::PhysicalIdSeek(
 unique_ptr<OperatorState> PhysicalIdSeek::GetOperatorState(
     ExecutionContext &context) const
 {
-    auto state = make_unique<IdSeekState>(*(context.client), oids);
+    auto state = make_unique<IdSeekState>(*(context.client), oids, scan_types, scan_projection_mapping);
     context.client->graph_storage_wrapper->fillEidToMappingIdx(oids,
                                                      state->eid_to_schema_idx);
     return state;
@@ -205,11 +205,8 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
     idx_t output_size = 0;
 
     if (state.need_initialize_extit) {
-        auto start_time = std::chrono::high_resolution_clock::now();
         initializeSeek(context, input, chunk, state, nodeColIdx, target_eids,
                        target_seqnos_per_extent, mapping_idxs);
-        auto end_time = std::chrono::high_resolution_clock::now();
-        this->time_to_exclude = std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time).count();
 
         if (target_eids.size() == 0) {
             chunk.SetCardinality(0);
@@ -220,13 +217,10 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
     }
 
     // Calculate Format
-    auto start_time1 = std::chrono::high_resolution_clock::now();
     auto total_nulls = calculateTotalNulls(
         chunk, target_eids, target_seqnos_per_extent, mapping_idxs);
     fillOutSizePerSchema(target_eids, target_seqnos_per_extent, mapping_idxs);
     auto format = determineFormatByCostModel(false, total_nulls);
-    auto end_time1 = std::chrono::high_resolution_clock::now();
-    this->time_to_exclude += std::chrono::duration_cast<std::chrono::duration<double>>(end_time1 - start_time1).count();
 
     if (format == OutputFormat::ROW) {
         doSeekSchemaless(context, input, chunk, state, target_eids,
@@ -239,13 +233,9 @@ OperatorResultType PhysicalIdSeek::ExecuteInner(ExecutionContext &context,
                                       target_seqnos_per_extent, mapping_idxs);
     }
 
-    auto start_time = std::chrono::high_resolution_clock::now();
     nullifyValuesForPrunedExtents(chunk, state, target_eids.size(),
                                   target_seqnos_per_extent);
-    auto ret = referInputChunk(input, chunk, state, output_size);
-    auto end_time = std::chrono::high_resolution_clock::now();
-    this->time_to_exclude += std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time).count();
-    return ret;
+    return referInputChunk(input, chunk, state, output_size);
 }
 
 OperatorResultType PhysicalIdSeek::ExecuteLeft(ExecutionContext &context,
@@ -268,8 +258,7 @@ OperatorResultType PhysicalIdSeek::ExecuteLeft(ExecutionContext &context,
     vector<idx_t> mapping_idxs;
 
     context.client->graph_storage_wrapper->InitializeVertexIndexSeek(
-        state.ext_it, scan_projection_mapping, input, nodeColIdx, scan_types,
-        target_eids, target_seqnos_per_extent, mapping_idxs,
+        state.ext_it, input, nodeColIdx, target_eids, target_seqnos_per_extent, mapping_idxs,
         state.null_tuples_idx, state.eid_to_schema_idx, &state.io_cache);
 
     fillSeqnoToEIDIdx(target_seqnos_per_extent, state.seqno_to_eid_idx);
@@ -307,8 +296,7 @@ void PhysicalIdSeek::initializeSeek(
 {
     state.null_tuples_idx.clear();
     context.client->graph_storage_wrapper->InitializeVertexIndexSeek(
-        state.ext_it, scan_projection_mapping, input, nodeColIdx, scan_types,
-        target_eids, target_seqnos_per_extent, mapping_idxs,
+        state.ext_it, input, nodeColIdx, target_eids, target_seqnos_per_extent, mapping_idxs,
         state.null_tuples_idx, state.eid_to_schema_idx, &state.io_cache);
     state.need_initialize_extit = false;
     state.has_remaining_output = false;
@@ -331,8 +319,7 @@ void PhysicalIdSeek::initializeSeek(
 {
     state.null_tuples_idx.clear();
     context.client->graph_storage_wrapper->InitializeVertexIndexSeek(
-        state.ext_it, scan_projection_mapping, input, nodeColIdx, scan_types,
-        target_eids, target_seqnos_per_extent, mapping_idxs,
+        state.ext_it, input, nodeColIdx, target_eids, target_seqnos_per_extent, mapping_idxs,
         state.null_tuples_idx, state.eid_to_schema_idx, &state.io_cache);
     state.need_initialize_extit = false;
     state.has_remaining_output = false;
