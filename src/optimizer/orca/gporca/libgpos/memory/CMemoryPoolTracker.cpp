@@ -146,10 +146,10 @@ CMemoryPoolTracker::DeleteImpl(void *ptr, EAllocationType eat)
 	clib::Memset(ptr, GPOS_MEM_FREED_PATTERN_CHAR, user_size);
 #endif	// GPOS_DEBUG
 
-#ifdef ENABLE_SANITIZER_FLAG
-	clib::Free(header);
-#else
+#if defined(ENABLE_TCMALLOC_FLAG) && !defined(ENABLE_SANITIZER_FLAG)
 	tc_free(header);
+#else
+	clib::Free(header);
 #endif
 }
 

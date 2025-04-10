@@ -1,4 +1,4 @@
-MATCH (n0)-[:`THREE_TEN_PRCNT`]->(n1)-[:`POINT_FIVE_PRCNT`]->(n2) 
+MATCH (n0)-[:`FIVE_TEN_PRCNT`]->(n1)-[:`POINT_FIVE_PRCNT`]->(n2) 
 RETURN 
 COUNT(n1.`http://dbpedia.org/property/ceeb`), 
 COUNT(n1.`http://dbpedia.org/property/twin7Country`), 

@@ -62,6 +62,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                 --skip-histogram \
                 --output_dir ${target_dir} \
                 --nodes NODE ${source_dir}/nodes.json \
+                --relationships POINT_ZERO_ONE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_001_prcnt.csv \
                 --relationships POINT_ONE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_01_prcnt.csv \
                 --relationships POINT_FIVE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_05_prcnt.csv \
                 --relationships ONE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_1_prcnt.csv \

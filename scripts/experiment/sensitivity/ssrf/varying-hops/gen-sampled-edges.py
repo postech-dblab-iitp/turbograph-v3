@@ -18,6 +18,10 @@ def main():
         print("Error: Percentage must be in the range (0, 100].")
         sys.exit(1)
 
+    # Convert percentage to string without decimal point (e.g., 0.01 -> 001, 1.5 -> 15)
+    percentage_str = str(percentage).replace('.', '')
+    percentage_str = percentage_str.rjust(3, '0')  # Pad with zeros if needed
+
     # Read the CSV
     df = pd.read_csv(input_path, sep='|')
     sample_size = int(len(df) * (percentage / 100.0))
@@ -25,14 +29,14 @@ def main():
 
     # Save sampled edges
     filename_wo_ext = os.path.splitext(input_path)[0]
-    sampled_filename = f"{filename_wo_ext}_sampled_{int(percentage)}_prcnt.csv"
+    sampled_filename = f"{filename_wo_ext}_sampled_{percentage_str}_prcnt.csv"
     sampled_df.to_csv(sampled_filename, sep='|', index=False)
 
     # Create backward edges by swapping columns
     reversed_df = sampled_df[[df.columns[1], df.columns[0]]]
     reversed_df.columns = df.columns  # Rename back to original header style
     reversed_df = reversed_df.sort_values(by=[reversed_df.columns[0], reversed_df.columns[1]])
-    reversed_filename = f"{filename_wo_ext}_sampled_{int(percentage)}_prcnt.csv.backward"
+    reversed_filename = f"{sampled_filename}.backward"
     reversed_df.to_csv(reversed_filename, sep='|', index=False)
 
     print(f"Sampled file saved to: {sampled_filename}")

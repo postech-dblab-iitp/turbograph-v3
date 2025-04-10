@@ -1,4 +1,4 @@
-MATCH (n0)-[:`ONE_PRCNT`]->(n1)-[:`ONE_PRCNT`]->(n2)-[:`THREE_PRCNT`]->(n3)-[:`POINT_FIVE_PRCNT`]->(n4)-[:`POINT_FIVE_PRCNT`]->(n5)
+MATCH (n0)-[:`THREE_PRCNT`]->(n1)-[:`THREE_PRCNT`]->(n2)-[:`POINT_ONE_PRCNT`]->(n3)-[:`FIVE_PRCNT`]->(n4)-[:`POINT_ZERO_ONE_PRCNT`]->(n5)
 RETURN 
 COUNT(n1.`http://dbpedia.org/property/iupacname`), 
 COUNT(n1.`http://dbpedia.org/property/share`), 

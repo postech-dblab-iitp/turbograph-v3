@@ -1191,7 +1191,6 @@ void ReadBwdEdgeCSVFilesAndCreateEdgeExtents(vector<LabeledFile> &csv_edge_files
 		idx_t vertex_seqno;
 		bool is_first_tuple_processed = false;
 		PartitionID cur_part_id;
-		ClearAdjListBuffers(adj_list_buffers);
 
 		spdlog::debug("[ReadBwdEdgesCSVFileAndCreateEdgeExtents] Start to read and create edge extents");
 		SUBTIMER_START(ReadSingleEdgeCSVFile, "ReadCSVFile and CreateEdgeExtents");
