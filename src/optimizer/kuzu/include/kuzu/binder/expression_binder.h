@@ -43,7 +43,7 @@ private:
         const Expression& expression, const string& propertyName);
     unique_ptr<Expression> createPropertyExpression(
         Expression &nodeOrRel, Property &anchorProperty,
-        unordered_map<table_id_t, property_id_t> &&propertyIDPerTable,
+        unordered_map<table_id_t, property_id_t>* propertyIDPerTable,
         uint64_t prop_key_id = 0);
 
     shared_ptr<Expression> bindFunctionExpression(const ParsedExpression& parsedExpression);
@@ -57,7 +57,6 @@ private:
 
     shared_ptr<Expression> bindInternalIDExpression(const ParsedExpression& parsedExpression);
     shared_ptr<Expression> bindInternalIDExpression(const Expression& expression);
-    unique_ptr<Expression> createInternalNodeIDExpression(const Expression& node);
 
     shared_ptr<Expression> bindParameterExpression(const ParsedExpression& parsedExpression);
 

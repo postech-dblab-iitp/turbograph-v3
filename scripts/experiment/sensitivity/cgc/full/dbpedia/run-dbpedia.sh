@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Define the possible values for each configuration
-cluster_algorithms=("AGGLOMERATIVE")
-cost_models=("JACCARD")
+cluster_algorithms=("GMM")
+cost_models=("OURS")
 layering_orders=("DESCENDING")
 
 # Define target and log directories
@@ -16,7 +16,7 @@ mkdir -p ${log_dir}
 
 # Input parameters
 queries_path="/turbograph-v3/queries/kg/dbpedia/"
-query_numbers="6"
+query_numbers="1-20"
 
 # Function to parse query numbers
 parse_query_numbers() {
@@ -65,7 +65,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                     --query "${query_str}" \
                     --disable-merge-join \
                     --iterations 3 \
-                    --join-order-optimizer query \
+                    --join-order-optimizer exhaustive \
                     --warmup)
 
                 # Output to log file

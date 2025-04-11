@@ -10,5 +10,4 @@ ${BUILD_DIR}/client \
 	--workspace ${db_dir} \
 	--disable-merge-join \
 	--join-order-optimizer exhaustive \
-	--profile \
-	--explain \
+	--compile-only
