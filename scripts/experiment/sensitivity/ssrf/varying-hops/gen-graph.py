@@ -35,12 +35,13 @@ for method_key, filename in methods.items():
     agg_data[method_key] = pd.to_numeric(df['AggTime'], errors='coerce').tolist()
 
 # Plotting
-fig, ax = plt.subplots(figsize=(5, 3.5))
-ax.set_xlabel("Number of Hops", fontsize=14)
-ax.set_ylabel("Time (ms)", fontsize=14)
+fig, ax = plt.subplots(figsize=(5, 3))
+ax.set_xlabel("Number of Hops", fontsize=16)
+ax.set_ylabel("Time (ms)", fontsize=16)
 ax.set_xticks(hop_counts)
-ax.tick_params(axis='x', labelsize=13)
+ax.tick_params(axis='x', labelsize=15)
 ax.tick_params(axis='y', labelsize=13)
+ax.set_ylim(bottom=-1000, top=80000)
 
 # Color-blind friendly palette
 method_colors = {
@@ -97,7 +98,7 @@ ax.legend(handles=legend_elements,
 plt.tight_layout()
 
 # Save output
-output_path = os.path.join(folder_path, 'hop-time-lineplot.png')
+output_path = os.path.join(folder_path, 'hop-time-lineplot.pdf')
 plt.savefig(output_path, dpi=800, bbox_inches='tight')
 plt.close(fig)
 

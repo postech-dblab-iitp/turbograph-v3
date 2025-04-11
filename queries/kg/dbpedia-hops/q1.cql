@@ -1,4 +1,4 @@
-MATCH (n0)-[:`TEN_PRCNT`]->(n1)
+MATCH (n0)-[:`BI_TEN_PRCNT`]->(n1)
 RETURN
 COUNT(n1.`http://dbpedia.org/property/iupacname`), 
 COUNT(n1.`http://dbpedia.org/property/share`), 

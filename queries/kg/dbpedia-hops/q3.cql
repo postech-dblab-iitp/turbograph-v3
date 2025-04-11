@@ -1,4 +1,4 @@
-MATCH (n0)-[:`THREE_PRCNT`]->(n1)-[:`ONE_PRCNT`]->(n2)-[:`POINT_ZERO_ONE_PRCNT`]->(n3) 
+MATCH (n0)-[:`BI_THREE_PRCNT`]->(n1)-[:`BI_THREE_PRCNT`]->(n2)-[:`DI_POINT_ZERO_ONE_PRCNT`]->(n3) 
 RETURN 
 COUNT(n1.`http://dbpedia.org/property/weightLb`), 
 COUNT(n1.`http://dbpedia.org/property/lowestelev`), 

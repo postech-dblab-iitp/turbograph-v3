@@ -1,4 +1,4 @@
-MATCH (n0)-[:`THREE_PRCNT`]->(n1)-[:`THREE_PRCNT`]->(n2)-[:`ONE_PRCNT`]->(n3)-[:`POINT_ZERO_ONE_PRCNT`]->(n4)
+MATCH (n0)-[:`BI_THREE_PRCNT`]->(n1)-[:`BI_THREE_PRCNT`]->(n2)-[:`BI_THREE_PRCNT`]->(n3)-[:`DI_POINT_ZERO_ONE_PRCNT`]->(n4)
 RETURN 
 COUNT(n1.`http://dbpedia.org/ontology/displacement`), 
 COUNT(n1.`http://dbpedia.org/property/serviceArea`), 

@@ -62,16 +62,25 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                 --skip-histogram \
                 --output_dir ${target_dir} \
                 --nodes NODE ${source_dir}/nodes.json \
-                --relationships POINT_ZERO_ONE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_001_prcnt.csv \
-                --relationships POINT_ONE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_01_prcnt.csv \
-                --relationships POINT_FIVE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_05_prcnt.csv \
-                --relationships ONE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_1_prcnt.csv \
-                --relationships THREE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_3_prcnt.csv \
-                --relationships FIVE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_5_prcnt.csv \
-                --relationships TEN_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_10_prcnt.csv \
-                --relationships TWO_TEN_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_20_prcnt.csv \
-                --relationships THREE_TEN_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_30_prcnt.csv \
-                --relationships FIVE_TEN_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_50_prcnt.csv &> ${log_file}
+                --relationships DI_POINT_ZERO_ONE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_001_prcnt_di.csv \
+                --relationships BI_POINT_ZERO_ONE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_001_prcnt_bi.csv \
+                --relationships DI_POINT_ONE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_01_prcnt_di.csv \
+                --relationships BI_POINT_ONE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_01_prcnt_bi.csv \
+                --relationships DI_POINT_FIVE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_05_prcnt_di.csv \
+                --relationships BI_POINT_FIVE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_05_prcnt_bi.csv \
+                --relationships BI_ONE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_1_prcnt_bi.csv \
+                --relationships DI_ONE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_1_prcnt_di.csv \
+                --relationships BI_THREE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_1_prcnt_bi.csv \
+                --relationships DI_THREE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_3_prcnt_di.csv \
+                --relationships BI_THREE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_3_prcnt_bi.csv \
+                --relationships DI_FIVE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_5_prcnt_di.csv \
+                --relationships BI_FIVE_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_5_prcnt_bi.csv \
+                --relationships DI_TEN_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_10_prcnt_di.csv \
+                --relationships BI_TEN_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_10_prcnt_bi.csv \
+                --relationships DI_THREE_TEN_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_30_prcnt_di.csv \
+                --relationships BI_THREE_TEN_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_30_prcnt_bi.csv \
+                --relationships DI_FIVE_TEN_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_50_prcnt_di.csv \
+                --relationships BI_FIVE_TEN_PRCNT ${source_dir}/edges_owl#sameAs_9037_sampled_50_prcnt_bi.csv &> ${log_file}
 
             pkill -f store
             sleep 5

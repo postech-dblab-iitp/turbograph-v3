@@ -1,5 +1,5 @@
-MATCH (n0)-[:`TEN_PRCNT`]->(n1)-[:`ONE_PRCNT`]->(n2)-[:`POINT_ONE_PRCNT`]->(n3)-[:`ONE_PRCNT`]->(n4)
-RETURN 
+MATCH (n0)-[:`BI_TEN_PRCNT`]->(n1)-[:`BI_ONE_PRCNT`]->(n2)-[:`BI_POINT_FIVE_PRCNT`]->(n3)-[:`DI_FIVE_TEN_PRCNT`]->(n4)-[:`DI_POINT_ZERO_ONE_PRCNT`]->(n5)
+RETURN
 COUNT(n1.`http://dbpedia.org/property/iupacname`), 
 COUNT(n1.`http://dbpedia.org/property/share`), 
 COUNT(n1.`http://dbpedia.org/ontology/projectBudgetFunding`), 
@@ -19,4 +19,9 @@ COUNT(n4.`http://dbpedia.org/property/ecnumber`),
 COUNT(n4.`http://dbpedia.org/property/block`), 
 COUNT(n4.`http://dbpedia.org/property/asstPrincipal`), 
 COUNT(n4.`http://dbpedia.org/property/doctoralStudents`), 
-COUNT(n4.`http://dbpedia.org/property/infraclassis`);
+COUNT(n4.`http://dbpedia.org/property/infraclassis`),
+COUNT(n5.`http://dbpedia.org/ontology/displacement`), 
+COUNT(n5.`http://dbpedia.org/property/serviceArea`), 
+COUNT(n5.`http://dbpedia.org/property/ada`), 
+COUNT(n5.`http://dbpedia.org/property/owner`), 
+COUNT(n5.`http://dbpedia.org/property/child6Agency`);

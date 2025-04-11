@@ -40,12 +40,12 @@ for col in range(1, 6):
                     slowdowns[col][method_key].append(slowdown)
 
 # Prepare for plotting
-fig, ax = plt.subplots(figsize=(5, 4))
-ax.set_ylabel('Relative Execution Time Slowdown', fontsize=13)
-ax.set_xlabel('Num Columns', fontsize=13, labelpad=10)  # ← label below x-axis
+fig, ax = plt.subplots(figsize=(5, 3))
+ax.set_ylabel('Relative Slowdown', fontsize=16)
+ax.set_xlabel('Number of Columns', fontsize=16, labelpad=10)  # ← label below x-axis
 ax.set_ylim(bottom=10**(-0.1), top=3)
 ax.set_yticks(np.arange(1, 3.5, 0.5))
-ax.tick_params(axis='y', labelsize=13)
+ax.tick_params(axis='y', labelsize=14)
 
 # X-axis layout
 box_width = 0.4
@@ -71,7 +71,7 @@ for i, col in enumerate(range(1, 6)):
                medianprops=dict(color='black'),
                whiskerprops=dict(color='black'),
                capprops=dict(color='black'),
-               flierprops=dict(markerfacecolor='black', markersize=3))
+               flierprops=dict(markerfacecolor='black', markersize=5))
     
     ax.boxplot(slowdowns[col]['SS'], positions=[positions_ss[i]], widths=box_width,
                patch_artist=True,
@@ -79,7 +79,7 @@ for i, col in enumerate(range(1, 6)):
                medianprops=dict(color='white'),
                whiskerprops=dict(color='black'),
                capprops=dict(color='black'),
-               flierprops=dict(markerfacecolor='black', markersize=3))
+               flierprops=dict(markerfacecolor='black', markersize=5))
 
 # Reference line at y=1
 ax.axhline(y=1, color='black', linestyle=':', linewidth=1.8)
@@ -91,15 +91,15 @@ for i in range(1, 5):  # 4 separators between 5 groups
 
 # X-ticks: numbers 1~5
 ax.set_xticks(xtick_positions)
-ax.set_xticklabels(top_xtick_labels, fontsize=13)
+ax.set_xticklabels(top_xtick_labels, fontsize=16)
 
 # Legend at top
 legend_elements = [
     Patch(facecolor='white', edgecolor='black', label='US'),
     Patch(facecolor='black', edgecolor='black', label='SS')
 ]
-ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, 1.15),
-          ncol=2, frameon=False, fontsize=13)
+ax.legend(handles=legend_elements, loc='upper left',
+          ncol=2, frameon=True, fontsize=15)
 
 ax.grid(axis='y', linestyle='--', linewidth=0.5)
 plt.tight_layout()

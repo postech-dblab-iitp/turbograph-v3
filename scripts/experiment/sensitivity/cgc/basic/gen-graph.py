@@ -120,9 +120,9 @@ for label, filename in method_files.items():
 # Plot
 fig, ax = plt.subplots(figsize=(6, 4))
 ax.set_yscale('log')
-ax.set_ylabel('Relative Slowdown', fontsize=18)
+ax.set_ylabel('Relative Slowdown', fontsize=19)
 ax.set_ylim(bottom=1e-1, top=10**4.5)
-ax.tick_params(axis='y', labelsize=14)
+ax.tick_params(axis='y', labelsize=17)
 
 # Layout setup
 total_groups = len(method_files)
@@ -153,20 +153,28 @@ for method in method_files:
 
 # Draw boxplots
 for i in range(len(all_compile_data)):
+    # Draw Compile Time boxplot
     ax.boxplot(all_compile_data[i], positions=[compile_positions[i]], widths=0.4,
                patch_artist=True,
                boxprops=dict(facecolor='white', edgecolor='black'),
                medianprops=dict(color='black'),
                whiskerprops=dict(color='black'),
                capprops=dict(color='black'),
-               flierprops=dict(markerfacecolor='black', markersize=3))
+               flierprops=dict(markerfacecolor='black', markersize=4))
+
+    # Draw Execution Time boxplot
     ax.boxplot(all_exec_data[i], positions=[exec_positions[i]], widths=0.4,
                patch_artist=True,
                boxprops=dict(facecolor='gray', edgecolor='black'),
                medianprops=dict(color='black'),
                whiskerprops=dict(color='black'),
                capprops=dict(color='black'),
-               flierprops=dict(markerfacecolor='black', markersize=3))
+               flierprops=dict(markerfacecolor='black', markersize=4))
+    
+    # Geomean marker for Exec
+    if len(all_exec_data[i]) > 0:
+        exec_geo = gmean(all_exec_data[i])
+        ax.plot(exec_positions[i], exec_geo, marker='x', color='black', markersize=5, linestyle='None')
 
 # Solid dividers between method groups
 for x in divider_solid:
@@ -183,7 +191,7 @@ ax.axhline(y=1, color='black', linestyle=':', linewidth=1.8)
 xtick_labels = list(method_files.keys())
 xtick_positions = [start + spacing for start in group_starts]  # middle of each method block
 ax.set_xticks(xtick_positions)
-ax.set_xticklabels(xtick_labels, fontsize=16)
+ax.set_xticklabels(xtick_labels, fontsize=19)
 
 # In-plot labels for Proj/Sel/Agg
 label_ypos = 0.07  # in axes coordinates
@@ -193,7 +201,7 @@ for group_idx, method in enumerate(method_files):
         ax.text(xpos, label_ypos, cat,
                 transform=ax.get_xaxis_transform(),
                 ha='center', va='top',
-                fontsize=14, style='italic')
+                fontsize=14.5, style='italic')
 
 # Legend
 legend_elements = [
@@ -201,7 +209,7 @@ legend_elements = [
     Patch(facecolor='gray', edgecolor='black', label='Execution Time')
 ]
 ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, 0.995),
-          ncol=2, frameon=True, fontsize=14.5, borderaxespad=0.1)
+          ncol=2, frameon=True, fontsize=15.5, borderaxespad=0.1, columnspacing=0.2)
 
 ax.grid(axis='y', linestyle='--', linewidth=0.5)
 plt.tight_layout()
