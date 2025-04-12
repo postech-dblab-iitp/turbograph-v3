@@ -105,11 +105,11 @@ for label, filename in method_files.items():
     group_dividers.append(pos_counter - 1)  # solid divider after each method
 
 # Plot
-fig, ax = plt.subplots(figsize=(6, 4))
+fig, ax = plt.subplots(figsize=(6, 3))
 ax.set_yscale('log')
 ax.set_ylabel('Relative Slowdown', fontsize=19)
-ax.set_ylim(bottom=1e-1, top=10**3.6)
-ax.tick_params(axis='y', labelsize=17)
+ax.set_ylim(bottom=10**(-0.8), top=10**3.2)
+ax.tick_params(axis='y', labelsize=16)
 
 # Layout setup
 total_groups = len(method_files)
@@ -187,22 +187,22 @@ ax.set_xticks(xtick_positions)
 ax.set_xticklabels(xtick_labels, fontsize=19)
 
 # In-plot labels for 'SMPL', 'CMPL'
-label_ypos = 0.07  # in axes coordinates
+label_ypos = 0.10  # in axes coordinates
 for group_idx, method in enumerate(method_files):
     for cat_idx, cat in enumerate(['SMPL', 'CMPL']):
         xpos = group_starts[group_idx] + cat_idx * spacing
         ax.text(xpos, label_ypos, cat,
                 transform=ax.get_xaxis_transform(),
                 ha='center', va='top',
-                fontsize=14.5, style='italic')
+                fontsize=15, style='italic')
 
 # Legend
 legend_elements = [
     Patch(facecolor='white', edgecolor='black', label='Compile Time'),
     Patch(facecolor='gray', edgecolor='black', label='Execution Time')
 ]
-ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, 0.995),
-          ncol=2, frameon=True, fontsize=15.5, borderaxespad=0, columnspacing=0.2)
+ax.legend(handles=legend_elements, loc='upper left',
+          ncol=1, frameon=True, fontsize=14, borderaxespad=0.3, columnspacing=0.2)
 
 ax.grid(axis='y', linestyle='--', linewidth=0.5)
 plt.tight_layout()

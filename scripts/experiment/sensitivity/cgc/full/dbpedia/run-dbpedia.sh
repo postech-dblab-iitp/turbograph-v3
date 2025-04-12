@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the possible values for each configuration
-cluster_algorithms=("GMM")
+cluster_algorithms=("AGGLOMERATIVE")
 cost_models=("OURS")
 layering_orders=("DESCENDING")
 
@@ -66,6 +66,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                     --disable-merge-join \
                     --iterations 3 \
                     --join-order-optimizer exhaustive \
+                    --compile-only \
                     --warmup)
 
                 # Output to log file

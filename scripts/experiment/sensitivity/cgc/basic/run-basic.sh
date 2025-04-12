@@ -2,7 +2,7 @@
 
 # Define the possible values for each configuration
 cluster_algorithms=("AGGLOMERATIVE")
-cost_models=("OURS")
+cost_models=("OURS" "JACCARD")
 layering_orders=("DESCENDING")
 
 # Define target and log directories
@@ -16,7 +16,7 @@ mkdir -p ${log_dir}
 
 # Input parameters
 queries_path="/turbograph-v3/queries/basic/"
-query_numbers="101"
+query_numbers="1-100"
 
 # Function to parse query numbers
 parse_query_numbers() {
@@ -64,6 +64,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                     --disable-merge-join \
                     --iterations 3 \
                     --join-order-optimizer exhaustive \
+                    --compile-only \
                     --warmup)
 
                 # Output to log file
