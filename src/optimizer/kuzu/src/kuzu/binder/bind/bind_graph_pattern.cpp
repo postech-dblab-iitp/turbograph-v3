@@ -373,10 +373,6 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
         queryNode->setUnivTableID(univTableID);
 	    SUBTIMER_STOP(bindQueryNodeSchema, "bindNodeTableIDsFromPartitions");
 
-        // // set tableIds
-        // queryNode->setInternalIDProperty(
-        //     expressionBinder.createInternalNodeIDExpression(*queryNode));
-
         unordered_map<string,
                       vector<tuple<uint64_t, uint64_t, duckdb::LogicalTypeId>>>
             pkey_to_ps_map;
@@ -398,18 +394,21 @@ uint64_t Binder::bindQueryNodeSchema(shared_ptr<NodeExpression> queryNode,
 	    SUBTIMER_STOP(bindQueryNodeSchema, "GetPropertyKeyToPropertySchemaMap");
 	    SUBTIMER_START(bindQueryNodeSchema, "Id Binding");
         {
-            string propertyName = "_id";
             Property anchorProperty;
             anchorProperty.name = std::to_string(0);
             anchorProperty.dataType = DataType(DataTypeID::NODE_ID);
             
             auto prop_idexpr = expressionBinder.createPropertyExpression(
                 *queryNode, anchorProperty, physical_id_property_schema_index.get());
-            uint64_t propertyKeyID = graph_catalog_entry->GetPropertyKeyID(*client, propertyName);
+            uint64_t propertyKeyID = graph_catalog_entry->GetPropertyKeyID(*client, INTERNAL_ID_SUFFIX);
             queryNode->addPropertyExpression(propertyKeyID,
                                              std::move(prop_idexpr));
             if (hasEdgeConnection)
                 queryNode->markAllColumnsAsUsed();
+
+            // TODO: remove this. This creates unnecessary _id property
+            queryNode->setInternalIDProperty(
+                expressionBinder.createInternalNodeIDExpression(*queryNode, physical_id_property_schema_index.get()));
         }
 	    SUBTIMER_STOP(bindQueryNodeSchema, "Id Binding");
 

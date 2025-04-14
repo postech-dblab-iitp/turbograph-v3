@@ -20,8 +20,7 @@ ours_file = 'ours.csv'
 # Query category ranges
 categories = {
     'Scan': range(2, 31),
-    'Sel': range(31, 71),
-    'Agg': range(71, 101)
+    'Sel': range(31, 71)
 }
 
 # Load ours.csv
@@ -105,15 +104,15 @@ pos_counter = 1
 
 for label, filename in method_files.items():
     per_cat_data = compute_slowdown_per_category(label, filename)
-    for cat in ['Scan', 'Sel', 'Agg']:
+    for cat in ['Scan', 'Sel']:
         # Append compile and exec data for this category
         all_compile_data.append(per_cat_data[cat]['compile'])
         all_exec_data.append(per_cat_data[cat]['exec'])
         xtick_positions.append(pos_counter + 0.3)
         xtick_labels.append(f"{label}\n{cat}")
         # Track positions
-        pos_counter += 2
-        if cat != 'Agg':
+        pos_counter += 1
+        if cat != 'Sel':
             subgroup_dividers.append(pos_counter - 1)
     group_dividers.append(pos_counter - 1)  # solid divider after each method
 
@@ -121,15 +120,15 @@ for label, filename in method_files.items():
 fig, ax = plt.subplots(figsize=(6, 3))
 ax.set_yscale('log')
 ax.set_ylabel('Relative Slowdown', fontsize=19)
-ax.set_ylim(bottom=1e-1, top=10**3.9)
-ax.tick_params(axis='y', labelsize=16)
+ax.set_ylim(bottom=10**(-1.37), top=10**3.9)
+ax.tick_params(axis='y', labelsize=14)
 
 # Layout setup
 total_groups = len(method_files)
 categories_per_group = 3
 boxplots_per_category = 2
-spacing = 1.2  # spacing between Scan, Sel, Agg
-start_x = 1.1
+spacing = 1  # spacing between Scan, Sel
+start_x = 1
 
 compile_positions = []
 exec_positions = []
@@ -142,28 +141,19 @@ group_starts = []
 x = start_x
 for method in method_files:
     group_starts.append(x)
-    for cat in ['Scan', 'Sel', 'Agg']:
-        # compile_positions.append(x - 0.2)
+    for cat in ['Scan', 'Sel']:
         exec_positions.append(x)
         x += spacing
-        if cat != 'Agg':
+        if cat != 'Sel':
             divider_dotted.append(x - spacing / 2)
     if method != list(method_files)[-1]:
         divider_solid.append(x - spacing / 2)
 
 # Draw boxplots
 for i in range(len(all_compile_data)):
-    # Draw Compile Time boxplot
-    # ax.boxplot(all_compile_data[i], positions=[compile_positions[i]], widths=0.4,
-    #            patch_artist=True,
-    #            boxprops=dict(facecolor='white', edgecolor='black'),
-    #            medianprops=dict(color='black'),
-    #            whiskerprops=dict(color='black'),
-    #            capprops=dict(color='black'),
-    #            flierprops=dict(markerfacecolor='black', markersize=4))
 
     # Draw Execution Time boxplot
-    ax.boxplot(all_exec_data[i], positions=[exec_positions[i]], widths=1,
+    ax.boxplot(all_exec_data[i], positions=[exec_positions[i]], widths=0.8,
                patch_artist=True,
                boxprops=dict(facecolor='gray', edgecolor='black'),
                medianprops=dict(color='black'),
@@ -174,7 +164,7 @@ for i in range(len(all_compile_data)):
     # Geomean marker for Exec
     if len(all_exec_data[i]) > 0:
         exec_geo = gmean(all_exec_data[i])
-        ax.plot(exec_positions[i], exec_geo, marker='x', color='black', markersize=5, linestyle='None')
+        ax.plot(exec_positions[i], exec_geo, marker='x', color='black', markersize=8, linestyle='None')
 
 # Solid dividers between method groups
 for x in divider_solid:
@@ -189,19 +179,22 @@ ax.axhline(y=1, color='black', linestyle=':', linewidth=1.8)
 
 # X-axis: method names only
 xtick_labels = list(method_files.keys())
-xtick_positions = [start + spacing for start in group_starts]  # middle of each method block
+xtick_positions = [start + 0.5 for start in group_starts]  # middle of each method block
 ax.set_xticks(xtick_positions)
 ax.set_xticklabels(xtick_labels, fontsize=19)
 
-# In-plot labels for Scan/Sel/Agg
-label_ypos = 0.10  # in axes coordinates
+# In-plot labels for Scan/Sel
 for group_idx, method in enumerate(method_files):
-    for cat_idx, cat in enumerate(['Scan', 'Sel', 'Agg']):
+    for cat_idx, cat in enumerate(['Scan', 'Scan\n+Sel']):
         xpos = group_starts[group_idx] + cat_idx * spacing
+        if cat == 'Scan\n+Sel':
+            label_ypos = 0.17  # lower for Scan+Sel
+        else:
+            label_ypos = 0.12
         ax.text(xpos, label_ypos, cat,
                 transform=ax.get_xaxis_transform(),
                 ha='center', va='top',
-                fontsize=14, style='italic')
+                fontsize=13, style='italic')
 
 # Legend
 legend_elements = [

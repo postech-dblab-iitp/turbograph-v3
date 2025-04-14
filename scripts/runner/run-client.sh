@@ -1,13 +1,13 @@
 #!/bin/bash
 
-BUILD_DIR="/turbograph-v3/build-release/tools/"
+BUILD_DIR="/turbograph-v3/build/tools/"
 db_dir=$1
 
 
 ${BUILD_DIR}/client \
 	--log-level debug \
 	--slient \
+	--standalone \
 	--workspace ${db_dir} \
 	--disable-merge-join \
-	--join-order-optimizer exhaustive \
-	--compile-only
+	--join-order-optimizer query 

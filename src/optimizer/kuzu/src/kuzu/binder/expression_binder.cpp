@@ -429,6 +429,14 @@ shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(const Expressi
     }
 }
 
+unique_ptr<Expression> ExpressionBinder::createInternalNodeIDExpression(
+    const Expression& expression, unordered_map<table_id_t, property_id_t>* propertyIDPerTable) {
+    auto& node = (NodeExpression&)expression;
+    auto result = make_unique<PropertyExpression>(
+        DataType(DataTypeID::NODE_ID), INTERNAL_ID_SUFFIX, 0, node, propertyIDPerTable);
+    return result;
+}
+
 shared_ptr<Expression> ExpressionBinder::bindParameterExpression(
     const ParsedExpression& parsedExpression) {
     auto& parsedParameterExpression = (ParsedParameterExpression&)parsedExpression;

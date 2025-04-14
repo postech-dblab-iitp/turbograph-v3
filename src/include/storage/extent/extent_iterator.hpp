@@ -59,17 +59,19 @@ typedef struct IOCache {
 class ExtentIterator {
 public:
     // General constructor
-    ExtentIterator(IOCache *io_cache_ = nullptr) : io_cache(io_cache_) {
+    ExtentIterator(IOCache *io_cache_ = nullptr) : io_cache(io_cache_), data_chunks{nullptr} {
         src_data_seqnos.reserve(STANDARD_VECTOR_SIZE);
     }
     // For seek
     ExtentIterator(vector<vector<LogicalType>>& _ext_property_types, vector<vector<idx_t>>& _target_idxs, IOCache *io_cache_ = nullptr) : 
-        io_cache(io_cache_), ext_property_types(_ext_property_types), target_idxs(_target_idxs) {
+        io_cache(io_cache_), ext_property_types(_ext_property_types), target_idxs(_target_idxs), data_chunks{nullptr} {
         src_data_seqnos.reserve(STANDARD_VECTOR_SIZE);
     }
     ~ExtentIterator() {
         for (int i = 0; i < MAX_NUM_DATA_CHUNKS; i++) {
-            delete data_chunks[i];
+            if (data_chunks[i] != nullptr) {
+                delete data_chunks[i];
+            }
         }
     }
 
