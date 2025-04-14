@@ -1075,12 +1075,12 @@ CJoinOrderGEM::BuildQueryGraphAndRunGOO(CExpression *pexpr, ULONG ulTarget, CDou
                 pexprArray);
         }
 		
-		CDouble dSplitTime(timerSplit.ElapsedUS() / CDouble(GPOS_USEC_IN_MSEC));
-		dTotalTime = CDouble(dTotalTime.Get() + dSplitTime.Get());
+		// CDouble dSplitTime(timerSplit.ElapsedUS() / CDouble(GPOS_USEC_IN_MSEC));
+		// dTotalTime = CDouble(dTotalTime.Get() + dSplitTime.Get());
 		
-		if (dTotalTime.Get() > SPLIT_TIME_LIMIT) {
-			break;
-		}
+		// if (dTotalTime.Get() > SPLIT_TIME_LIMIT) {
+		// 	break;
+		// }
     }
 
     return pexprResult;

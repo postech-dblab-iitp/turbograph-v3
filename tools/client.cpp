@@ -457,6 +457,7 @@ int main(int argc, char** argv) {
 
     using_history();
     read_history((options.workspace + "/.history").c_str());
+    rl_bind_key('\t', rl_insert);
 
     InitializeDiskAIO(options.workspace);
 

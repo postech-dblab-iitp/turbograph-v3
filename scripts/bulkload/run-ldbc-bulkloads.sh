@@ -2,7 +2,7 @@
 
 # Define the possible values for each configuration
 BUILD_DIR="/turbograph-v3/build-release/tools/"
-scale_factors=("1" "10" "100")
+scale_factors=("10")
 source_dir_base="/source-data/ldbc/"
 target_dir_base="/data/ldbc/"
 

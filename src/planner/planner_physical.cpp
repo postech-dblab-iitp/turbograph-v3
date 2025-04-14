@@ -1705,6 +1705,7 @@ Planner::pTransformEopPhysicalInnerIndexNLJoinToIdSeekNormal(CExpression *plan_e
                 filter_duckdb_expr =
                     pTransformScalarExpr(filter_pred_expr, outer_cols,
                                          nullptr);  // only outer cols exist
+                pGetIdentIndices(filter_duckdb_expr, filter_col_idxs[0]);
                 filter_exprs.push_back(std::move(filter_duckdb_expr));
             }
 

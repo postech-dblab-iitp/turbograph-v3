@@ -51,7 +51,7 @@ for query_num in $queries; do
         --query "${query_str}" \
         --disable-merge-join \
         --iterations 3 \
-        --join-order-optimizer query \
+        --join-order-optimizer exhaustive \
         --warmup)
 
     # Output to log file

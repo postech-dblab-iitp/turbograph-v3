@@ -424,7 +424,7 @@ void PhysicalIdSeek::doSeekUnionAll(
         output_size = executors[0].SelectExpression(tmp_chunk, state.sels[0]);
 
         // Scan for remaining columns
-        state.ext_it->Rewind();  // temporary code for rewind
+        if (chunk_idx_to_output_cols_idx[0].size() > 0) state.ext_it->Rewind(); 
         auto &non_pred_col_idxs = non_pred_col_idxs_per_schema[0];
         if (non_pred_col_idxs.size() > 0) {
             vector<vector<uint32_t>> target_seqnos_per_extent_after_filter;

@@ -65,8 +65,7 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                     --query "${query_str}" \
                     --disable-merge-join \
                     --iterations 3 \
-                    --join-order-optimizer exhaustive \
-                    --compile-only \
+                    --join-order-optimizer gem \
                     --warmup)
 
                 # Output to log file
