@@ -38,6 +38,11 @@ for col in range(1, 6):
                    not np.isnan(val_this) and val_this > 0:
                     slowdown = val_this / val_base
                     slowdowns[col][method_key].append(slowdown)
+                    
+    # Print results
+    for method_key in ['US', 'SS']:
+        slowdowns[col][method_key] = [s for s in slowdowns[col][method_key] if s > 0]
+        print(f"Slowdown ({method_key}) for {col} columns: {slowdowns[col][method_key]}")
 
 # Prepare for plotting
 fig, ax = plt.subplots(figsize=(5, 3))

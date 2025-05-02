@@ -59,6 +59,11 @@ void HistogramGenerator::CreateHistogram(std::shared_ptr<ClientContext> client, 
         (PartitionCatalogEntry *)cat_instance.GetEntry(*client.get(), DEFAULT_SCHEMA, partition_oid);
     
     spdlog::debug("[CreateHistogram] Create Histogram for partition {}", partition_cat->GetName());
+
+    if (partition_cat->GetName() == "vpart_NODE") {
+        spdlog::debug("[CreateHistogram] Skip for vpart_NODE");
+        return;
+    }
     
     _create_histogram(client, partition_cat);
 }

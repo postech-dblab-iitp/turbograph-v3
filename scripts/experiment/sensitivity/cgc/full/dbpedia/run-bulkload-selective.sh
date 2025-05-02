@@ -4,7 +4,7 @@
 # cluster_algorithms=("DBSCAN" "AGGLOMERATIVE" "GMM")
 # cost_models=("OURS" "OVERLAP" "JACCARD" "WEIGHTEDJACCARD" "COSINE" "DICE")
 # layering_orders=("ASCENDING" "DESCENDING" "NO_SORT")
-cluster_algorithms=("GMM")
+cluster_algorithms=("AGGLOMERATIVE")
 cost_models=("OURS")
 layering_orders=("DESCENDING")
 
@@ -85,7 +85,43 @@ for cluster_algo in "${cluster_algorithms[@]}"; do
                 --relationships http://www.w3.org/2002/07/owl#sameAs ${source_dir}/edges_owl#sameAs_9037.csv \
                 --relationships_backward http://www.w3.org/2002/07/owl#sameAs ${source_dir}/edges_owl#sameAs_9037.csv.backward \
                 --relationships http://xmlns.com/foaf/0.1/depiction ${source_dir}/edges_depiction_6991.csv \
-                --relationships_backward http://xmlns.com/foaf/0.1/depiction ${source_dir}/edges_depiction_6991.csv.backward &> ${log_file}
+                --relationships_backward http://xmlns.com/foaf/0.1/depiction ${source_dir}/edges_depiction_6991.csv.backward \
+                --relationships http://dbpedia.org/ontology/country ${source_dir}/edges_country_8183.csv \
+                --relationships_backward http://dbpedia.org/ontology/country ${source_dir}/edges_country_8183.csv.backward \
+                --relationships http://dbpedia.org/ontology/countryOrigin ${source_dir}/edges_countryOrigin_7466.csv \
+                --relationships_backward http://dbpedia.org/ontology/countryOrigin ${source_dir}/edges_countryOrigin_7466.csv.backward \
+                --relationships http://dbpedia.org/ontology/birthPlace ${source_dir}/edges_birthPlace_2950.csv \
+                --relationships_backward http://dbpedia.org/ontology/birthPlace ${source_dir}/edges_birthPlace_2950.csv.backward \
+                --relationships http://dbpedia.org/ontology/keyPerson ${source_dir}/edges_keyPerson_285.csv \
+                --relationships_backward http://dbpedia.org/ontology/keyPerson ${source_dir}/edges_keyPerson_285.csv.backward \
+                --relationships http://dbpedia.org/ontology/location ${source_dir}/edges_location_4045.csv \
+                --relationships_backward http://dbpedia.org/ontology/location ${source_dir}/edges_location_4045.csv.backward \
+                --relationships http://dbpedia.org/ontology/locationCity ${source_dir}/edges_locationCity_1514.csv \
+                --relationships_backward http://dbpedia.org/ontology/locationCity ${source_dir}/edges_locationCity_1514.csv.backward \
+                --relationships http://dbpedia.org/ontology/locationCountry ${source_dir}/edges_locationCountry_1719.csv \
+                --relationships_backward http://dbpedia.org/ontology/locationCountry ${source_dir}/edges_locationCountry_1719.csv.backward \
+                --relationships http://dbpedia.org/ontology/industry ${source_dir}/edges_industry_6326.csv \
+                --relationships_backward http://dbpedia.org/ontology/industry ${source_dir}/edges_industry_6326.csv.backward \
+                --relationships http://dbpedia.org/ontology/genre ${source_dir}/edges_genre_3794.csv \
+                --relationships_backward http://dbpedia.org/ontology/genre ${source_dir}/edges_genre_3794.csv.backward \
+                --relationships http://dbpedia.org/ontology/musicBy ${source_dir}/edges_musicBy_6854.csv \
+                --relationships_backward http://dbpedia.org/ontology/musicBy ${source_dir}/edges_musicBy_6854.csv.backward \
+                --relationships http://dbpedia.org/ontology/musicComposer ${source_dir}/edges_musicComposer_4171.csv \
+                --relationships_backward http://dbpedia.org/ontology/musicComposer ${source_dir}/edges_musicComposer_4171.csv.backward \
+                --relationships http://dbpedia.org/ontology/musicFusionGenre ${source_dir}/edges_musicFusionGenre_354.csv \
+                --relationships_backward http://dbpedia.org/ontology/musicFusionGenre ${source_dir}/edges_musicFusionGenre_354.csv.backward \
+                --relationships http://dbpedia.org/ontology/musicSubgenre ${source_dir}/edges_musicSubgenre_7829.csv \
+                --relationships_backward http://dbpedia.org/ontology/musicSubgenre ${source_dir}/edges_musicSubgenre_7829.csv.backward \
+                --relationships http://dbpedia.org/ontology/musicalArtist ${source_dir}/edges_musicalArtist_8387.csv \
+                --relationships_backward http://dbpedia.org/ontology/musicalArtist ${source_dir}/edges_musicalArtist_8387.csv.backward \
+                --relationships http://dbpedia.org/ontology/musicalBand ${source_dir}/edges_musicalBand_8808.csv \
+                --relationships_backward http://dbpedia.org/ontology/musicalBand ${source_dir}/edges_musicalBand_8808.csv.backward \
+                --relationships http://dbpedia.org/ontology/stylisticOrigin ${source_dir}/edges_stylisticOrigin_3904.csv \
+                --relationships_backward http://dbpedia.org/ontology/stylisticOrigin ${source_dir}/edges_stylisticOrigin_3904.csv.backward \
+                --relationships http://dbpedia.org/ontology/subregion ${source_dir}/edges_subregion_6627.csv \
+                --relationships_backward http://dbpedia.org/ontology/subregion ${source_dir}/edges_subregion_6627.csv.backward \
+                --relationships http://dbpedia.org/property/album ${source_dir}/edges_album_5285.csv \
+                --relationships_backward http://dbpedia.org/property/album ${source_dir}/edges_album_5285.csv.backward&> ${log_file}
 
             pkill -f store
             sleep 5
